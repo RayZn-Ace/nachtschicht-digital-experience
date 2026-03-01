@@ -110,6 +110,45 @@ export type Database = {
         }
         Relationships: []
       }
+      reservations: {
+        Row: {
+          created_at: string
+          date: string
+          email: string
+          guest_count: number
+          id: string
+          lounge_type: string
+          message: string | null
+          name: string
+          phone: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          email: string
+          guest_count?: number
+          id?: string
+          lounge_type: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          email?: string
+          guest_count?: number
+          id?: string
+          lounge_type?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           buyer_email: string
