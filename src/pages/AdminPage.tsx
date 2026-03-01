@@ -4,17 +4,19 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
 import AdminNewsletter from "@/components/AdminNewsletter";
 import AdminU18 from "@/components/AdminU18";
 import AdminTracking from "@/components/AdminTracking";
 import AdminTags from "@/components/AdminTags";
+import AdminDiscountCodes from "@/components/AdminDiscountCodes";
+import AdminTicketTypes from "@/components/AdminTicketTypes";
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "albums" | "newsletter" | "u18" | "tracking" | "tags">("events");
+  const [tab, setTab] = useState<"events" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -145,9 +147,17 @@ const AdminPage = () => {
           >
             <Tags size={16} /> TAGS
           </button>
+          <button
+            onClick={() => setTab("codes")}
+            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "codes" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+          >
+            <Ticket size={16} /> RABATTCODES
+          </button>
         </div>
 
-        {tab === "tags" ? (
+        {tab === "codes" ? (
+          <AdminDiscountCodes />
+        ) : tab === "tags" ? (
           <AdminTags />
         ) : tab === "tracking" ? (
           <AdminTracking />
@@ -242,6 +252,9 @@ const AdminPage = () => {
                 ABBRECHEN
               </button>
             </div>
+
+            {/* Ticket Types - only for existing events */}
+            {editing && <AdminTicketTypes eventId={editing.id} />}
           </div>
         )}
 

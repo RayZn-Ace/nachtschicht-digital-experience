@@ -1,23 +1,20 @@
 import { useState, useEffect } from "react";
-import { Calendar, MapPin } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
 import type { Event } from "@/types/database";
-import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
-import { trackViewEvent, trackAddToCart, trackPurchase } from "@/lib/tracking";
 
 const EventsPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [buyingId, setBuyingId] = useState<string | null>(null);
-  const { user } = useAuth();
-  const { t } = useI18n();
+  const navigate = useNavigate();
+  const { t, lang } = useI18n();
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchEvents = async () => {
       const { data } = await supabase
         .from("events")
         .select("*")
@@ -26,51 +23,8 @@ const EventsPage = () => {
       if (data) setEvents(data as unknown as Event[]);
       setLoading(false);
     };
-    fetch();
+    fetchEvents();
   }, []);
-
-  const handleBuyTicket = async (event: Event) => {
-    if (!user) {
-      toast.error(t("events.loginRequired"));
-      return;
-    }
-    if (event.tickets_sold >= event.ticket_quantity) {
-      toast.error(t("events.soldOut"));
-      return;
-    }
-    setBuyingId(event.id);
-
-    // Track AddToCart + InitiateCheckout
-    trackAddToCart({ id: event.id, title: event.title, price: event.ticket_price, quantity: 1 });
-
-    const { error, data: ticketData } = await supabase.from("tickets").insert({
-      event_id: event.id,
-      user_id: user.id,
-      quantity: 1,
-      total_price: event.ticket_price,
-      buyer_email: user.email!,
-      buyer_name: user.user_metadata?.full_name || null,
-    }).select("id").single();
-    if (error) {
-      toast.error("Fehler beim Ticketkauf: " + error.message);
-    } else {
-      await supabase.from("events").update({ tickets_sold: event.tickets_sold + 1 }).eq("id", event.id);
-      setEvents((prev) => prev.map((e) => e.id === event.id ? { ...e, tickets_sold: e.tickets_sold + 1 } : e));
-
-      // Track Purchase
-      trackPurchase({
-        orderId: ticketData?.id || event.id,
-        eventId: event.id,
-        eventTitle: event.title,
-        price: event.ticket_price,
-        quantity: 1,
-        email: user.email!,
-      });
-
-      toast.success("Ticket erfolgreich gebucht! 🎉");
-    }
-    setBuyingId(null);
-  };
 
   return (
     <section className="section-padding">
@@ -92,11 +46,13 @@ const EventsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event, i) => {
               const soldOut = event.tickets_sold >= event.ticket_quantity;
+              const remaining = event.ticket_quantity - event.tickets_sold;
               const eventAreas = parseAreas(event.areas);
               return (
                 <ScrollReveal key={event.id} delay={i * 0.1}>
-                  <article className="glass-card overflow-hidden hover-lift group"
-                    onClick={() => trackViewEvent({ id: event.id, title: event.title, date: event.date, category: event.genre || undefined, price: event.ticket_price })}
+                  <article
+                    className="glass-card overflow-hidden hover-lift group cursor-pointer"
+                    onClick={() => navigate(`/tickets/${event.id}`)}
                   >
                     <div className="relative h-52 overflow-hidden">
                       <img
@@ -126,7 +82,6 @@ const EventsPage = () => {
                         </span>
                       </div>
 
-                      {/* Areas badges */}
                       {eventAreas.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 my-2">
                           {eventAreas.map((aId) => {
@@ -143,17 +98,27 @@ const EventsPage = () => {
                       {event.description && (
                         <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
                       )}
-                      {/* Low ticket warning */}
-                      {!soldOut && event.ticket_quantity > 0 && (event.ticket_quantity - event.tickets_sold) <= Math.ceil(event.ticket_quantity * 0.15) && (
-                        <p className="text-destructive text-xs font-medium mt-2">⚠️ Achtung starker Vorverkauf</p>
-                      )}
-                      <button
-                        onClick={() => handleBuyTicket(event)}
-                        disabled={soldOut || buyingId === event.id}
-                        className="mt-3 w-full py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {buyingId === event.id ? t("events.buying") : soldOut ? t("events.soldOut") : t("events.buyTicket")}
-                      </button>
+
+                      {/* Social proof */}
+                      <div className="flex items-center gap-3 mb-3">
+                        {event.tickets_sold > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Users size={12} /> {event.tickets_sold} {lang === "de" ? "Gäste" : "guests"}
+                          </span>
+                        )}
+                        {!soldOut && remaining <= Math.ceil(event.ticket_quantity * 0.2) && remaining > 0 && (
+                          <span className="text-xs text-destructive font-semibold animate-pulse">
+                            🔥 {lang === "de" ? `Noch ${remaining} Tickets` : `${remaining} tickets left`}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-primary font-bold text-xl">{lang === "de" ? "ab" : "from"} {event.ticket_price}€</span>
+                        <span className="px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md text-sm">
+                          {soldOut ? (lang === "de" ? "AUSVERKAUFT" : "SOLD OUT") : (lang === "de" ? "TICKETS" : "TICKETS")}
+                        </span>
+                      </div>
                     </div>
                   </article>
                 </ScrollReveal>
