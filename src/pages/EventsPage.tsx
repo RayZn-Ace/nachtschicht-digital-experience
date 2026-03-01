@@ -143,14 +143,10 @@ const EventsPage = () => {
                       {event.description && (
                         <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
                       )}
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="font-display text-xl text-foreground">
-                          {event.ticket_price > 0 ? `${event.ticket_price.toFixed(2)}€` : t("events.free")}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {event.ticket_quantity - event.tickets_sold} {t("events.available")}
-                        </span>
-                      </div>
+                      {/* Low ticket warning */}
+                      {!soldOut && event.ticket_quantity > 0 && (event.ticket_quantity - event.tickets_sold) <= Math.ceil(event.ticket_quantity * 0.15) && (
+                        <p className="text-destructive text-xs font-medium mt-2">⚠️ Achtung starker Vorverkauf</p>
+                      )}
                       <button
                         onClick={() => handleBuyTicket(event)}
                         disabled={soldOut || buyingId === event.id}
