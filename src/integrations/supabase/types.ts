@@ -127,6 +127,102 @@ export type Database = {
         }
         Relationships: []
       }
+      lounge_bookings: {
+        Row: {
+          created_at: string
+          event_id: string
+          guest_count: number
+          id: string
+          lounge_id: string
+          message: string | null
+          status: string
+          user_email: string
+          user_name: string
+          user_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          guest_count?: number
+          id?: string
+          lounge_id: string
+          message?: string | null
+          status?: string
+          user_email: string
+          user_name: string
+          user_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          guest_count?: number
+          id?: string
+          lounge_id?: string
+          message?: string | null
+          status?: string
+          user_email?: string
+          user_name?: string
+          user_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lounge_bookings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lounge_bookings_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lounges: {
+        Row: {
+          area_id: string
+          capacity: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          min_spend: number
+          name: string
+          price_per_person: number
+          sort_order: number
+        }
+        Insert: {
+          area_id?: string
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          min_spend?: number
+          name: string
+          price_per_person?: number
+          sort_order?: number
+        }
+        Update: {
+          area_id?: string
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          min_spend?: number
+          name?: string
+          price_per_person?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           email: string
