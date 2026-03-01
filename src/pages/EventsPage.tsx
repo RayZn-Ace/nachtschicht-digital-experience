@@ -7,6 +7,7 @@ import type { Event } from "@/types/database";
 import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
+import { trackViewEvent, trackAddToCart, trackPurchase } from "@/lib/tracking";
 
 const EventsPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -38,19 +39,34 @@ const EventsPage = () => {
       return;
     }
     setBuyingId(event.id);
-    const { error } = await supabase.from("tickets").insert({
+
+    // Track AddToCart + InitiateCheckout
+    trackAddToCart({ id: event.id, title: event.title, price: event.ticket_price, quantity: 1 });
+
+    const { error, data: ticketData } = await supabase.from("tickets").insert({
       event_id: event.id,
       user_id: user.id,
       quantity: 1,
       total_price: event.ticket_price,
       buyer_email: user.email!,
       buyer_name: user.user_metadata?.full_name || null,
-    });
+    }).select("id").single();
     if (error) {
       toast.error("Fehler beim Ticketkauf: " + error.message);
     } else {
       await supabase.from("events").update({ tickets_sold: event.tickets_sold + 1 }).eq("id", event.id);
       setEvents((prev) => prev.map((e) => e.id === event.id ? { ...e, tickets_sold: e.tickets_sold + 1 } : e));
+
+      // Track Purchase
+      trackPurchase({
+        orderId: ticketData?.id || event.id,
+        eventId: event.id,
+        eventTitle: event.title,
+        price: event.ticket_price,
+        quantity: 1,
+        email: user.email!,
+      });
+
       toast.success("Ticket erfolgreich gebucht! 🎉");
     }
     setBuyingId(null);
@@ -79,7 +95,9 @@ const EventsPage = () => {
               const eventAreas = parseAreas(event.areas);
               return (
                 <ScrollReveal key={event.id} delay={i * 0.1}>
-                  <article className="glass-card overflow-hidden hover-lift group">
+                  <article className="glass-card overflow-hidden hover-lift group"
+                    onClick={() => trackViewEvent({ id: event.id, title: event.title, date: event.date, category: event.genre || undefined, price: event.ticket_price })}
+                  >
                     <div className="relative h-52 overflow-hidden">
                       <img
                         src={event.image_url || "/images/gallery-1.jpg"}
