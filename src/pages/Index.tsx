@@ -39,7 +39,7 @@ const Index = () => {
             muted
             loop
             playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover scale-110 blur-[2px] animate-[slow-zoom_20s_ease-in-out_infinite_alternate]"
             poster="/images/gallery-8.jpg"
           >
             <source src="/videos/hero-bg.mp4" type="video/mp4" />
