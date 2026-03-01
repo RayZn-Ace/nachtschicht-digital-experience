@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -239,6 +240,17 @@ const ReservationPage = () => {
                 </Button>
               </form>
             </Form>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal delay={0.3}>
+          <div className="mt-6 text-center">
+            <p className="text-muted-foreground text-sm mb-3">Unter 18? Du brauchst ein Erziehungsbeauftragungsformular.</p>
+            <Link to="/u18">
+              <Button variant="outline" size="lg" className="font-display tracking-wider">
+                U18 FORMULAR ÖFFNEN
+              </Button>
+            </Link>
           </div>
         </ScrollReveal>
       </div>

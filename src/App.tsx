@@ -11,6 +11,7 @@ import ClubPage from "./pages/ClubPage";
 import PhotosPage from "./pages/PhotosPage";
 import LoungesPage from "./pages/LoungesPage";
 import ReservationPage from "./pages/ReservationPage";
+import U18Page from "./pages/U18Page";
 import FaqPage from "./pages/FaqPage";
 import JobsPage from "./pages/JobsPage";
 import ContactPage from "./pages/ContactPage";
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/fotos" element={<PhotosPage />} />
               <Route path="/lounges" element={<LoungesPage />} />
               <Route path="/reservierung" element={<ReservationPage />} />
+              <Route path="/u18" element={<U18Page />} />
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/kontakt" element={<ContactPage />} />
