@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { grantConsent } from "@/hooks/useTracking";
 
 const CookieConsent = () => {
   const [visible, setVisible] = useState(false);
@@ -6,10 +7,12 @@ const CookieConsent = () => {
   useEffect(() => {
     const consent = localStorage.getItem("cookie-consent");
     if (!consent) setVisible(true);
+    else if (consent === "all") grantConsent();
   }, []);
 
   const accept = (type: string) => {
     localStorage.setItem("cookie-consent", type);
+    if (type === "all") grantConsent();
     setVisible(false);
   };
 

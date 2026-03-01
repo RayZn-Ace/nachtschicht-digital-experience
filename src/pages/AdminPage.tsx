@@ -4,15 +4,16 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3 } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
 import AdminNewsletter from "@/components/AdminNewsletter";
 import AdminU18 from "@/components/AdminU18";
+import AdminTracking from "@/components/AdminTracking";
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "albums" | "newsletter" | "u18">("events");
+  const [tab, setTab] = useState<"events" | "albums" | "newsletter" | "u18" | "tracking">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -131,9 +132,17 @@ const AdminPage = () => {
           >
             <FileText size={16} /> MUTTIZETTEL
           </button>
+          <button
+            onClick={() => setTab("tracking")}
+            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "tracking" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+          >
+            <BarChart3 size={16} /> TRACKING
+          </button>
         </div>
 
-        {tab === "u18" ? (
+        {tab === "tracking" ? (
+          <AdminTracking />
+        ) : tab === "u18" ? (
           <AdminU18 />
         ) : tab === "newsletter" ? (
           <AdminNewsletter />

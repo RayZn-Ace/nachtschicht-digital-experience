@@ -255,6 +255,132 @@ export type Database = {
           },
         ]
       }
+      tracking_config: {
+        Row: {
+          consent_active: boolean
+          consent_defaults: Json | null
+          consent_mode_v2: boolean
+          debug_mode: boolean
+          ga4_active: boolean
+          ga4_api_secret: string | null
+          ga4_measurement_id: string | null
+          google_ads_active: boolean
+          google_ads_conversion_id: string | null
+          google_ads_conversion_labels: Json | null
+          google_enhanced_conversions: boolean
+          google_server_backup: boolean
+          gtm_active: boolean
+          gtm_container_id: string | null
+          id: string
+          meta_access_token: string | null
+          meta_advanced_matching: boolean
+          meta_capi_active: boolean
+          meta_dataset_id: string | null
+          meta_pixel_active: boolean
+          meta_pixel_id: string | null
+          meta_test_event_code: string | null
+          tiktok_access_token: string | null
+          tiktok_events_api_active: boolean
+          tiktok_pixel_active: boolean
+          tiktok_pixel_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          consent_active?: boolean
+          consent_defaults?: Json | null
+          consent_mode_v2?: boolean
+          debug_mode?: boolean
+          ga4_active?: boolean
+          ga4_api_secret?: string | null
+          ga4_measurement_id?: string | null
+          google_ads_active?: boolean
+          google_ads_conversion_id?: string | null
+          google_ads_conversion_labels?: Json | null
+          google_enhanced_conversions?: boolean
+          google_server_backup?: boolean
+          gtm_active?: boolean
+          gtm_container_id?: string | null
+          id?: string
+          meta_access_token?: string | null
+          meta_advanced_matching?: boolean
+          meta_capi_active?: boolean
+          meta_dataset_id?: string | null
+          meta_pixel_active?: boolean
+          meta_pixel_id?: string | null
+          meta_test_event_code?: string | null
+          tiktok_access_token?: string | null
+          tiktok_events_api_active?: boolean
+          tiktok_pixel_active?: boolean
+          tiktok_pixel_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consent_active?: boolean
+          consent_defaults?: Json | null
+          consent_mode_v2?: boolean
+          debug_mode?: boolean
+          ga4_active?: boolean
+          ga4_api_secret?: string | null
+          ga4_measurement_id?: string | null
+          google_ads_active?: boolean
+          google_ads_conversion_id?: string | null
+          google_ads_conversion_labels?: Json | null
+          google_enhanced_conversions?: boolean
+          google_server_backup?: boolean
+          gtm_active?: boolean
+          gtm_container_id?: string | null
+          id?: string
+          meta_access_token?: string | null
+          meta_advanced_matching?: boolean
+          meta_capi_active?: boolean
+          meta_dataset_id?: string | null
+          meta_pixel_active?: boolean
+          meta_pixel_id?: string | null
+          meta_test_event_code?: string | null
+          tiktok_access_token?: string | null
+          tiktok_events_api_active?: boolean
+          tiktok_pixel_active?: boolean
+          tiktok_pixel_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tracking_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_id: string
+          event_name: string
+          id: string
+          payload: Json
+          platforms: Json
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_id: string
+          event_name: string
+          id?: string
+          payload?: Json
+          platforms?: Json
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_id?: string
+          event_name?: string
+          id?: string
+          payload?: Json
+          platforms?: Json
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       u18_forms: {
         Row: {
           accept_newsletter: boolean
