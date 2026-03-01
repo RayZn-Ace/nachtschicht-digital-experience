@@ -47,13 +47,16 @@ const JobsPage = () => {
                 <input type="number" min={18} required className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
               </div>
               <div>
-                <label className="text-sm text-foreground mb-1 block">Bereich *</label>
+                <label className="text-sm text-foreground mb-1 block">Welcher Job interessiert dich? *</label>
                 <select required className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none">
                   <option value="">Bitte wählen</option>
-                  <option value="service">Servicekraft (Runner)</option>
-                  <option value="bar">Barkraft</option>
-                  <option value="security">Security</option>
-                  <option value="other">Sonstiges</option>
+                  <option value="theke">🪩 Theke / Barkeeper / Cocktailkeeper</option>
+                  <option value="lager">📦 Lagermitarbeiter</option>
+                  <option value="kasse">💼 Kasse / Infobüro</option>
+                  <option value="garderobe">🧦 Garderobe</option>
+                  <option value="lightjockey">💡 Lightjockey</option>
+                  <option value="runner">💰 Runner</option>
+                  <option value="fotograf">💬 Fotograf / Videograf</option>
                 </select>
               </div>
             </div>
