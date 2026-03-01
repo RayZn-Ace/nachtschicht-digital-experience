@@ -27,3 +27,16 @@ export interface Ticket {
   buyer_email: string;
   created_at: string;
 }
+
+export interface EventTag {
+  id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+export interface EventTagAssignment {
+  id: string;
+  event_id: string;
+  tag_id: string;
+}
