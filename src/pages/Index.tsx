@@ -3,6 +3,7 @@ import { Instagram, Facebook, ChevronRight, MapPin, Calendar } from "lucide-reac
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
+import ScrollReveal from "@/components/ScrollReveal";
 
 const galleryImages = [
   "/images/gallery-1.jpg", "/images/gallery-2.jpg", "/images/gallery-3.jpg",
@@ -62,14 +63,17 @@ const Index = () => {
       {/* Next Events */}
       <section className="section-padding">
         <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">NEXT <span className="text-gradient">EVENTS</span></h2>
-            <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <h2 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">NEXT <span className="text-gradient">EVENTS</span></h2>
+              <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
+            </div>
+          </ScrollReveal>
           {events.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <div key={event.id} className="glass-card overflow-hidden hover-lift group">
+              {events.map((event, i) => (
+                <ScrollReveal key={event.id} delay={i * 0.15}>
+                <div className="glass-card overflow-hidden hover-lift group">
                   <div className="relative h-56 overflow-hidden">
                     <img src={event.image_url || "/images/gallery-1.jpg"} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
@@ -89,6 +93,7 @@ const Index = () => {
                     </div>
                   </div>
                 </div>
+                </ScrollReveal>
               ))}
             </div>
           ) : (
@@ -105,15 +110,19 @@ const Index = () => {
       {/* Gallery Preview */}
       <section className="section-padding bg-secondary/50">
         <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">FOTO <span className="text-gradient">GALERIE</span></h2>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <h2 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">FOTO <span className="text-gradient">GALERIE</span></h2>
+            </div>
+          </ScrollReveal>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
             {galleryImages.map((img, i) => (
-              <div key={i} className="relative aspect-square overflow-hidden rounded-lg group">
-                <img src={img} alt={`Nachtschicht Party Foto ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
-                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-colors duration-300" />
-              </div>
+              <ScrollReveal key={i} delay={i * 0.1}>
+                <div className="relative aspect-square overflow-hidden rounded-lg group">
+                  <img src={img} alt={`Nachtschicht Party Foto ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-colors duration-300" />
+                </div>
+              </ScrollReveal>
             ))}
           </div>
           <div className="text-center mt-10">
@@ -125,22 +134,28 @@ const Index = () => {
       {/* About / SEO */}
       <section className="section-padding">
         <div className="container mx-auto max-w-4xl">
-          <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground text-center mb-8">WILLKOMMEN IN DER <span className="text-gradient">NACHTSCHICHT</span></h2>
-          <div className="space-y-4 text-muted-foreground leading-relaxed text-sm md:text-base">
-            <p>Die Nachtschicht Kaiserslautern gehört zu den bekanntesten Clubs in der Region und ist ein zentraler Treffpunkt für Nachtschwärmer, Partygäste und Musikliebhaber. Mit verschiedenen Areas, angesagten DJs und regelmäßig wechselnden Events bietet die Location ein abwechslungsreiches Nachtleben für jeden Geschmack. Ob Charts, Black, House oder 90er- und 2000er-Partys – in der Nachtschicht Kaiserslautern wird jedes Wochenende gefeiert.</p>
-            <p>Besucher aus Kaiserslautern, dem gesamten Rheinland-Pfalz sowie aus dem Saarland und der Umgebung reisen gezielt an, um unvergessliche Nächte zu erleben. Die moderne Clubtechnik, hochwertige Sound- und Lichtanlagen sowie aufwendige Dekorationen sorgen für eine einzigartige Atmosphäre. Neben klassischen Clubnächten finden regelmäßig Mottopartys, Special Events, Live-Acts und besondere Shows statt.</p>
-            <p>Die Nachtschicht Kaiserslautern ist außerdem bekannt für ihre große Community, professionelle Organisation und ein sicheres Umfeld. Wer ein außergewöhnliches Nachtleben in Kaiserslautern sucht, ist hier genau richtig.</p>
-          </div>
+          <ScrollReveal>
+            <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground text-center mb-8">WILLKOMMEN IN DER <span className="text-gradient">NACHTSCHICHT</span></h2>
+          </ScrollReveal>
+          <ScrollReveal delay={0.2}>
+            <div className="space-y-4 text-muted-foreground leading-relaxed text-sm md:text-base">
+              <p>Die Nachtschicht Kaiserslautern gehört zu den bekanntesten Clubs in der Region und ist ein zentraler Treffpunkt für Nachtschwärmer, Partygäste und Musikliebhaber. Mit verschiedenen Areas, angesagten DJs und regelmäßig wechselnden Events bietet die Location ein abwechslungsreiches Nachtleben für jeden Geschmack. Ob Charts, Black, House oder 90er- und 2000er-Partys – in der Nachtschicht Kaiserslautern wird jedes Wochenende gefeiert.</p>
+              <p>Besucher aus Kaiserslautern, dem gesamten Rheinland-Pfalz sowie aus dem Saarland und der Umgebung reisen gezielt an, um unvergessliche Nächte zu erleben. Die moderne Clubtechnik, hochwertige Sound- und Lichtanlagen sowie aufwendige Dekorationen sorgen für eine einzigartige Atmosphäre. Neben klassischen Clubnächten finden regelmäßig Mottopartys, Special Events, Live-Acts und besondere Shows statt.</p>
+              <p>Die Nachtschicht Kaiserslautern ist außerdem bekannt für ihre große Community, professionelle Organisation und ein sicheres Umfeld. Wer ein außergewöhnliches Nachtleben in Kaiserslautern sucht, ist hier genau richtig.</p>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* Map */}
       <section className="section-padding bg-secondary/50">
         <div className="container mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground"><MapPin className="inline-block mr-2 text-primary" size={32} />ANFAHRT</h2>
-            <p className="text-muted-foreground mt-2">Zollamtstraße 28, 67663 Kaiserslautern</p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-8">
+              <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground"><MapPin className="inline-block mr-2 text-primary" size={32} />ANFAHRT</h2>
+              <p className="text-muted-foreground mt-2">Zollamtstraße 28, 67663 Kaiserslautern</p>
+            </div>
+          </ScrollReveal>
           <div className="rounded-xl overflow-hidden border border-border/50 aspect-video max-w-4xl mx-auto">
             <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2587.5!2d7.768!3d49.444!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4796320c3b0c9c5f%3A0x0!2sZollamtstra%C3%9Fe+28%2C+67663+Kaiserslautern!5e0!3m2!1sde!2sde!4v1" width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Nachtschicht Kaiserslautern Karte" />
           </div>

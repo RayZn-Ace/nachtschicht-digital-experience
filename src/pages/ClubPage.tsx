@@ -1,4 +1,5 @@
 import { Music, Disc3 } from "lucide-react";
+import ScrollReveal from "@/components/ScrollReveal";
 
 const areas = [
   {
@@ -35,8 +36,9 @@ const ClubPage = () => (
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-        {areas.map((area) => (
-          <div key={area.name} className="glass-card p-6 hover-lift">
+        {areas.map((area, i) => (
+          <ScrollReveal key={area.name} delay={i * 0.15}>
+          <div className="glass-card p-6 hover-lift">
             <Disc3 className="text-primary mb-4" size={32} />
             <h2 className="font-display text-3xl tracking-wider text-foreground mb-3">{area.name}</h2>
             <p className="text-muted-foreground text-sm mb-6 leading-relaxed">{area.description}</p>
@@ -57,6 +59,7 @@ const ClubPage = () => (
               </div>
             </div>
           </div>
+          </ScrollReveal>
         ))}
       </div>
 
