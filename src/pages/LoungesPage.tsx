@@ -54,14 +54,22 @@ const LoungesPage = () => {
     fetchAll();
   }, []);
 
-  // Filter events that have La Vie open
-  const lavieEvents = events.filter((e) => {
+  // Get all unique area_ids from lounges
+  const loungeAreaIds = [...new Set(lounges.map((l) => l.area_id))];
+
+  // Filter events that have at least one lounge area open
+  const loungeEvents = events.filter((e) => {
     const areas = parseAreas(e.areas);
-    return areas.includes("lavie");
+    return loungeAreaIds.some((aId) => areas.includes(aId));
   });
 
   // Selected event
-  const currentEvent = lavieEvents.find((e) => e.id === selectedEvent);
+  const currentEvent = loungeEvents.find((e) => e.id === selectedEvent);
+
+  // Filter lounges to only show those whose area is open for the selected event
+  const availableLounges = selectedEvent && currentEvent
+    ? lounges.filter((l) => parseAreas(currentEvent.areas).includes(l.area_id))
+    : [];
 
   // Check if a lounge is booked for the selected event
   const isBooked = (loungeId: string) =>
@@ -112,17 +120,17 @@ const LoungesPage = () => {
             </h1>
             <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
             <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
-              Sichere dir eine unserer exklusiven VIP Lounges in der La Vie Area.
-              Wähle zuerst dein Event, dann deine Lounge.
+              Sichere dir eine unserer exklusiven VIP Lounges.
+              Wähle zuerst dein Event – verfügbare Lounges werden je nach offener Area angezeigt.
             </p>
           </div>
         </ScrollReveal>
 
         {loading ? (
           <div className="text-center text-muted-foreground py-16">Laden...</div>
-        ) : lavieEvents.length === 0 ? (
+        ) : loungeEvents.length === 0 ? (
           <div className="text-center text-muted-foreground py-16">
-            Aktuell keine Events mit La Vie verfügbar. Schau bald wieder vorbei!
+            Aktuell keine Events mit Lounge-Bereichen verfügbar. Schau bald wieder vorbei!
           </div>
         ) : (
           <>
@@ -139,7 +147,7 @@ const LoungesPage = () => {
                   className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="">— Bitte Event wählen —</option>
-                  {lavieEvents.map((ev) => (
+                  {loungeEvents.map((ev) => (
                     <option key={ev.id} value={ev.id}>
                       {ev.title} — {new Date(ev.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })}
                     </option>
@@ -149,9 +157,9 @@ const LoungesPage = () => {
             </ScrollReveal>
 
             {/* Lounges grid */}
-            {selectedEvent && (
+            {selectedEvent && availableLounges.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-                {lounges.map((lounge, i) => {
+                {availableLounges.map((lounge, i) => {
                   const booked = isBooked(lounge.id);
                   return (
                     <ScrollReveal key={lounge.id} delay={i * 0.1}>
@@ -173,7 +181,7 @@ const LoungesPage = () => {
                             </div>
                           )}
                           <span className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
-                            LA VIE
+                            {lounge.area_id === "mausefalle" ? "MAUSEFALLE" : "LA VIE"}
                           </span>
                         </div>
 
