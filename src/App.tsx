@@ -22,6 +22,7 @@ import DatenschutzPage from "./pages/DatenschutzPage";
 import ImpressumPage from "./pages/ImpressumPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
+import MyTicketsPage from "./pages/MyTicketsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,7 +52,8 @@ const App = () => (
                   <Route path="/datenschutz" element={<DatenschutzPage />} />
                   <Route path="/impressum" element={<ImpressumPage />} />
                   <Route path="/login" element={<LoginPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/meine-tickets" element={<MyTicketsPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Layout>
