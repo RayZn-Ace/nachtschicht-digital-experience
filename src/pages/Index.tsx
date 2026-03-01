@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import ScrollReveal from "@/components/ScrollReveal";
+import { useI18n } from "@/hooks/useI18n";
+import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 
 const galleryImages = [
   "/images/gallery-1.jpg", "/images/gallery-2.jpg", "/images/gallery-3.jpg",
@@ -11,6 +13,7 @@ const galleryImages = [
 ];
 
 const Index = () => {
+  const { t } = useI18n();
   const [events, setEvents] = useState<Event[]>([]);
 
   useEffect(() => {
@@ -40,14 +43,14 @@ const Index = () => {
             NACHT<span className="text-gradient">SCHICHT</span>
           </h1>
           <p className="text-lg md:text-2xl text-foreground/80 font-light mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            Kaiserslauterns #1 Club Experience
+            {t("hero.subtitle")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: "0.4s" }}>
             <Link to="/events" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-all glow-red">
-              TICKETS SICHERN <ChevronRight size={20} />
+              {t("hero.tickets")} <ChevronRight size={20} />
             </Link>
             <Link to="/club" className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-foreground/30 text-foreground font-display text-xl tracking-wider rounded-md hover:bg-foreground/10 transition-all">
-              CLUB ENTDECKEN
+              {t("hero.discover")}
             </Link>
           </div>
           <div className="flex justify-center gap-6 mt-10 animate-fade-in" style={{ animationDelay: "0.6s" }}>
@@ -86,7 +89,7 @@ const Index = () => {
         <div className="container mx-auto">
           <ScrollReveal>
             <div className="text-center mb-12">
-              <h2 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">NEXT <span className="text-gradient">EVENTS</span></h2>
+              <h2 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">{t("index.nextEvents")} <span className="text-gradient">{t("index.nextEventsHighlight")}</span></h2>
               <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
             </div>
           </ScrollReveal>
@@ -106,6 +109,16 @@ const Index = () => {
                   <div className="p-5">
                     <h3 className="font-display text-2xl tracking-wider text-foreground mb-1">{event.title}</h3>
                     <p className="text-muted-foreground text-sm">{event.genre}</p>
+                    {parseAreas(event.areas).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {parseAreas(event.areas).map((aId) => {
+                          const area = CLUB_AREAS.find((a) => a.id === aId);
+                          return area ? (
+                            <span key={aId} className={`text-xs px-2 py-0.5 rounded-full ${area.color}`}>{area.name}</span>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between mt-3">
                       <span className="font-display text-lg text-foreground">{event.ticket_price > 0 ? `${event.ticket_price.toFixed(2)}€` : "KOSTENLOS"}</span>
                       <Link to="/events" className="inline-flex items-center gap-1 text-primary text-sm font-medium hover:gap-2 transition-all">
@@ -118,11 +131,11 @@ const Index = () => {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">Bald kommen neue Events – stay tuned!</p>
+            <p className="text-center text-muted-foreground py-8">{t("index.stayTuned")}</p>
           )}
           <div className="text-center mt-10">
             <Link to="/events" className="inline-flex items-center gap-2 px-8 py-3 border border-primary text-primary font-display text-lg tracking-wider rounded-md hover:bg-primary hover:text-primary-foreground transition-all">
-              ALLE EVENTS ANSEHEN
+              {t("index.allEvents")}
             </Link>
           </div>
         </div>
@@ -133,7 +146,7 @@ const Index = () => {
         <div className="container mx-auto">
           <ScrollReveal>
             <div className="text-center mb-12">
-              <h2 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">FOTO <span className="text-gradient">GALERIE</span></h2>
+              <h2 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">{t("index.gallery")} <span className="text-gradient">{t("index.galleryHighlight")}</span></h2>
             </div>
           </ScrollReveal>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
@@ -147,7 +160,7 @@ const Index = () => {
             ))}
           </div>
           <div className="text-center mt-10">
-            <Link to="/fotos" className="inline-flex items-center gap-2 px-8 py-3 border border-primary text-primary font-display text-lg tracking-wider rounded-md hover:bg-primary hover:text-primary-foreground transition-all">ALLE FOTOS ANSEHEN</Link>
+            <Link to="/fotos" className="inline-flex items-center gap-2 px-8 py-3 border border-primary text-primary font-display text-lg tracking-wider rounded-md hover:bg-primary hover:text-primary-foreground transition-all">{t("index.allPhotos")}</Link>
           </div>
         </div>
       </section>
@@ -156,7 +169,7 @@ const Index = () => {
       <section className="section-padding">
         <div className="container mx-auto max-w-4xl">
           <ScrollReveal>
-            <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground text-center mb-8">WILLKOMMEN IN DER <span className="text-gradient">NACHTSCHICHT</span></h2>
+            <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground text-center mb-8">{t("index.welcome")} <span className="text-gradient">NACHTSCHICHT</span></h2>
           </ScrollReveal>
           <ScrollReveal delay={0.2}>
             <div className="space-y-4 text-muted-foreground leading-relaxed text-sm md:text-base">
@@ -173,7 +186,7 @@ const Index = () => {
         <div className="container mx-auto">
           <ScrollReveal>
             <div className="text-center mb-8">
-              <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground"><MapPin className="inline-block mr-2 text-primary" size={32} />ANFAHRT</h2>
+              <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground"><MapPin className="inline-block mr-2 text-primary" size={32} />{t("index.directions")}</h2>
               <p className="text-muted-foreground mt-2">Zollamtstraße 28, 67663 Kaiserslautern</p>
             </div>
           </ScrollReveal>
@@ -181,7 +194,7 @@ const Index = () => {
             <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2587.5!2d7.768!3d49.444!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4796320c3b0c9c5f%3A0x0!2sZollamtstra%C3%9Fe+28%2C+67663+Kaiserslautern!5e0!3m2!1sde!2sde!4v1" width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Nachtschicht Kaiserslautern Karte" />
           </div>
           <div className="text-center mt-6">
-            <a href="https://www.google.com/maps/dir/?api=1&destination=Zollamtstraße+28,+67663+Kaiserslautern" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors">ROUTE PLANEN</a>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=Zollamtstraße+28,+67663+Kaiserslautern" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors">{t("index.planRoute")}</a>
           </div>
         </div>
       </section>

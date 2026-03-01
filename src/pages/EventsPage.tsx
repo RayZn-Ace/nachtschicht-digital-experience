@@ -2,15 +2,18 @@ import { useState, useEffect } from "react";
 import { Calendar, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/hooks/useI18n";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
+import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 
 const EventsPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const { user } = useAuth();
+  const { t } = useI18n();
 
   useEffect(() => {
     const fetch = async () => {
@@ -27,11 +30,11 @@ const EventsPage = () => {
 
   const handleBuyTicket = async (event: Event) => {
     if (!user) {
-      toast.error("Bitte melde dich an, um Tickets zu kaufen.");
+      toast.error(t("events.loginRequired"));
       return;
     }
     if (event.tickets_sold >= event.ticket_quantity) {
-      toast.error("Dieses Event ist leider ausverkauft.");
+      toast.error(t("events.soldOut"));
       return;
     }
     setBuyingId(event.id);
@@ -59,20 +62,21 @@ const EventsPage = () => {
         <ScrollReveal>
           <div className="text-center mb-12">
             <h1 className="font-display text-4xl md:text-7xl tracking-wider text-foreground">
-              EVENTS & <span className="text-gradient">TICKETS</span>
+              {t("events.title")} <span className="text-gradient">{t("events.titleHighlight")}</span>
             </h1>
             <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
           </div>
         </ScrollReveal>
 
         {loading ? (
-          <div className="text-center text-muted-foreground py-16">Events werden geladen...</div>
+          <div className="text-center text-muted-foreground py-16">{t("events.loading")}</div>
         ) : events.length === 0 ? (
-          <div className="text-center text-muted-foreground py-16">Aktuell keine Events verfügbar. Schau bald wieder vorbei!</div>
+          <div className="text-center text-muted-foreground py-16">{t("events.empty")}</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event, i) => {
               const soldOut = event.tickets_sold >= event.ticket_quantity;
+              const eventAreas = parseAreas(event.areas);
               return (
                 <ScrollReveal key={event.id} delay={i * 0.1}>
                   <article className="glass-card overflow-hidden hover-lift group">
@@ -91,7 +95,7 @@ const EventsPage = () => {
                       )}
                       {soldOut && (
                         <span className="absolute top-3 left-3 bg-destructive text-primary-foreground px-3 py-1 rounded-full text-xs font-bold">
-                          AUSVERKAUFT
+                          {t("events.soldOut")}
                         </span>
                       )}
                     </div>
@@ -103,20 +107,30 @@ const EventsPage = () => {
                           {new Date(event.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })} – {event.time}
                         </span>
                       </div>
-                      {event.areas && (
-                        <p className="text-muted-foreground text-sm flex items-center gap-1 mb-2">
-                          <MapPin size={14} /> {event.areas}
-                        </p>
+
+                      {/* Areas badges */}
+                      {eventAreas.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 my-2">
+                          {eventAreas.map((aId) => {
+                            const area = CLUB_AREAS.find((a) => a.id === aId);
+                            return area ? (
+                              <span key={aId} className={`text-xs px-2 py-0.5 rounded-full font-medium ${area.color}`}>
+                                {area.name}
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
                       )}
+
                       {event.description && (
                         <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
                       )}
                       <div className="flex items-center justify-between mt-3">
                         <span className="font-display text-xl text-foreground">
-                          {event.ticket_price > 0 ? `${event.ticket_price.toFixed(2)}€` : "KOSTENLOS"}
+                          {event.ticket_price > 0 ? `${event.ticket_price.toFixed(2)}€` : t("events.free")}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {event.ticket_quantity - event.tickets_sold} verfügbar
+                          {event.ticket_quantity - event.tickets_sold} {t("events.available")}
                         </span>
                       </div>
                       <button
@@ -124,7 +138,7 @@ const EventsPage = () => {
                         disabled={soldOut || buyingId === event.id}
                         className="mt-3 w-full py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {buyingId === event.id ? "WIRD GEBUCHT..." : soldOut ? "AUSVERKAUFT" : "TICKET SICHERN"}
+                        {buyingId === event.id ? t("events.buying") : soldOut ? t("events.soldOut") : t("events.buyTicket")}
                       </button>
                     </div>
                   </article>
@@ -133,12 +147,6 @@ const EventsPage = () => {
             })}
           </div>
         )}
-
-        <ScrollReveal>
-          <div className="max-w-3xl mx-auto mt-16 text-muted-foreground text-sm leading-relaxed">
-            <p>Die Events in der Nachtschicht Kaiserslautern sind vielfältig, modern und perfekt auf das Publikum abgestimmt. Jede Woche erwarten die Gäste neue Highlights, von großen Mottopartys über bekannte DJ-Acts bis hin zu exklusiven Eventreihen.</p>
-          </div>
-        </ScrollReveal>
       </div>
     </section>
   );
