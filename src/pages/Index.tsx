@@ -60,6 +60,27 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Highlight Event */}
+      <section className="py-8 md:py-12">
+        <div className="container mx-auto">
+          <ScrollReveal>
+            <Link to="/events" className="block relative rounded-2xl overflow-hidden group hover-lift">
+              <img
+                src="/images/events/ak-ausserkontrolle.png"
+                alt="AK Ausserkontrolle Live – 21.03.26 in der Nachtschicht Kaiserslautern"
+                className="w-full aspect-[21/9] object-cover group-hover:scale-105 transition-transform duration-700"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8">
+                <span className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded font-display text-xs tracking-wider mb-2">HIGHLIGHT</span>
+                <h2 className="font-display text-2xl md:text-4xl tracking-wider text-foreground">AK AUSSERKONTROLLE</h2>
+                <p className="text-muted-foreground text-sm">21. März 2026 · Live in der Nachtschicht</p>
+              </div>
+            </Link>
+          </ScrollReveal>
+        </div>
+      </section>
+
       {/* Next Events */}
       <section className="section-padding">
         <div className="container mx-auto">
