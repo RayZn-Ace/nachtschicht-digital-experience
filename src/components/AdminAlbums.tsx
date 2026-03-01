@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Eye, EyeOff, Upload, Image, X } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Upload, Image, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -143,6 +143,42 @@ const AdminAlbums = () => {
     fetchAlbums();
   };
 
+  // Drag & drop state
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  const handleDragStart = (idx: number) => {
+    dragItem.current = idx;
+    setDragIdx(idx);
+  };
+
+  const handleDragEnter = (idx: number) => {
+    dragOverItem.current = idx;
+  };
+
+  const handleDragEnd = async () => {
+    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
+      setDragIdx(null);
+      return;
+    }
+    const reordered = [...photos];
+    const [removed] = reordered.splice(dragItem.current, 1);
+    reordered.splice(dragOverItem.current, 0, removed);
+
+    setPhotos(reordered);
+    setDragIdx(null);
+    dragItem.current = null;
+    dragOverItem.current = null;
+
+    // Persist new order
+    const updates = reordered.map((p, i) =>
+      supabase.from("album_photos").update({ sort_order: i }).eq("id", p.id)
+    );
+    await Promise.all(updates);
+    toast.success("Reihenfolge gespeichert");
+  };
+
   // Album detail view
   if (selectedAlbum) {
     return (
@@ -169,13 +205,28 @@ const AdminAlbums = () => {
           </label>
         </div>
 
+        <p className="text-xs text-muted-foreground">Fotos per Drag & Drop sortieren – einfach ziehen und loslassen.</p>
+
         {photos.length === 0 ? (
           <p className="text-muted-foreground text-center py-12">Noch keine Fotos in diesem Album.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {photos.map((photo) => (
-              <div key={photo.id} className="relative group rounded-lg overflow-hidden bg-muted aspect-square">
-                <img src={photo.image_url} alt={photo.title || ""} className="w-full h-full object-cover" loading="lazy" />
+            {photos.map((photo, idx) => (
+              <div
+                key={photo.id}
+                draggable
+                onDragStart={() => handleDragStart(idx)}
+                onDragEnter={() => handleDragEnter(idx)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+                className={`relative group rounded-lg overflow-hidden bg-muted aspect-square cursor-grab active:cursor-grabbing transition-all ${
+                  dragIdx === idx ? "opacity-40 scale-95 ring-2 ring-primary" : ""
+                }`}
+              >
+                <img src={photo.image_url} alt={photo.title || ""} className="w-full h-full object-cover pointer-events-none" loading="lazy" />
+                <div className="absolute top-1 left-1 p-1 rounded bg-background/60 text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                  <GripVertical size={14} />
+                </div>
                 <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button
                     onClick={() => deletePhoto(photo)}
