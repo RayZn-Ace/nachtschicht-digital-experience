@@ -4,11 +4,13 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
+import AdminAlbums from "@/components/AdminAlbums";
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
+  const [tab, setTab] = useState<"events" | "albums">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -92,21 +94,42 @@ const AdminPage = () => {
   return (
     <section className="section-padding">
       <div className="container mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-3xl md:text-5xl tracking-wider text-foreground">
             ADMIN <span className="text-gradient">DASHBOARD</span>
           </h1>
-          <div className="flex gap-3">
-            <button
-              onClick={() => { resetForm(); setShowForm(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors"
-            >
-              <Plus size={18} /> NEUES EVENT
-            </button>
-            <button onClick={signOut} className="flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors">
-              <LogOut size={18} /> LOGOUT
-            </button>
-          </div>
+          <button onClick={signOut} className="flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors">
+            <LogOut size={18} /> LOGOUT
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setTab("events")}
+            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors ${tab === "events" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+          >
+            EVENTS
+          </button>
+          <button
+            onClick={() => setTab("albums")}
+            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "albums" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+          >
+            <Image size={16} /> FOTOALBEN
+          </button>
+        </div>
+
+        {tab === "albums" ? (
+          <AdminAlbums />
+        ) : (
+        <>
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => { resetForm(); setShowForm(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={18} /> NEUES EVENT
+          </button>
         </div>
 
         {showForm && (
@@ -235,6 +258,8 @@ const AdminPage = () => {
             );
           })}
         </div>
+        </>
+        )}
       </div>
     </section>
   );
