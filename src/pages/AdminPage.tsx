@@ -4,14 +4,15 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
 import AdminNewsletter from "@/components/AdminNewsletter";
+import AdminU18 from "@/components/AdminU18";
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "albums" | "newsletter">("events");
+  const [tab, setTab] = useState<"events" | "albums" | "newsletter" | "u18">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -124,9 +125,17 @@ const AdminPage = () => {
           >
             <Mail size={16} /> NEWSLETTER
           </button>
+          <button
+            onClick={() => setTab("u18")}
+            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "u18" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+          >
+            <FileText size={16} /> MUTTIZETTEL
+          </button>
         </div>
 
-        {tab === "newsletter" ? (
+        {tab === "u18" ? (
+          <AdminU18 />
+        ) : tab === "newsletter" ? (
           <AdminNewsletter />
         ) : tab === "albums" ? (
           <AdminAlbums />
