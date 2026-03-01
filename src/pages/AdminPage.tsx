@@ -4,13 +4,14 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
+import AdminNewsletter from "@/components/AdminNewsletter";
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "albums">("events");
+  const [tab, setTab] = useState<"events" | "albums" | "newsletter">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -117,9 +118,17 @@ const AdminPage = () => {
           >
             <Image size={16} /> FOTOALBEN
           </button>
+          <button
+            onClick={() => setTab("newsletter")}
+            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "newsletter" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+          >
+            <Mail size={16} /> NEWSLETTER
+          </button>
         </div>
 
-        {tab === "albums" ? (
+        {tab === "newsletter" ? (
+          <AdminNewsletter />
+        ) : tab === "albums" ? (
           <AdminAlbums />
         ) : (
         <>
