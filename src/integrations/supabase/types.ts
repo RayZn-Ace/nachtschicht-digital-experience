@@ -76,6 +76,60 @@ export type Database = {
         }
         Relationships: []
       }
+      event_tag_assignments: {
+        Row: {
+          event_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_tag_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_tag_assignments_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "event_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           areas: string | null

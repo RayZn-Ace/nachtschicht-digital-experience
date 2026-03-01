@@ -4,16 +4,17 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3 } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
 import AdminNewsletter from "@/components/AdminNewsletter";
 import AdminU18 from "@/components/AdminU18";
 import AdminTracking from "@/components/AdminTracking";
+import AdminTags from "@/components/AdminTags";
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "albums" | "newsletter" | "u18" | "tracking">("events");
+  const [tab, setTab] = useState<"events" | "albums" | "newsletter" | "u18" | "tracking" | "tags">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -138,9 +139,17 @@ const AdminPage = () => {
           >
             <BarChart3 size={16} /> TRACKING
           </button>
+          <button
+            onClick={() => setTab("tags")}
+            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "tags" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+          >
+            <Tags size={16} /> TAGS
+          </button>
         </div>
 
-        {tab === "tracking" ? (
+        {tab === "tags" ? (
+          <AdminTags />
+        ) : tab === "tracking" ? (
           <AdminTracking />
         ) : tab === "u18" ? (
           <AdminU18 />
