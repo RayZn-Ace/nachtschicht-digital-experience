@@ -3,7 +3,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 
 const faqs = [
   { q: "Ich habe kein Ticket erhalten – was tun?", a: "Bitte prüfe zunächst deinen Spam-Ordner. Stelle sicher, dass die Zahlung erfolgreich war und die richtige E-Mail-Adresse angegeben wurde. Falls du weiterhin Probleme hast, kontaktiere unseren Support: Telefon +49 631 3105759 oder E-Mail info@nachtschicht-kaiserslautern.de" },
-  { q: "Was sind die Öffnungszeiten?", a: "Die Nachtschicht hat in der Regel freitags und samstags ab 22:00 Uhr geöffnet. Sonderveranstaltungen können abweichende Zeiten haben – schau dir unsere Event-Seite für aktuelle Infos an." },
+  { q: "Was sind die Öffnungszeiten?", a: "Die Nachtschicht hat freitags, samstags und an Vorfeiertagen ab 22:00 Uhr geöffnet. Sonderveranstaltungen können abweichende Zeiten haben – schau dir unsere Event-Seite für aktuelle Infos an." },
   { q: "Kann ich einen Tisch oder eine Lounge reservieren?", a: "Ja! Reservierungen für VIP-Lounges und Tische sind per E-Mail an info@nachtschicht-kaiserslautern.de oder telefonisch unter +49 631 3105759 möglich." },
   { q: "Welche Musik wird gespielt?", a: "Freitags: Hip-Hop (Agostea), 90er/2000er & Partyhits (Mausefalle). Samstags: House (Agostea), Hip-Hop (La Vie), 90er/2000er & Partyhits (Mausefalle)." },
   { q: "Darf ich unter 18 in den Club?", a: "Ab 16 Jahren ist der Eintritt mit einem ausgefüllten Muttizettel und Begleitperson möglich. Den Muttizettel kannst du hier herunterladen:", link: "/u18" },
