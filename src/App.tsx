@@ -23,6 +23,8 @@ import ImpressumPage from "./pages/ImpressumPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
 import MyTicketsPage from "./pages/MyTicketsPage";
+import TicketShopPage from "./pages/TicketShopPage";
+import ScannerPage from "./pages/ScannerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +56,8 @@ const App = () => (
                   <Route path="/login" element={<LoginPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/meine-tickets" element={<MyTicketsPage />} />
+                  <Route path="/tickets/:eventId" element={<TicketShopPage />} />
+                  <Route path="/scanner" element={<ScannerPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Layout>

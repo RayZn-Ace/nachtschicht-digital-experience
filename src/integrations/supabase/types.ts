@@ -76,6 +76,56 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_codes: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          event_id: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          uses: number
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          event_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          uses?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          event_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          uses?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_codes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_tag_assignments: {
         Row: {
           event_id: string
@@ -361,46 +411,128 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          quantity: number
+          sale_end: string | null
+          sale_start: string | null
+          sold: number
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          quantity?: number
+          sale_end?: string | null
+          sale_start?: string | null
+          sold?: number
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          quantity?: number
+          sale_end?: string | null
+          sale_start?: string | null
+          sold?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           buyer_email: string
           buyer_name: string | null
+          checked_in: boolean
+          checked_in_at: string | null
           created_at: string
+          discount_code_id: string | null
           event_id: string
           id: string
+          qr_code: string | null
           quantity: number
           status: string
+          ticket_type_id: string | null
           total_price: number
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           buyer_email: string
           buyer_name?: string | null
+          checked_in?: boolean
+          checked_in_at?: string | null
           created_at?: string
+          discount_code_id?: string | null
           event_id: string
           id?: string
+          qr_code?: string | null
           quantity?: number
           status?: string
+          ticket_type_id?: string | null
           total_price?: number
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           buyer_email?: string
           buyer_name?: string | null
+          checked_in?: boolean
+          checked_in_at?: string | null
           created_at?: string
+          discount_code_id?: string | null
           event_id?: string
           id?: string
+          qr_code?: string | null
           quantity?: number
           status?: string
+          ticket_type_id?: string | null
           total_price?: number
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tickets_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tickets_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_ticket_type_id_fkey"
+            columns: ["ticket_type_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_types"
             referencedColumns: ["id"]
           },
         ]

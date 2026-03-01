@@ -19,12 +19,46 @@ export interface Event {
 export interface Ticket {
   id: string;
   event_id: string;
-  user_id: string;
+  user_id: string | null;
+  ticket_type_id: string | null;
+  discount_code_id: string | null;
   quantity: number;
   total_price: number;
   status: string;
   buyer_name: string | null;
   buyer_email: string;
+  qr_code: string | null;
+  checked_in: boolean;
+  checked_in_at: string | null;
+  created_at: string;
+}
+
+export interface TicketType {
+  id: string;
+  event_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  quantity: number;
+  sold: number;
+  sort_order: number;
+  is_active: boolean;
+  sale_start: string | null;
+  sale_end: string | null;
+  created_at: string;
+}
+
+export interface DiscountCode {
+  id: string;
+  code: string;
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  max_uses: number | null;
+  uses: number;
+  event_id: string | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  is_active: boolean;
   created_at: string;
 }
 
