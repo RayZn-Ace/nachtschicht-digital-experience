@@ -170,8 +170,39 @@ const U18Page = () => {
       return;
     }
     setSubmitting(true);
-    // For now we just show success – could store in DB or send email
-    toast.success("Clubzettel wurde erfolgreich erstellt! 🎉 Du erhältst ihn per E-Mail.");
+
+    const selectedEv = events.find((e) => e.id === selectedEvent);
+
+    const { error } = await supabase.from("u18_forms").insert({
+      event_id: selectedEvent,
+      event_title: selectedEv?.title || "",
+      event_date: selectedEv?.date || null,
+      parent_name: parentName.trim(),
+      parent_address: parentAddress.trim(),
+      parent_country: parentCountry,
+      parent_phone: parentPhone.trim(),
+      parent_birthday: parentBirthday,
+      minor_name: minorName.trim(),
+      minor_address: minorAddress.trim(),
+      minor_country: minorCountry,
+      minor_phone: minorPhone.trim(),
+      minor_birthday: minorBirthday,
+      supervisor_name: skipSupervisor ? null : supervisorName.trim() || null,
+      supervisor_address: skipSupervisor ? null : supervisorAddress.trim() || null,
+      supervisor_country: skipSupervisor ? null : supervisorCountry || null,
+      supervisor_email: skipSupervisor ? null : supervisorEmail.trim() || null,
+      supervisor_phone: skipSupervisor ? null : supervisorPhone.trim() || null,
+      supervisor_birthday: skipSupervisor ? null : supervisorBirthday || null,
+      email: email.trim(),
+      has_signature: !skipSignature && !!parentSignature,
+      accept_newsletter: acceptNewsletter,
+    } as any);
+
+    if (error) {
+      toast.error("Fehler beim Speichern: " + error.message);
+    } else {
+      toast.success("Clubzettel wurde erfolgreich erstellt! 🎉 Du erhältst ihn per E-Mail.");
+    }
     setSubmitting(false);
   };
 
