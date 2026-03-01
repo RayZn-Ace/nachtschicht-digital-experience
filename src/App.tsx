@@ -23,6 +23,7 @@ import DatenschutzPage from "./pages/DatenschutzPage";
 import ImpressumPage from "./pages/ImpressumPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
+import DashboardPage from "./pages/DashboardPage";
 import MyTicketsPage from "./pages/MyTicketsPage";
 import TicketShopPage from "./pages/TicketShopPage";
 import ScannerPage from "./pages/ScannerPage";
@@ -57,6 +58,7 @@ const App = () => (
                   <Route path="/impressum" element={<ImpressumPage />} />
                   <Route path="/login" element={<LoginPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/meine-tickets" element={<MyTicketsPage />} />
                   <Route path="/tickets/:eventId" element={<TicketShopPage />} />
                   <Route path="/scanner" element={<ScannerPage />} />
