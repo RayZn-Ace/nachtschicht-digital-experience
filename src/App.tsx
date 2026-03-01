@@ -12,6 +12,7 @@ import EventsPage from "./pages/EventsPage";
 import ClubPage from "./pages/ClubPage";
 import PhotosPage from "./pages/PhotosPage";
 import LoungesPage from "./pages/LoungesPage";
+import DrinksPage from "./pages/DrinksPage";
 import ReservationPage from "./pages/ReservationPage";
 import U18Page from "./pages/U18Page";
 import FaqPage from "./pages/FaqPage";
@@ -45,6 +46,7 @@ const App = () => (
                   <Route path="/club" element={<ClubPage />} />
                   <Route path="/fotos" element={<PhotosPage />} />
                   <Route path="/lounges" element={<LoungesPage />} />
+                  <Route path="/getraenkekarte" element={<DrinksPage />} />
                   <Route path="/reservierung" element={<ReservationPage />} />
                   <Route path="/u18" element={<U18Page />} />
                   <Route path="/faq" element={<FaqPage />} />
