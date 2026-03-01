@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Instagram, Facebook } from "lucide-react";
+import NewsletterForm from "./NewsletterForm";
 
 const Footer = () => (
   <footer className="bg-secondary border-t border-border/50">
@@ -41,8 +42,10 @@ const Footer = () => (
           </div>
         </div>
         <div>
-          <h4 className="font-display text-xl tracking-wider text-foreground mb-4">SOCIAL MEDIA</h4>
-          <div className="flex gap-4">
+          <h4 className="font-display text-xl tracking-wider text-foreground mb-4">NEWSLETTER</h4>
+          <p className="text-muted-foreground text-xs mb-3">Erhalte exklusive Event-Infos & Angebote direkt in dein Postfach.</p>
+          <NewsletterForm />
+          <div className="flex gap-4 mt-5">
             <a href="https://www.instagram.com/nachtschichtkl" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-primary transition-colors" aria-label="Instagram">
               <Instagram size={24} />
             </a>
