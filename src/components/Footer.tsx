@@ -11,7 +11,7 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           <div>
-            <img src="/images/logo-light.png" alt="Nachtschicht" className="h-8 mb-4" />
+            <img src="/images/logo-light.png" alt="Nachtschicht" className="h-8 mb-4 dark:brightness-100 brightness-0" />
             <p className="text-muted-foreground text-sm leading-relaxed">
               Zollamtstraße 28<br />67663 Kaiserslautern
             </p>
