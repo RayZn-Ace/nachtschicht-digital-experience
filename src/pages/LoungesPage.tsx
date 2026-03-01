@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const LoungesPage = () => (
   <section className="section-padding">
     <div className="container mx-auto">
@@ -20,12 +22,12 @@ const LoungesPage = () => (
             <h2 className="font-display text-2xl tracking-wider text-foreground mb-2">{lounge.name}</h2>
             <p className="text-primary text-sm font-medium mb-3">{lounge.guests}</p>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">{lounge.desc}</p>
-            <a
-              href="mailto:info@nachtschicht-kaiserslautern.de?subject=Lounge%20Reservierung"
+            <Link
+              to="/reservierung"
               className="inline-flex items-center justify-center w-full py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors"
             >
               JETZT RESERVIEREN
-            </a>
+            </Link>
           </div>
         ))}
       </div>
