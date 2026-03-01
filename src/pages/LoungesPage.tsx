@@ -181,7 +181,7 @@ const LoungesPage = () => {
                             </div>
                           )}
                           <span className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
-                            {lounge.area_id === "mausefalle" ? "MAUSEFALLE" : "LA VIE"}
+                            {lounge.area_id === "mausefalle" ? "MAUSEFALLE" : lounge.area_id === "agostea" ? "AGOSTEA" : "LA VIE"}
                           </span>
                         </div>
 
