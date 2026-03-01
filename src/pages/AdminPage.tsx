@@ -4,7 +4,8 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Ticket } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut } from "lucide-react";
+import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -12,9 +13,10 @@ const AdminPage = () => {
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
-    title: "", description: "", date: "", time: "22:00", genre: "", areas: "",
+    title: "", description: "", date: "", time: "22:00", genre: "", areas: "" as string,
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false,
   });
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
 
   const fetchEvents = async () => {
     const { data } = await supabase.from("events").select("*").order("date", { ascending: true });
@@ -28,12 +30,15 @@ const AdminPage = () => {
 
   const resetForm = () => {
     setFormData({ title: "", description: "", date: "", time: "22:00", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false });
+    setSelectedAreas([]);
     setEditing(null);
     setShowForm(false);
   };
 
   const handleEdit = (event: Event) => {
     setEditing(event);
+    const areas = parseAreas(event.areas);
+    setSelectedAreas(areas);
     setFormData({
       title: event.title, description: event.description || "", date: event.date.split("T")[0],
       time: event.time, genre: event.genre || "", areas: event.areas || "",
@@ -43,9 +48,17 @@ const AdminPage = () => {
     setShowForm(true);
   };
 
+  const toggleArea = (areaId: string) => {
+    setSelectedAreas((prev) => {
+      const next = prev.includes(areaId) ? prev.filter((a) => a !== areaId) : [...prev, areaId];
+      return next;
+    });
+  };
+
   const handleSave = async () => {
     const payload = {
       ...formData,
+      areas: formatAreas(selectedAreas),
       date: new Date(formData.date).toISOString(),
       ticket_price: Number(formData.ticket_price),
       ticket_quantity: Number(formData.ticket_quantity),
@@ -96,7 +109,6 @@ const AdminPage = () => {
           </div>
         </div>
 
-        {/* Form */}
         {showForm && (
           <div className="glass-card p-6 mb-8 animate-fade-in">
             <h2 className="font-display text-2xl tracking-wider text-foreground mb-4">
@@ -119,10 +131,29 @@ const AdminPage = () => {
                 <label className="text-sm text-foreground mb-1 block">Uhrzeit</label>
                 <input value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
               </div>
-              <div>
-                <label className="text-sm text-foreground mb-1 block">Areas</label>
-                <input value={formData.areas} onChange={(e) => setFormData({ ...formData, areas: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+
+              {/* Areas multi-select */}
+              <div className="md:col-span-2">
+                <label className="text-sm text-foreground mb-2 block">Areas (Räume) – welche Floors sind geöffnet?</label>
+                <div className="flex flex-wrap gap-2">
+                  {CLUB_AREAS.map((area) => (
+                    <button
+                      key={area.id}
+                      type="button"
+                      onClick={() => toggleArea(area.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                        selectedAreas.includes(area.id)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {area.name}
+                      {area.genre && <span className="ml-1 opacity-70">· {area.genre}</span>}
+                    </button>
+                  ))}
+                </div>
               </div>
+
               <div>
                 <label className="text-sm text-foreground mb-1 block">Bild-URL</label>
                 <input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
@@ -155,40 +186,54 @@ const AdminPage = () => {
           </div>
         )}
 
-        {/* Events List */}
         <div className="space-y-3">
           {events.length === 0 && <p className="text-muted-foreground text-center py-12">Noch keine Events erstellt.</p>}
-          {events.map((event) => (
-            <div key={event.id} className="glass-card p-4 flex items-center gap-4">
-              {event.image_url && (
-                <img src={event.image_url} alt={event.title} className="w-16 h-16 rounded-md object-cover shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-display text-lg tracking-wider text-foreground truncate">{event.title}</h3>
-                  {event.is_published ? (
-                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Live</span>
-                  ) : (
-                    <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Entwurf</span>
+          {events.map((event) => {
+            const eventAreas = parseAreas(event.areas);
+            return (
+              <div key={event.id} className="glass-card p-4 flex items-center gap-4">
+                {event.image_url && (
+                  <img src={event.image_url} alt={event.title} className="w-16 h-16 rounded-md object-cover shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-display text-lg tracking-wider text-foreground truncate">{event.title}</h3>
+                    {event.is_published ? (
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Live</span>
+                    ) : (
+                      <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Entwurf</span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    {new Date(event.date).toLocaleDateString("de-DE")} – {event.time} | {event.genre} | {event.ticket_price}€ | {event.tickets_sold}/{event.ticket_quantity} Tickets
+                  </p>
+                  {eventAreas.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {eventAreas.map((aId) => {
+                        const area = CLUB_AREAS.find((a) => a.id === aId);
+                        return area ? (
+                          <span key={aId} className={`text-xs px-2 py-0.5 rounded-full ${area.color}`}>
+                            {area.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
                   )}
                 </div>
-                <p className="text-muted-foreground text-sm">
-                  {new Date(event.date).toLocaleDateString("de-DE")} – {event.time} | {event.genre} | {event.ticket_price}€ | {event.tickets_sold}/{event.ticket_quantity} Tickets
-                </p>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => togglePublish(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title={event.is_published ? "Verstecken" : "Veröffentlichen"}>
+                    {event.is_published ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                  <button onClick={() => handleEdit(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Bearbeiten">
+                    <Pencil size={18} />
+                  </button>
+                  <button onClick={() => handleDelete(event.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive" title="Löschen">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <button onClick={() => togglePublish(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title={event.is_published ? "Verstecken" : "Veröffentlichen"}>
-                  {event.is_published ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-                <button onClick={() => handleEdit(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Bearbeiten">
-                  <Pencil size={18} />
-                </button>
-                <button onClick={() => handleDelete(event.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive" title="Löschen">
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

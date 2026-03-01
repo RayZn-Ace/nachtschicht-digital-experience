@@ -1,21 +1,25 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
-
-const navItems = [
-  { label: "Startseite", path: "/" },
-  { label: "Events & Tickets", path: "/events" },
-  { label: "Club", path: "/club" },
-  { label: "Fotos & Videos", path: "/fotos" },
-  { label: "Lounges", path: "/lounges" },
-  { label: "FAQ", path: "/faq" },
-  { label: "Jobs", path: "/jobs" },
-  { label: "Kontakt", path: "/kontakt" },
-];
+import { Menu, X, Sun, Moon, Globe } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
+import { useI18n } from "@/hooks/useI18n";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
+  const { lang, setLang, t } = useI18n();
+
+  const navItems = [
+    { label: t("nav.home"), path: "/" },
+    { label: t("nav.events"), path: "/events" },
+    { label: t("nav.club"), path: "/club" },
+    { label: t("nav.photos"), path: "/fotos" },
+    { label: t("nav.lounges"), path: "/lounges" },
+    { label: t("nav.faq"), path: "/faq" },
+    { label: t("nav.jobs"), path: "/jobs" },
+    { label: t("nav.contact"), path: "/kontakt" },
+  ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
@@ -39,12 +43,33 @@ const Navbar = () => {
           ))}
         </div>
 
-        <Link
-          to="/events"
-          className="hidden lg:inline-flex items-center px-5 py-2 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors animate-pulse-glow"
-        >
-          TICKETS
-        </Link>
+        <div className="hidden lg:flex items-center gap-2">
+          {/* Language toggle */}
+          <button
+            onClick={() => setLang(lang === "de" ? "en" : "de")}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors text-xs font-medium"
+            aria-label="Sprache wechseln"
+          >
+            <Globe size={16} />
+            {lang === "de" ? "EN" : "DE"}
+          </button>
+
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Theme wechseln"
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
+          <Link
+            to="/events"
+            className="inline-flex items-center px-5 py-2 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors animate-pulse-glow"
+          >
+            {t("nav.tickets")}
+          </Link>
+        </div>
 
         {/* Mobile toggle */}
         <button
@@ -72,12 +97,29 @@ const Navbar = () => {
                 {item.label}
               </Link>
             ))}
+
+            <div className="flex items-center gap-3 mt-2 pt-4 border-t border-border/50">
+              <button
+                onClick={() => setLang(lang === "de" ? "en" : "de")}
+                className="flex items-center gap-1 px-3 py-2 rounded-md bg-muted text-foreground text-sm font-medium"
+              >
+                <Globe size={16} />
+                {lang === "de" ? "English" : "Deutsch"}
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-md bg-muted text-foreground"
+              >
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            </div>
+
             <Link
               to="/events"
               onClick={() => setOpen(false)}
-              className="mt-4 inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md"
+              className="mt-2 inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md"
             >
-              TICKETS SICHERN
+              {t("nav.getTickets")}
             </Link>
           </div>
         </div>

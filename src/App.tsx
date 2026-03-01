@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/hooks/useTheme";
+import { I18nProvider } from "@/hooks/useI18n";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import EventsPage from "./pages/EventsPage";
@@ -27,32 +29,36 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/club" element={<ClubPage />} />
-              <Route path="/fotos" element={<PhotosPage />} />
-              <Route path="/lounges" element={<LoungesPage />} />
-              <Route path="/reservierung" element={<ReservationPage />} />
-              <Route path="/u18" element={<U18Page />} />
-              <Route path="/faq" element={<FaqPage />} />
-              <Route path="/jobs" element={<JobsPage />} />
-              <Route path="/kontakt" element={<ContactPage />} />
-              <Route path="/agb" element={<AgbPage />} />
-              <Route path="/datenschutz" element={<DatenschutzPage />} />
-              <Route path="/impressum" element={<ImpressumPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Layout>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider>
+        <I18nProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/events" element={<EventsPage />} />
+                  <Route path="/club" element={<ClubPage />} />
+                  <Route path="/fotos" element={<PhotosPage />} />
+                  <Route path="/lounges" element={<LoungesPage />} />
+                  <Route path="/reservierung" element={<ReservationPage />} />
+                  <Route path="/u18" element={<U18Page />} />
+                  <Route path="/faq" element={<FaqPage />} />
+                  <Route path="/jobs" element={<JobsPage />} />
+                  <Route path="/kontakt" element={<ContactPage />} />
+                  <Route path="/agb" element={<AgbPage />} />
+                  <Route path="/datenschutz" element={<DatenschutzPage />} />
+                  <Route path="/impressum" element={<ImpressumPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Layout>
+            </BrowserRouter>
+          </TooltipProvider>
+        </I18nProvider>
+      </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
