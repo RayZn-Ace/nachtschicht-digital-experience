@@ -227,34 +227,6 @@ const AdminPage = () => {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {([
-            { id: "events", label: "EVENTS", icon: null },
-            { id: "ticketcenter", label: "TICKETCENTER", icon: ShoppingCart },
-            { id: "albums", label: "FOTOALBEN", icon: Image },
-            { id: "newsletter", label: "NEWSLETTER", icon: Mail },
-            { id: "u18", label: "MUTTIZETTEL", icon: FileText },
-            { id: "tracking", label: "TRACKING", icon: BarChart3 },
-            { id: "tags", label: "TAGS", icon: Tags },
-            { id: "codes", label: "RABATTCODES", icon: Ticket },
-            { id: "lounges", label: "LOUNGES", icon: Sofa },
-            { id: "drinks", label: "GETRÄNKE", icon: Wine },
-            { id: "holidays", label: "FEIERTAGE", icon: Sparkles },
-            { id: "invoiceconfig", label: "RECHNUNGEN", icon: Receipt },
-            { id: "revenue", label: "UMSATZ", icon: TrendingUp },
-            { id: "reports", label: "MELDUNGEN", icon: Flag },
-            { id: "applicants", label: "BEWERBER", icon: Users },
-          ] as const).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id as any)}
-              className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-            >
-              {Icon && <Icon size={16} />} {label}
-            </button>
-          ))}
-        </div>
 
         {tab === "applicants" ? (
           <AdminApplicants />
