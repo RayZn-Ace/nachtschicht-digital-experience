@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
-import QRCode from "https://esm.sh/qrcode@1.5.4/lib/browser.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,13 +42,12 @@ Deno.serve(async (req) => {
     const event = ticket.events;
     const ticketType = ticket.ticket_types;
 
-    // Generate QR code as data URL
+    // Generate QR code via external API (no canvas needed in Deno)
     const qrData = ticket.qr_code || ticket.id;
-    const qrDataUrl: string = await QRCode.toDataURL(qrData, {
-      width: 200,
-      margin: 1,
-      color: { dark: "#000000", light: "#ffffff" },
-    });
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}&bgcolor=FFFFFF&color=000000&format=png`;
+    const qrResponse = await fetch(qrApiUrl);
+    if (!qrResponse.ok) throw new Error("QR code generation failed");
+    const qrArrayBuffer = await qrResponse.arrayBuffer();
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
@@ -162,8 +160,7 @@ Deno.serve(async (req) => {
 
     // QR Code
     yPos -= 50;
-    const qrBase64 = qrDataUrl.split(",")[1];
-    const qrBytes = Uint8Array.from(atob(qrBase64), (c) => c.charCodeAt(0));
+    const qrBytes = new Uint8Array(qrArrayBuffer);
     const qrImage = await pdfDoc.embedPng(qrBytes);
     const qrSize = 150;
 
