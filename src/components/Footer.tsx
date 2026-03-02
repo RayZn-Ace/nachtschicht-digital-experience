@@ -27,6 +27,7 @@ const Footer = () => {
                 { label: t("nav.events"), path: "/events" },
                 { label: t("nav.club"), path: "/club" },
                 { label: t("nav.photos"), path: "/fotos" },
+                { label: t("nav.hours"), path: "/oeffnungszeiten" },
                 { label: t("nav.faq"), path: "/faq" },
                 { label: t("nav.jobs"), path: "/jobs" },
                 { label: t("nav.contact"), path: "/kontakt" },

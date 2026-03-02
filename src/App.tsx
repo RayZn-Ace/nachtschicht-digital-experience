@@ -16,6 +16,7 @@ import DrinksPage from "./pages/DrinksPage";
 import ReservationPage from "./pages/ReservationPage";
 import U18Page from "./pages/U18Page";
 import FaqPage from "./pages/FaqPage";
+import OeffnungszeitenPage from "./pages/OeffnungszeitenPage";
 import JobsPage from "./pages/JobsPage";
 import ContactPage from "./pages/ContactPage";
 import AgbPage from "./pages/AgbPage";
@@ -54,6 +55,7 @@ const App = () => (
                   <Route path="/reservierung" element={<ReservationPage />} />
                   <Route path="/u18" element={<U18Page />} />
                   <Route path="/faq" element={<FaqPage />} />
+                  <Route path="/oeffnungszeiten" element={<OeffnungszeitenPage />} />
                   <Route path="/jobs" element={<JobsPage />} />
                   <Route path="/kontakt" element={<ContactPage />} />
                   <Route path="/agb" element={<AgbPage />} />
