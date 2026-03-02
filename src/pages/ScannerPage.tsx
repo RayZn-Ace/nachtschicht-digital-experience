@@ -596,18 +596,68 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
             </div>
           )}
 
-          <div className="relative w-full">
+          <div className="relative w-full overflow-hidden rounded-lg">
             <div
               id="qr-reader"
               ref={videoRef}
-              className={`w-full rounded-lg overflow-hidden bg-black/50 transition-all duration-300 ${
+              className={`w-full overflow-hidden bg-black/50 transition-all duration-300 ${
                 cameraActive ? "aspect-square" : "h-32"
               }`}
               style={cameraActive ? { minHeight: "340px" } : undefined}
             />
 
-            {/* Inline scan result overlay */}
-            {renderScanFeedback()}
+            {/* Inline scan result overlay – must be AFTER qr-reader to stack on top */}
+            {result && (
+              <div
+                className={`absolute inset-0 z-[100] flex flex-col items-center justify-center rounded-lg ${
+                  result.status === "success"
+                    ? "bg-green-500/95 ring-4 ring-green-400"
+                    : result.status === "already_redeemed"
+                    ? "bg-yellow-500/95 ring-4 ring-yellow-400"
+                    : "bg-red-500/95 ring-4 ring-red-400"
+                } animate-fade-in cursor-pointer`}
+                onClick={dismissResult}
+                style={{ touchAction: "manipulation" }}
+              >
+                <div className="text-white text-center space-y-2 px-4">
+                  {result.status === "success" ? (
+                    <CheckCircle size={48} className="mx-auto text-white drop-shadow-lg" />
+                  ) : result.status === "already_redeemed" ? (
+                    <AlertTriangle size={48} className="mx-auto text-white drop-shadow-lg" />
+                  ) : (
+                    <XCircle size={48} className="mx-auto text-white drop-shadow-lg" />
+                  )}
+                  <h2 className="font-display text-2xl tracking-wider drop-shadow-md">
+                    {result.status === "success"
+                      ? "VALID ✓"
+                      : result.status === "already_redeemed"
+                      ? "BEREITS GESCANNT"
+                      : result.status === "cancelled"
+                      ? "STORNIERT"
+                      : "UNGÜLTIG"}
+                  </h2>
+                  {result.ticket?.event_title && (
+                    <p className="text-sm font-medium bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 inline-block">
+                      {result.ticket.event_title}
+                    </p>
+                  )}
+                  {result.ticket?.buyer_name && (
+                    <p className="text-xs opacity-80">{result.ticket.buyer_name} · {result.ticket.quantity}×</p>
+                  )}
+                  {result.ticket?.ticket_type && (
+                    <p className="text-xs opacity-70">{result.ticket.ticket_type}</p>
+                  )}
+                  {result.status === "already_redeemed" && result.ticket?.checked_in_at && (
+                    <p className="text-xs opacity-70">
+                      Eingecheckt: {new Date(result.ticket.checked_in_at).toLocaleTimeString("de-DE")}
+                    </p>
+                  )}
+                  {!result.ticket && (
+                    <p className="text-sm opacity-80">{result.message}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {!cameraActive && !cameraError && (
               <button
