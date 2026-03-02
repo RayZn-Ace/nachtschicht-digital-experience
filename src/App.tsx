@@ -34,6 +34,7 @@ import AccountDeletePage from "./pages/AccountDeletePage";
 import DatenschutzExportPage from "./pages/DatenschutzExportPage";
 import TicketShopPage from "./pages/TicketShopPage";
 import ScannerPage from "./pages/ScannerPage";
+import ProfilPage from "./pages/ProfilPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,7 @@ const App = () => (
                   <Route path="/daten-export" element={<DatenschutzExportPage />} />
                   <Route path="/tickets/:eventId" element={<TicketShopPage />} />
                   <Route path="/scanner" element={<ScannerPage />} />
+                  <Route path="/profil" element={<ProfilPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Layout>
