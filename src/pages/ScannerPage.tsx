@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,35 +41,19 @@ interface QueuedCheckIn {
 
 const QUEUE_KEY = "nachtschicht_offline_checkins";
 
-// ── Offline Queue helpers ──
 const loadQueue = (): QueuedCheckIn[] => {
-  try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
-  } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch { return []; }
 };
-
-const saveQueue = (queue: QueuedCheckIn[]) => {
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
-};
-
+const saveQueue = (queue: QueuedCheckIn[]) => localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
 const addToQueue = (qr_code: string): QueuedCheckIn => {
   const queue = loadQueue();
-  const item: QueuedCheckIn = {
-    id: crypto.randomUUID(),
-    qr_code,
-    timestamp: Date.now(),
-    retries: 0,
-  };
+  const item: QueuedCheckIn = { id: crypto.randomUUID(), qr_code, timestamp: Date.now(), retries: 0 };
   queue.push(item);
   saveQueue(queue);
   return item;
 };
+const removeFromQueue = (id: string) => saveQueue(loadQueue().filter((q) => q.id !== id));
 
-const removeFromQueue = (id: string) => {
-  saveQueue(loadQueue().filter((q) => q.id !== id));
-};
-
-// Audio feedback using Web Audio API
 const playSound = (type: "success" | "error") => {
   try {
     const ctx = new AudioContext();
@@ -77,7 +61,6 @@ const playSound = (type: "success" | "error") => {
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-
     if (type === "success") {
       osc.frequency.setValueAtTime(880, ctx.currentTime);
       osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
@@ -93,138 +76,104 @@ const playSound = (type: "success" | "error") => {
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.4);
     }
-  } catch {
-    // Audio not available
-  }
+  } catch {}
 };
 
-const ScannerPage = () => {
+// Vibrate helper for mobile haptic feedback
+const vibrate = (pattern: number | number[]) => {
+  try { navigator.vibrate?.(pattern); } catch {}
+};
+
+const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
   const { user, isAdmin, loading } = useAuth();
   const [result, setResult] = useState<ScanResult | null>(null);
   const [stats, setStats] = useState({ total: 0, checkedIn: 0 });
   const [manualInput, setManualInput] = useState("");
-  const [scanning, setScanning] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string>("all");
   const [events, setEvents] = useState<{ id: string; title: string; date: string }[]>([]);
-
-  // Offline state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [queue, setQueue] = useState<QueuedCheckIn[]>(loadQueue);
   const [syncing, setSyncing] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const scannerRef = useRef<any>(null);
   const videoRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autoResetTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastScanned = useRef<string>("");
+  const processingRef = useRef(false);
   const syncInterval = useRef<ReturnType<typeof setInterval>>();
+  // Use a ref for the latest handleCheckIn to avoid stale closures in html5-qrcode callback
+  const handleCheckInRef = useRef<(code: string) => Promise<void>>();
 
-  // ── Online/offline detection ──
+  // Keep processingRef in sync
+  useEffect(() => { processingRef.current = processing; }, [processing]);
+
+  // Online/offline detection
   useEffect(() => {
-    const goOnline = () => {
-      setIsOnline(true);
-      toast.success("Verbindung wiederhergestellt", { icon: <Wifi size={16} /> });
-    };
-    const goOffline = () => {
-      setIsOnline(false);
-      toast.warning("Keine Internetverbindung – Check-ins werden lokal gespeichert", { icon: <WifiOff size={16} />, duration: 5000 });
-    };
+    const goOnline = () => { setIsOnline(true); toast.success("Verbindung wiederhergestellt", { icon: <Wifi size={16} /> }); };
+    const goOffline = () => { setIsOnline(false); toast.warning("Offline – Check-ins werden lokal gespeichert", { icon: <WifiOff size={16} />, duration: 5000 }); };
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
-    return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
   }, []);
 
-  // ── Auto-sync when coming back online ──
+  const fetchStats = useCallback(async () => {
+    try {
+      const eventFilter = selectedEvent !== "all" ? selectedEvent : undefined;
+      let totalQuery = supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "confirmed");
+      let checkedQuery = supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "confirmed").eq("checked_in", true);
+      if (eventFilter) {
+        totalQuery = totalQuery.eq("event_id", eventFilter);
+        checkedQuery = checkedQuery.eq("event_id", eventFilter);
+      }
+      const [{ count: total }, { count: checkedIn }] = await Promise.all([totalQuery, checkedQuery]);
+      setStats({ total: total || 0, checkedIn: checkedIn || 0 });
+    } catch (err) {
+      console.error("fetchStats error:", err);
+    }
+  }, [selectedEvent]);
+
+  // Auto-sync queue
   const syncQueue = useCallback(async () => {
     const currentQueue = loadQueue();
     if (currentQueue.length === 0 || !navigator.onLine) return;
-
     setSyncing(true);
     const { data: session } = await supabase.auth.getSession();
     const token = session?.session?.access_token;
     if (!token) { setSyncing(false); return; }
 
     let successCount = 0;
-    let failCount = 0;
-
     for (const item of currentQueue) {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-in-ticket`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-            body: JSON.stringify({ qr_code: item.qr_code }),
-          }
+          { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ qr_code: item.qr_code }) }
         );
         const data = await res.json();
         if (data.status === "success" || data.status === "already_redeemed") {
           removeFromQueue(item.id);
           successCount++;
         } else {
-          // Increment retries, remove after 5 failed attempts
           const q = loadQueue();
           const idx = q.findIndex((x) => x.id === item.id);
-          if (idx >= 0) {
-            q[idx].retries++;
-            if (q[idx].retries >= 5) q.splice(idx, 1);
-            saveQueue(q);
-          }
-          failCount++;
+          if (idx >= 0) { q[idx].retries++; if (q[idx].retries >= 5) q.splice(idx, 1); saveQueue(q); }
         }
-      } catch {
-        // Still offline or network error, stop trying
-        break;
-      }
+      } catch { break; }
     }
-
     setQueue(loadQueue());
     setSyncing(false);
+    if (successCount > 0) { toast.success(`${successCount} Offline-Check-in${successCount > 1 ? "s" : ""} synchronisiert ✓`); fetchStats(); }
+  }, [fetchStats]);
 
-    if (successCount > 0) {
-      toast.success(`${successCount} Offline-Check-in${successCount > 1 ? "s" : ""} synchronisiert ✓`);
-      fetchStats();
-    }
-    if (failCount > 0) {
-      toast.warning(`${failCount} Check-in${failCount > 1 ? "s" : ""} fehlgeschlagen`);
-    }
-  }, []);
-
+  useEffect(() => { if (isOnline && queue.length > 0) syncQueue(); }, [isOnline, syncQueue]);
   useEffect(() => {
-    if (isOnline && queue.length > 0) {
-      syncQueue();
-    }
-  }, [isOnline, syncQueue]);
-
-  // Periodic sync attempt every 30s
-  useEffect(() => {
-    syncInterval.current = setInterval(() => {
-      if (navigator.onLine && loadQueue().length > 0) syncQueue();
-    }, 30000);
+    syncInterval.current = setInterval(() => { if (navigator.onLine && loadQueue().length > 0) syncQueue(); }, 30000);
     return () => { if (syncInterval.current) clearInterval(syncInterval.current); };
   }, [syncQueue]);
-
-  const fetchStats = useCallback(async () => {
-    const eventFilter = selectedEvent !== "all" ? selectedEvent : undefined;
-    let totalQuery = supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "confirmed");
-    let checkedQuery = supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "confirmed").eq("checked_in", true);
-    if (eventFilter) {
-      totalQuery = totalQuery.eq("event_id", eventFilter);
-      checkedQuery = checkedQuery.eq("event_id", eventFilter);
-    }
-    const [{ count: total }, { count: checkedIn }] = await Promise.all([totalQuery, checkedQuery]);
-    setStats({ total: total || 0, checkedIn: checkedIn || 0 });
-  }, [selectedEvent]);
 
   useEffect(() => {
     fetchStats();
@@ -232,24 +181,23 @@ const ScannerPage = () => {
       .then(({ data }) => { if (data) setEvents(data); });
   }, [fetchStats]);
 
+  // Core check-in logic
   const handleCheckIn = useCallback(async (code: string) => {
     const trimmed = code.trim();
-    if (!trimmed || processing) return;
+    if (!trimmed || processingRef.current) return;
     if (trimmed === lastScanned.current) return;
     lastScanned.current = trimmed;
     setTimeout(() => { lastScanned.current = ""; }, 3000);
 
     setProcessing(true);
 
-    // ── Offline path: queue locally ──
+    // Offline path
     if (!navigator.onLine) {
-      const item = addToQueue(trimmed);
+      addToQueue(trimmed);
       setQueue(loadQueue());
-      setResult({
-        status: "success",
-        message: `Offline gespeichert – wird synchronisiert sobald Verbindung besteht`,
-      });
+      setResult({ status: "success", message: "Offline gespeichert – wird synchronisiert sobald Verbindung besteht" });
       playSound("success");
+      vibrate(100);
       setProcessing(false);
       setManualInput("");
       if (autoResetTimer.current) clearTimeout(autoResetTimer.current);
@@ -257,97 +205,132 @@ const ScannerPage = () => {
       return;
     }
 
-    // ── Online path ──
+    // Online path
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
-      if (!token) {
-        toast.error("Nicht angemeldet");
-        setProcessing(false);
-        return;
-      }
+      if (!token) { toast.error("Nicht angemeldet"); setProcessing(false); return; }
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-in-ticket`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ qr_code: trimmed }),
-        }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ qr_code: trimmed }) }
       );
 
       const data = await res.json();
-
       if (data.error) {
         setResult({ status: "invalid", message: data.error });
         playSound("error");
+        vibrate([100, 50, 100]);
       } else {
         setResult(data as ScanResult);
-        playSound(data.status === "success" ? "success" : "error");
-        if (data.status === "success") fetchStats();
+        if (data.status === "success") {
+          playSound("success");
+          vibrate(100);
+          fetchStats();
+        } else {
+          playSound("error");
+          vibrate([100, 50, 100]);
+        }
       }
-    } catch (err) {
-      // Network failed mid-request → queue offline
-      const item = addToQueue(trimmed);
+    } catch {
+      addToQueue(trimmed);
       setQueue(loadQueue());
-      setResult({
-        status: "success",
-        message: "Verbindung verloren – Check-in offline gespeichert",
-      });
+      setResult({ status: "success", message: "Verbindung verloren – Check-in offline gespeichert" });
       playSound("success");
+      vibrate(100);
     } finally {
       setProcessing(false);
       setManualInput("");
       if (autoResetTimer.current) clearTimeout(autoResetTimer.current);
       autoResetTimer.current = setTimeout(() => setResult(null), 3000);
     }
-  }, [processing, fetchStats]);
+  }, [fetchStats]);
 
-  // Camera scanner
+  // Keep ref updated so camera callback always calls latest version
+  useEffect(() => { handleCheckInRef.current = handleCheckIn; }, [handleCheckIn]);
+
+  // Camera scanner - uses ref-based callback to avoid stale closures
   const startCamera = useCallback(async () => {
     if (scannerRef.current) return;
+    setCameraError(null);
+
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
-      const scanner = new Html5Qrcode("qr-reader");
+      const scanner = new Html5Qrcode("qr-reader", { verbose: false });
       scannerRef.current = scanner;
+
+      // Determine optimal qrbox based on screen size
+      const screenWidth = Math.min(window.innerWidth - 48, 400);
+      const qrSize = Math.min(screenWidth, 280);
 
       await scanner.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
-        (decodedText: string) => {
-          handleCheckIn(decodedText);
+        {
+          fps: 10,
+          qrbox: { width: qrSize, height: qrSize },
+          aspectRatio: 1,
+          disableFlip: false,
         },
-        () => {}
+        (decodedText: string) => {
+          // Use ref to always call the latest handleCheckIn
+          handleCheckInRef.current?.(decodedText);
+        },
+        () => {} // ignore failures
       );
       setCameraActive(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Camera error:", err);
-      toast.error("Kamera konnte nicht gestartet werden. Bitte Berechtigung erteilen.");
+      const msg = typeof err === "string" ? err : err?.message || "Unbekannter Fehler";
+      
+      if (msg.includes("NotAllowedError") || msg.includes("Permission")) {
+        setCameraError("Kamera-Zugriff verweigert. Bitte erlaube den Kamerazugriff in den Browser-Einstellungen.");
+      } else if (msg.includes("NotFoundError") || msg.includes("Requested device not found")) {
+        setCameraError("Keine Kamera gefunden. Nutze die manuelle Eingabe.");
+      } else if (msg.includes("NotReadableError") || msg.includes("Could not start")) {
+        setCameraError("Kamera wird von einer anderen App verwendet. Bitte schließe andere Apps und versuche es erneut.");
+      } else {
+        setCameraError(`Kamera-Fehler: ${msg}`);
+      }
+      
       setCameraActive(false);
+      scannerRef.current = null;
+      // Auto-open manual input as fallback
+      setShowManual(true);
     }
-  }, [handleCheckIn]);
+  }, []);
 
   const stopCamera = useCallback(async () => {
     if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        const state = scannerRef.current.getState?.();
+        if (state === 2 /* SCANNING */) {
+          await scannerRef.current.stop();
+        }
         scannerRef.current.clear();
-      } catch {}
+      } catch (e) {
+        console.warn("stopCamera warning:", e);
+      }
       scannerRef.current = null;
     }
     setCameraActive(false);
   }, []);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopCamera();
       if (autoResetTimer.current) clearTimeout(autoResetTimer.current);
     };
   }, [stopCamera]);
+
+  // Keep screen awake while camera is active (if supported)
+  useEffect(() => {
+    let wakeLock: any = null;
+    if (cameraActive && "wakeLock" in navigator) {
+      (navigator as any).wakeLock.request("screen").then((wl: any) => { wakeLock = wl; }).catch(() => {});
+    }
+    return () => { wakeLock?.release?.(); };
+  }, [cameraActive]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -365,7 +348,17 @@ const ScannerPage = () => {
     toast.info("Offline-Warteschlange geleert");
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] text-foreground">
+        <div className="animate-pulse text-center">
+          <ScanLine size={48} className="mx-auto mb-3 text-primary" />
+          <p>Scanner wird geladen...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const percentage = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0;
@@ -378,32 +371,29 @@ const ScannerPage = () => {
 
     return (
       <div
-        className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-6 transition-colors ${
-          isSuccess
-            ? "bg-green-600"
-            : isAlready
-            ? "bg-yellow-600"
-            : "bg-red-600"
+        className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-6 transition-colors cursor-pointer select-none ${
+          isSuccess ? "bg-green-600" : isAlready ? "bg-yellow-600" : "bg-red-600"
         }`}
         onClick={dismissResult}
+        style={{ touchAction: "manipulation" }}
       >
         <div className="text-white text-center space-y-4 max-w-md animate-fade-in">
           {isSuccess ? (
-            <CheckCircle size={96} className="mx-auto" />
+            <CheckCircle size={96} className="mx-auto drop-shadow-lg" />
           ) : isAlready ? (
-            <AlertTriangle size={96} className="mx-auto" />
+            <AlertTriangle size={96} className="mx-auto drop-shadow-lg" />
           ) : (
-            <XCircle size={96} className="mx-auto" />
+            <XCircle size={96} className="mx-auto drop-shadow-lg" />
           )}
 
-          <h1 className="font-display text-4xl md:text-5xl tracking-wider">
+          <h1 className="font-display text-4xl md:text-5xl tracking-wider drop-shadow-md">
             {isSuccess ? "VALID ✓" : isAlready ? "BEREITS GESCANNT" : isCancelled ? "STORNIERT" : "UNGÜLTIG"}
           </h1>
 
           <p className="text-xl opacity-90">{result.message}</p>
 
           {result.ticket && (
-            <div className="bg-white/20 backdrop-blur rounded-xl p-4 text-left space-y-2">
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-left space-y-2">
               {result.ticket.event_title && (
                 <div>
                   <p className="text-xs opacity-70">Event</p>
@@ -434,85 +424,71 @@ const ScannerPage = () => {
                   </div>
                 )}
               </div>
-              {isSuccess && (
-                <div className="pt-2 border-t border-white/30">
-                  <p className="text-sm font-medium">Status: VALID → REDEEMED ✓</p>
-                </div>
-              )}
             </div>
           )}
 
           <button
             onClick={dismissResult}
-            className="mt-6 px-8 py-3 bg-white/20 backdrop-blur rounded-lg font-display tracking-wider text-lg hover:bg-white/30 transition-colors"
+            className="mt-6 px-8 py-4 bg-white/20 backdrop-blur-sm rounded-xl font-display tracking-wider text-lg hover:bg-white/30 active:bg-white/40 transition-colors min-h-[48px]"
+            style={{ touchAction: "manipulation" }}
           >
             <RotateCcw size={18} className="inline mr-2" />
-            NÄCHSTES TICKET SCANNEN
+            NÄCHSTES TICKET
           </button>
 
-          <p className="text-xs opacity-50 mt-2">Automatischer Reset in 3 Sekunden…</p>
+          <p className="text-xs opacity-50 mt-2">Tippen zum Fortfahren • Auto-Reset in 3s</p>
         </div>
       </div>
     );
   }
 
   return (
-    <section className="section-padding">
+    <section className="pb-6 pt-4 px-4 md:section-padding" ref={ref}>
       <div className="container mx-auto max-w-lg">
-        <div className="text-center mb-6">
-          <h1 className="font-display text-4xl tracking-wider text-foreground">
+        <div className="text-center mb-4">
+          <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground">
             TICKET <span className="text-gradient">SCANNER</span>
           </h1>
         </div>
 
         {/* Online/Offline indicator */}
-        <div className={`flex items-center gap-2 mb-4 px-3 py-2 rounded-lg text-sm font-medium ${
+        <div className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-sm font-medium ${
           isOnline
             ? "bg-green-500/10 text-green-400 border border-green-500/20"
             : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
         }`}>
           {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
-          {isOnline ? "Online – Check-ins werden sofort verarbeitet" : "Offline – Check-ins werden lokal zwischengespeichert"}
+          <span className="truncate">
+            {isOnline ? "Online – Check-ins sofort" : "Offline – lokal zwischengespeichert"}
+          </span>
         </div>
 
         {/* Offline queue banner */}
         {queue.length > 0 && (
-          <div className="mb-4 glass-card p-4 border border-yellow-500/20">
+          <div className="mb-3 glass-card p-3 border border-yellow-500/20">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-display tracking-wider text-sm text-foreground flex items-center gap-2">
-                <CloudUpload size={16} className="text-yellow-400" />
-                OFFLINE-WARTESCHLANGE ({queue.length})
+              <h3 className="font-display tracking-wider text-xs text-foreground flex items-center gap-2">
+                <CloudUpload size={14} className="text-yellow-400" />
+                WARTESCHLANGE ({queue.length})
               </h3>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 {isOnline && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={syncQueue}
-                    disabled={syncing}
-                    className="text-xs gap-1"
-                  >
-                    <CloudUpload size={14} />
-                    {syncing ? "Sync..." : "Jetzt synchronisieren"}
+                  <Button size="sm" variant="outline" onClick={syncQueue} disabled={syncing} className="text-xs gap-1 h-7 px-2">
+                    <CloudUpload size={12} />
+                    {syncing ? "..." : "Sync"}
                   </Button>
                 )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={clearQueue}
-                  className="text-xs text-muted-foreground hover:text-destructive gap-1"
-                >
-                  <Trash2 size={14} />
+                <Button size="sm" variant="ghost" onClick={clearQueue} className="text-xs text-muted-foreground hover:text-destructive gap-1 h-7 px-2">
+                  <Trash2 size={12} />
                 </Button>
               </div>
             </div>
-            <div className="space-y-1.5 max-h-32 overflow-y-auto">
+            <div className="space-y-1 max-h-24 overflow-y-auto">
               {queue.map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-xs bg-white/5 rounded-md px-3 py-1.5">
-                  <span className="font-mono text-muted-foreground truncate max-w-[180px]">{item.qr_code}</span>
+                <div key={item.id} className="flex items-center justify-between text-xs bg-white/5 rounded px-2 py-1">
+                  <span className="font-mono text-muted-foreground truncate max-w-[160px]">{item.qr_code}</span>
                   <span className="text-muted-foreground shrink-0 ml-2">
                     {new Date(item.timestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
-                    {item.retries > 0 && <span className="text-yellow-400 ml-1">({item.retries}×)</span>}
                   </span>
                 </div>
               ))}
@@ -521,11 +497,11 @@ const ScannerPage = () => {
         )}
 
         {/* Event filter */}
-        <div className="mb-4">
+        <div className="mb-3">
           <select
             value={selectedEvent}
             onChange={(e) => setSelectedEvent(e.target.value)}
-            className="w-full px-4 py-2.5 bg-muted border border-border rounded-md text-foreground text-sm"
+            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm min-h-[44px]"
           >
             <option value="all">Alle Events</option>
             {events.map((ev) => (
@@ -537,66 +513,82 @@ const ScannerPage = () => {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1 glass-card p-4 text-center">
-            <Users size={20} className="mx-auto mb-1 text-primary" />
-            <p className="text-2xl font-bold text-foreground">{stats.checkedIn}</p>
-            <p className="text-xs text-muted-foreground">Eingecheckt</p>
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="glass-card p-3 text-center">
+            <Users size={18} className="mx-auto mb-1 text-primary" />
+            <p className="text-xl font-bold text-foreground">{stats.checkedIn}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Eingecheckt</p>
           </div>
-          <div className="flex-1 glass-card p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-            <p className="text-xs text-muted-foreground">Gesamt</p>
+          <div className="glass-card p-3 text-center">
+            <p className="text-xl font-bold text-foreground mt-5">{stats.total}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</p>
           </div>
-          <div className="flex-1 glass-card p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{percentage}%</p>
-            <p className="text-xs text-muted-foreground">Quote</p>
+          <div className="glass-card p-3 text-center">
+            <p className="text-xl font-bold text-primary mt-5">{percentage}%</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Quote</p>
           </div>
         </div>
 
         {/* Camera Scanner */}
-        <div className="glass-card p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-lg tracking-wider text-foreground flex items-center gap-2">
-              <ScanLine size={18} /> KAMERA-SCAN
+        <div className="glass-card p-3 mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-display text-sm tracking-wider text-foreground flex items-center gap-2">
+              <ScanLine size={16} /> KAMERA-SCAN
             </h2>
             <Button
               variant={cameraActive ? "destructive" : "default"}
               size="sm"
               onClick={cameraActive ? stopCamera : startCamera}
-              className="font-display tracking-wider gap-1.5"
+              className="font-display tracking-wider gap-1.5 min-h-[44px] px-4"
+              style={{ touchAction: "manipulation" }}
             >
               {cameraActive ? <CameraOff size={16} /> : <Camera size={16} />}
               {cameraActive ? "STOP" : "START"}
             </Button>
           </div>
 
+          {cameraError && (
+            <div className="mb-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              <AlertTriangle size={14} className="inline mr-1.5 -mt-0.5" />
+              {cameraError}
+            </div>
+          )}
+
           <div
             id="qr-reader"
             ref={videoRef}
-            className={`w-full rounded-lg overflow-hidden bg-black/50 ${cameraActive ? "min-h-[300px]" : "h-32 flex items-center justify-center"}`}
+            className={`w-full rounded-lg overflow-hidden bg-black/50 ${
+              cameraActive ? "min-h-[280px] sm:min-h-[320px]" : "h-28 flex items-center justify-center"
+            }`}
           >
-            {!cameraActive && (
-              <p className="text-muted-foreground text-sm text-center">
-                Kamera starten um QR-Codes zu scannen
-              </p>
+            {!cameraActive && !cameraError && (
+              <button
+                onClick={startCamera}
+                className="text-muted-foreground text-sm text-center flex flex-col items-center gap-2 p-4"
+                style={{ touchAction: "manipulation" }}
+              >
+                <Camera size={32} className="opacity-50" />
+                <span>Tippen zum Starten</span>
+              </button>
             )}
           </div>
 
           {processing && (
-            <div className="mt-3 text-center text-sm text-muted-foreground animate-pulse">
+            <div className="mt-2 text-center text-sm text-muted-foreground animate-pulse">
               Wird geprüft...
             </div>
           )}
         </div>
 
         {/* Manual input */}
-        <div className="glass-card p-4">
+        <div className="glass-card p-3">
           <button
             onClick={() => {
               setShowManual(!showManual);
-              setTimeout(() => inputRef.current?.focus(), 100);
+              if (!showManual) setTimeout(() => inputRef.current?.focus(), 100);
             }}
-            className="flex items-center gap-2 w-full text-left font-display tracking-wider text-foreground text-sm"
+            className="flex items-center gap-2 w-full text-left font-display tracking-wider text-foreground text-sm min-h-[44px]"
+            style={{ touchAction: "manipulation" }}
           >
             <Keyboard size={16} />
             MANUELL EINGEBEN
@@ -604,16 +596,25 @@ const ScannerPage = () => {
           </button>
 
           {showManual && (
-            <form onSubmit={handleManualSubmit} className="mt-3 flex gap-2">
+            <form onSubmit={handleManualSubmit} className="mt-2 flex gap-2">
               <Input
                 ref={inputRef}
                 value={manualInput}
                 onChange={(e) => setManualInput(e.target.value)}
-                placeholder="QR-Code oder Ticket-Nr. eingeben..."
-                className="bg-secondary border-border font-mono text-sm"
+                placeholder="QR-Code oder Ticket-Nr."
+                className="bg-secondary border-border font-mono text-sm min-h-[44px]"
                 autoFocus
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
               />
-              <Button type="submit" disabled={processing} className="font-display tracking-wider shrink-0">
+              <Button
+                type="submit"
+                disabled={processing || !manualInput.trim()}
+                className="font-display tracking-wider shrink-0 min-h-[44px] px-4"
+                style={{ touchAction: "manipulation" }}
+              >
                 CHECK
               </Button>
             </form>
@@ -622,6 +623,8 @@ const ScannerPage = () => {
       </div>
     </section>
   );
-};
+});
+
+ScannerPage.displayName = "ScannerPage";
 
 export default ScannerPage;
