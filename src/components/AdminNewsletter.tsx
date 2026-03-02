@@ -283,22 +283,24 @@ const AdminNewsletter = () => {
   };
 
   const analyzeAllMissingCrops = async () => {
-    const eventsInBlocks = blocks
-      .filter((b) => b.type === "event" && b.eventId)
-      .map((b) => events.find((e) => e.id === b.eventId))
-      .filter((e): e is EventRow => !!e && !!e.image_url && !e.newsletter_banner_url);
-    
-    const eventListBlocks = blocks.filter((b) => b.type === "event-list");
-    if (eventListBlocks.length > 0) {
-      const count = eventListBlocks[0].eventCount || 3;
-      const upcoming = events.slice(0, count).filter((e) => e.image_url && !e.newsletter_banner_url);
-      eventsInBlocks.push(...upcoming.filter((e) => !eventsInBlocks.find((ex) => ex.id === e.id)));
-    }
+    const collected: EventRow[] = [];
 
-    if (eventsInBlocks.length === 0) { toast.info("Alle Event-Bilder haben bereits ein Newsletter-Banner"); return; }
+    blocks.filter((b) => b.type === "event" && b.eventId).forEach((b) => {
+      const ev = events.find((e) => e.id === b.eventId);
+      if (ev?.image_url && !collected.find((c) => c.id === ev.id)) collected.push(ev);
+    });
+
+    blocks.filter((b) => b.type === "event-list").forEach((b) => {
+      const count = b.eventCount || 3;
+      events.slice(0, count).forEach((ev) => {
+        if (ev.image_url && !collected.find((c) => c.id === ev.id)) collected.push(ev);
+      });
+    });
+
+    if (collected.length === 0) { toast.info("Keine Events mit Bildern im Newsletter"); return; }
     
-    toast.info(`Generiere ${eventsInBlocks.length} Banner...`);
-    for (const ev of eventsInBlocks) {
+    toast.info(`Generiere ${collected.length} Banner...`);
+    for (const ev of collected) {
       await analyzeImageCrop(ev.id);
     }
   };
