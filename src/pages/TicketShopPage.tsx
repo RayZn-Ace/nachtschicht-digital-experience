@@ -373,11 +373,11 @@ const TicketShopPage = () => {
               {/* Ticket Details */}
               <div className="border border-border rounded-lg p-4 space-y-2">
                 <h3 className="font-display text-lg tracking-wider text-foreground">
-                  {event.title}
+                  {tr(event.title)}
                 </h3>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar size={14} />
-                  {new Date(event.date).toLocaleDateString("de-DE", {
+                  {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", {
                     weekday: "long", day: "2-digit", month: "long", year: "numeric"
                   })} – {event.time}
                 </div>
