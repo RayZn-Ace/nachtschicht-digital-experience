@@ -117,6 +117,37 @@ const DashboardPage = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Realtime subscription for new ticket sales
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+
+    const channel = supabase
+      .channel('dashboard-tickets')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'tickets' },
+        (payload) => {
+          const newTicket = payload.new as TicketRow;
+          setAllTickets((prev) => [newTicket, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tickets' },
+        (payload) => {
+          const updated = payload.new as TicketRow;
+          setAllTickets((prev) =>
+            prev.map((t) => (t.id === updated.id ? updated : t))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isAdmin]);
+
   // Filtered tickets
   const filteredTickets = useMemo(() => {
     const range = getDateRange(timePeriod);
