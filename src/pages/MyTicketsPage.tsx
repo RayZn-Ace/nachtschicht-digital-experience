@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import { Link, Navigate } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
-import { Ticket, Calendar, CheckCircle2, Copy, Download } from "lucide-react";
+import { Ticket, Calendar, CheckCircle2, Copy, Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface TicketWithEvent {
@@ -31,6 +31,29 @@ const MyTicketsPage = () => {
   const { lang } = useI18n();
   const [tickets, setTickets] = useState<TicketWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
+
+  const handleDownloadPdf = async (ticketId: string) => {
+    setDownloadingPdf(ticketId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
+        body: { ticket_id: ticketId },
+      });
+      if (error) throw error;
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ticket-${ticketId.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(lang === "de" ? "PDF heruntergeladen!" : "PDF downloaded!");
+    } catch {
+      toast.error(lang === "de" ? "PDF-Download fehlgeschlagen" : "PDF download failed");
+    } finally {
+      setDownloadingPdf(null);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -152,7 +175,7 @@ const MyTicketsPage = () => {
                                 <CheckCircle2 size={12} /> {lang === "de" ? "Eingecheckt" : "Checked in"}
                               </span>
                             )}
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <button
                                 onClick={() => {
                                   navigator.clipboard.writeText(ticket.qr_code!);
@@ -167,8 +190,20 @@ const MyTicketsPage = () => {
                                 download={`ticket-${ticket.qr_code}.png`}
                                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 border border-border rounded"
                               >
-                                <Download size={11} /> {lang === "de" ? "Speichern" : "Save"}
+                                <Download size={11} /> {lang === "de" ? "QR speichern" : "Save QR"}
                               </a>
+                              <button
+                                onClick={() => handleDownloadPdf(ticket.id)}
+                                disabled={downloadingPdf === ticket.id}
+                                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors px-2 py-1 border border-primary/30 rounded disabled:opacity-50"
+                              >
+                                {downloadingPdf === ticket.id ? (
+                                  <Loader2 size={11} className="animate-spin" />
+                                ) : (
+                                  <FileText size={11} />
+                                )}
+                                {lang === "de" ? "Ticket PDF" : "Ticket PDF"}
+                              </button>
                             </div>
                           </div>
                         </div>
