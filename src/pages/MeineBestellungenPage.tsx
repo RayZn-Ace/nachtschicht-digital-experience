@@ -6,10 +6,11 @@ import { Navigate, Link } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
 import {
   ShoppingBag, Calendar, Ticket, ChevronDown, Filter,
-  ArrowLeft,
+  ArrowLeft, FileText, Loader2, Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { de as deLocale } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface OrderWithEvent {
   id: string;
@@ -47,6 +48,39 @@ const MeineBestellungenPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortDesc, setSortDesc] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const downloadInvoice = async (ticketId: string) => {
+    setDownloadingId(ticketId);
+    try {
+      const { data: inv } = await supabase
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("ticket_id", ticketId)
+        .maybeSingle();
+      if (!inv) {
+        toast.error(de ? "Keine Rechnung für diese Bestellung gefunden." : "No invoice found for this order.");
+        setDownloadingId(null);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("generate-invoice-pdf", {
+        body: { invoice_id: inv.id },
+      });
+      if (error) throw error;
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `rechnung-${inv.invoice_number}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(de ? "Rechnung heruntergeladen!" : "Invoice downloaded!");
+    } catch (err) {
+      console.error(err);
+      toast.error(de ? "PDF-Download fehlgeschlagen" : "PDF download failed");
+    }
+    setDownloadingId(null);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -182,6 +216,18 @@ const MeineBestellungenPage = () => {
                       >
                         <Ticket size={12} /> {de ? "Tickets anzeigen" : "View tickets"}
                       </Link>
+                      <button
+                        onClick={() => downloadInvoice(order.id)}
+                        disabled={downloadingId === order.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs rounded-md hover:bg-primary/20 transition-colors disabled:opacity-50"
+                      >
+                        {downloadingId === order.id ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <FileText size={12} />
+                        )}
+                        {de ? "Rechnung" : "Invoice"}
+                      </button>
                     </div>
                   </div>
                 </ScrollReveal>

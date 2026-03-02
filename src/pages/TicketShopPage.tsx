@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
 import type { Event, TicketType, DiscountCode } from "@/types/database";
 import { toast } from "sonner";
-import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download } from "lucide-react";
+import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2 } from "lucide-react";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import ScrollReveal from "@/components/ScrollReveal";
 import EventLoungeSection from "@/components/EventLoungeSection";
@@ -38,6 +38,8 @@ const TicketShopPage = () => {
   const [billingCity, setBillingCity] = useState("");
   const [billingCountry, setBillingCountry] = useState("Deutschland");
   const [purchasedQrCode, setPurchasedQrCode] = useState<string>("");
+  const [purchasedTicketIds, setPurchasedTicketIds] = useState<string[]>([]);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   // Step: 1 = select, 2 = checkout
   const [step, setStep] = useState(1);
@@ -199,6 +201,7 @@ const TicketShopPage = () => {
 
     toast.success(lang === "de" ? "Ticket erfolgreich gebucht! 🎉" : "Ticket booked successfully! 🎉");
     setPurchasedQrCode(qrCode);
+    setPurchasedTicketIds(ticketIds);
     setStep(3); // success
     setBuying(false);
   };
@@ -346,6 +349,45 @@ const TicketShopPage = () => {
                   className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm"
                 >
                   <Download size={16} /> {lang === "de" ? "QR-CODE SPEICHERN" : "SAVE QR CODE"}
+                </button>
+                <button
+                  disabled={invoiceLoading}
+                  onClick={async () => {
+                    if (purchasedTicketIds.length === 0) return;
+                    setInvoiceLoading(true);
+                    try {
+                      // Find invoice by ticket_id
+                      const { data: inv } = await supabase
+                        .from("invoices")
+                        .select("id, invoice_number")
+                        .eq("ticket_id", purchasedTicketIds[0])
+                        .maybeSingle();
+                      if (!inv) {
+                        toast.error(lang === "de" ? "Rechnung wird noch erstellt – bitte versuche es gleich nochmal." : "Invoice is still being created – please try again shortly.");
+                        setInvoiceLoading(false);
+                        return;
+                      }
+                      const { data, error } = await supabase.functions.invoke("generate-invoice-pdf", {
+                        body: { invoice_id: inv.id },
+                      });
+                      if (error) throw error;
+                      const blob = new Blob([data], { type: "application/pdf" });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = `rechnung-${inv.invoice_number}.pdf`;
+                      link.click();
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      console.error(err);
+                      toast.error(lang === "de" ? "PDF-Download fehlgeschlagen" : "PDF download failed");
+                    }
+                    setInvoiceLoading(false);
+                  }}
+                  className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm disabled:opacity-50"
+                >
+                  {invoiceLoading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+                  {lang === "de" ? "RECHNUNG HERUNTERLADEN" : "DOWNLOAD INVOICE"}
                 </button>
                 <button
                   onClick={() => navigate("/events")}
