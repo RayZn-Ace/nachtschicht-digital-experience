@@ -1,0 +1,1 @@
+UPDATE events SET has_muttizettel = true, has_abendkasse = true WHERE id = '68bd9a81-6459-4272-a0c9-81d708d188ce'
