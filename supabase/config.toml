@@ -3,5 +3,8 @@ project_id = "idufpxzvskjrwaslnsco"
 [functions.create-invoice]
 verify_jwt = false
 
+[functions.generate-u18-pdf]
+verify_jwt = false
+
 [functions.send-reservation-notification]
 verify_jwt = false

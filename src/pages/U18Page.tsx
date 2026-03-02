@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import SignaturePad from "@/components/SignaturePad";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, ShieldCheck, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Lock, Download, CheckCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Select,
@@ -76,7 +76,8 @@ const U18Page = () => {
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptNewsletter, setAcceptNewsletter] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
+  const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   useEffect(() => {
     const fetchEvents = async () => {
       const { data } = await supabase
@@ -173,7 +174,7 @@ const U18Page = () => {
 
     const selectedEv = events.find((e) => e.id === selectedEvent);
 
-    const { error } = await supabase.from("u18_forms").insert({
+    const { data, error } = await supabase.from("u18_forms").insert({
       event_id: selectedEvent,
       event_title: selectedEv?.title || "",
       event_date: selectedEv?.date || null,
@@ -196,14 +197,51 @@ const U18Page = () => {
       email: email.trim(),
       has_signature: !skipSignature && !!parentSignature,
       accept_newsletter: acceptNewsletter,
-    } as any);
+    } as any).select("id").single();
 
     if (error) {
       toast.error("Fehler beim Speichern: " + error.message);
-    } else {
-      toast.success("Clubzettel wurde erfolgreich erstellt! 🎉 Du erhältst ihn per E-Mail.");
+    } else if (data) {
+      setSubmittedFormId(data.id);
+      toast.success("Clubzettel wurde erfolgreich erstellt! 🎉");
     }
     setSubmitting(false);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!submittedFormId) return;
+    setDownloadingPdf(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/generate-u18-pdf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: anonKey,
+          },
+          body: JSON.stringify({ form_id: submittedFormId }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "PDF-Generierung fehlgeschlagen");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `clubzettel-${submittedFormId.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF heruntergeladen!");
+    } catch (err: any) {
+      toast.error(err.message || "PDF konnte nicht heruntergeladen werden.");
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const CountrySelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
@@ -238,6 +276,57 @@ const U18Page = () => {
           </div>
         </ScrollReveal>
 
+        {/* Success state with PDF download */}
+        {submittedFormId ? (
+          <ScrollReveal delay={0.1}>
+            <div className="glass-card p-6 md:p-8 text-center space-y-6">
+              <CheckCircle className="mx-auto text-primary" size={56} />
+              <h2 className="font-display text-2xl tracking-wider text-foreground">
+                CLUBZETTEL ERSTELLT!
+              </h2>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                Dein Clubzettel wurde erfolgreich gespeichert. Du kannst ihn jetzt als PDF herunterladen und ausdrucken.
+              </p>
+              <Button
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf}
+                size="lg"
+                className="font-display tracking-wider gap-2"
+              >
+                {downloadingPdf ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    PDF WIRD GENERIERT...
+                  </>
+                ) : (
+                  <>
+                    <Download size={18} />
+                    CLUBZETTEL ALS PDF HERUNTERLADEN
+                  </>
+                )}
+              </Button>
+              <div className="pt-4 border-t border-border">
+                <button
+                  onClick={() => {
+                    setSubmittedFormId(null);
+                    setStep(1);
+                    setSelectedEvent("");
+                    setParentName(""); setParentAddress(""); setParentPhone(""); setParentBirthday("");
+                    setMinorName(""); setMinorAddress(""); setMinorPhone(""); setMinorBirthday("");
+                    setSupervisorName(""); setSupervisorAddress(""); setSupervisorEmail(""); setSupervisorPhone(""); setSupervisorBirthday("");
+                    setEmail(""); setAcceptPrivacy(false); setAcceptNewsletter(false);
+                    setParentSignature(null); setSkipSignature(false); setSkipSupervisor(false);
+                  }}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Neuen Clubzettel erstellen
+                </button>
+              </div>
+              <SecurityBadge />
+            </div>
+          </ScrollReveal>
+        ) : (
+        <>
         <ScrollReveal delay={0.1}>
           <div className="mb-6">
             <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
@@ -508,6 +597,8 @@ const U18Page = () => {
             <SecurityBadge />
           </div>
         </ScrollReveal>
+        </>
+        )}
       </div>
     </section>
   );
