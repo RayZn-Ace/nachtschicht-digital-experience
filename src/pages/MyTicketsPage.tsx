@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import { Link, Navigate } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
-import { Ticket, Calendar, QrCode } from "lucide-react";
+import { Ticket, Calendar, CheckCircle2, Copy, Download } from "lucide-react";
+import { toast } from "sonner";
 
 interface TicketWithEvent {
   id: string;
@@ -14,6 +15,8 @@ interface TicketWithEvent {
   created_at: string;
   buyer_name: string | null;
   buyer_email: string;
+  qr_code: string | null;
+  checked_in: boolean;
   event: {
     title: string;
     date: string;
@@ -128,6 +131,49 @@ const MyTicketsPage = () => {
                           : ticket.status}
                       </span>
                     </div>
+
+                    {/* QR Code */}
+                    {ticket.qr_code && (
+                      <div className="mt-4 pt-3 border-t border-border/50">
+                        <div className="flex flex-col sm:flex-row items-center gap-4">
+                          <div className="bg-white p-3 rounded-xl shadow-lg shrink-0">
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(ticket.qr_code)}&bgcolor=FFFFFF&color=000000`}
+                              alt="Ticket QR Code"
+                              className="w-[160px] h-[160px]"
+                            />
+                          </div>
+                          <div className="flex flex-col items-center sm:items-start gap-2">
+                            <span className="font-mono text-[10px] text-muted-foreground tracking-wider select-all break-all">
+                              {ticket.qr_code}
+                            </span>
+                            {ticket.checked_in && (
+                              <span className="flex items-center gap-1 text-xs text-green-400">
+                                <CheckCircle2 size={12} /> {lang === "de" ? "Eingecheckt" : "Checked in"}
+                              </span>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(ticket.qr_code!);
+                                  toast.success(lang === "de" ? "Code kopiert!" : "Code copied!");
+                                }}
+                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 border border-border rounded"
+                              >
+                                <Copy size={11} /> {lang === "de" ? "Kopieren" : "Copy"}
+                              </button>
+                              <a
+                                href={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(ticket.qr_code)}&bgcolor=FFFFFF&color=000000`}
+                                download={`ticket-${ticket.qr_code}.png`}
+                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 border border-border rounded"
+                              >
+                                <Download size={11} /> {lang === "de" ? "Speichern" : "Save"}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
                       <div className="flex items-center gap-4 text-sm">
