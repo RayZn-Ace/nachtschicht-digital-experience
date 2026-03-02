@@ -1145,6 +1145,7 @@ export type Database = {
           fee_override_enabled: boolean
           id: string
           is_active: boolean
+          is_public: boolean
           name: string
           price: number
           quantity: number
@@ -1162,6 +1163,7 @@ export type Database = {
           fee_override_enabled?: boolean
           id?: string
           is_active?: boolean
+          is_public?: boolean
           name: string
           price?: number
           quantity?: number
@@ -1179,6 +1181,7 @@ export type Database = {
           fee_override_enabled?: boolean
           id?: string
           is_active?: boolean
+          is_public?: boolean
           name?: string
           price?: number
           quantity?: number
