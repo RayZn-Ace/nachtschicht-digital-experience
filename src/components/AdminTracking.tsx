@@ -30,12 +30,12 @@ const defaultLabels: Record<string, string> = {
 };
 
 const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
-  <label className="flex items-center gap-3 cursor-pointer">
+  <div className="flex items-center gap-3 cursor-pointer" onClick={() => onChange(!checked)} role="switch" aria-checked={checked}>
     <div className={`relative w-11 h-6 rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted"}`}>
       <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-foreground rounded-full transition-transform ${checked ? "translate-x-5" : ""}`} />
     </div>
     <span className="text-sm text-foreground">{label}</span>
-  </label>
+  </div>
 );
 
 const Field = ({ label, value, onChange, type = "text", placeholder = "" }: {
