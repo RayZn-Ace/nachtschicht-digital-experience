@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import SignaturePad from "@/components/SignaturePad";
+import BirthdayPicker from "@/components/BirthdayPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight, ShieldCheck, Lock, Download, CheckCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -421,7 +422,7 @@ const U18Page = () => {
                   </div>
                   <div>
                     <Label>🎈 Geburtsdatum Elternteil *</Label>
-                    <Input type="date" value={parentBirthday} onChange={(e) => setParentBirthday(e.target.value)} className="bg-secondary border-border" />
+                    <BirthdayPicker value={parentBirthday} onChange={setParentBirthday} />
                     {parentBirthday && calcAge(parentBirthday) < 18 && (
                       <p className="text-destructive text-xs mt-1">Die sorgeberechtigte Person muss über 18 sein.</p>
                     )}
@@ -469,7 +470,7 @@ const U18Page = () => {
                   </div>
                   <div>
                     <Label>🎈 Geburtsdatum unter 18 *</Label>
-                    <Input type="date" value={minorBirthday} onChange={(e) => setMinorBirthday(e.target.value)} className="bg-secondary border-border" />
+                    <BirthdayPicker value={minorBirthday} onChange={setMinorBirthday} />
                     {minorBirthday && (
                       <>
                         {calcAge(minorBirthday) >= 18 && <p className="text-destructive text-xs mt-1">Die Person muss unter 18 Jahre alt sein.</p>}
@@ -541,7 +542,7 @@ const U18Page = () => {
                     </div>
                     <div>
                       <Label>🎈 Geburtsdatum (18+) *</Label>
-                      <Input type="date" value={supervisorBirthday} onChange={(e) => setSupervisorBirthday(e.target.value)} className="bg-secondary border-border" />
+                      <BirthdayPicker value={supervisorBirthday} onChange={setSupervisorBirthday} />
                       {supervisorBirthday && calcAge(supervisorBirthday) < 18 && (
                         <p className="text-destructive text-xs mt-1">Die Aufsichtsperson muss über 18 Jahre alt sein.</p>
                       )}
