@@ -39,6 +39,7 @@ const AdminLostAndFound = () => {
   const [filter, setFilter] = useState<string>("all");
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [customMessages, setCustomMessages] = useState<Record<string, string>>({});
 
   const fetchItems = async () => {
     setLoading(true);
@@ -79,6 +80,7 @@ const AdminLostAndFound = () => {
         firstName: item.first_name,
         category: item.category,
         status: newStatus,
+        customMessage: customMessages[item.id] || "",
       },
     });
 
@@ -242,6 +244,20 @@ const AdminLostAndFound = () => {
                         </button>
                       </div>
                     </div>
+
+                    {/* Custom email message */}
+                    {isOpen && (
+                      <div>
+                        <span className="text-xs text-muted-foreground block mb-1">Zusätzliche Nachricht an den Kunden (optional)</span>
+                        <textarea
+                          className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-md text-foreground focus:ring-2 focus:ring-primary focus:outline-none resize-none"
+                          rows={2}
+                          placeholder="z.B. 'Bitte bringe deinen Personalausweis mit' oder 'Wir haben am Freitag bis 18 Uhr geöffnet'..."
+                          value={customMessages[item.id] || ""}
+                          onChange={(e) => setCustomMessages({ ...customMessages, [item.id]: e.target.value })}
+                        />
+                      </div>
+                    )}
 
                     {/* Action buttons + Delete */}
                     <div className="flex items-center gap-2 flex-wrap pt-1">

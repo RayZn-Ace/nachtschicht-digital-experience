@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, firstName, category, status } = await req.json();
+    const { email, firstName, category, status, customMessage } = await req.json();
 
     if (!email || !firstName || !status) {
       return new Response(JSON.stringify({ error: "email, firstName, status required" }), {
@@ -35,6 +35,12 @@ Deno.serve(async (req) => {
     };
 
     const itemLabel = categoryLabels[category] || "Gegenstand";
+    const customBlock = customMessage
+      ? `<div style="background: #fffbe6; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
+           <p style="margin: 0; color: #333; font-size: 14px;"><strong>Nachricht vom Team:</strong></p>
+           <p style="margin: 4px 0 0; color: #333; font-size: 14px;">${customMessage}</p>
+         </div>`
+      : "";
 
     let subject: string;
     let bodyHtml: string;
@@ -51,6 +57,7 @@ Deno.serve(async (req) => {
             Du kannst deinen Gegenstand während unserer Öffnungszeiten an der Garderobe abholen. 
             Bitte bringe einen gültigen Ausweis mit.
           </p>
+          ${customBlock}
           <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 24px 0;">
             <p style="margin: 0; color: #333; font-size: 14px;">
               <strong>📍 Nachtschicht Kaiserslautern</strong><br/>
@@ -72,6 +79,7 @@ Deno.serve(async (req) => {
           <p style="color: #333; font-size: 16px; line-height: 1.6;">
             Falls du weitere Fragen hast, kannst du uns jederzeit kontaktieren.
           </p>
+          ${customBlock}
           <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 24px 0;">
             <p style="margin: 0; color: #333; font-size: 14px;">
               <strong>📍 Nachtschicht Kaiserslautern</strong><br/>
