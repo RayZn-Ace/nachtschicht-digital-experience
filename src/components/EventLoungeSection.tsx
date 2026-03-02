@@ -6,6 +6,8 @@ import ScrollReveal from "@/components/ScrollReveal";
 import LoungeReservationWizard from "@/components/LoungeReservationWizard";
 import type { Event } from "@/types/database";
 import { motion, AnimatePresence } from "framer-motion";
+import { useI18n } from "@/hooks/useI18n";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface Lounge {
   id: string;
@@ -31,6 +33,8 @@ interface Props {
 }
 
 const EventLoungeSection = ({ event }: Props) => {
+  const { lang } = useI18n();
+  const tr = useTranslate(lang);
   const [lounges, setLounges] = useState<Lounge[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,10 +101,10 @@ const EventLoungeSection = ({ event }: Props) => {
       <ScrollReveal>
         <div className="glass-card p-5 mt-6">
           <h2 className="font-display text-2xl tracking-wider text-foreground mb-1 flex items-center gap-2">
-            <Wine size={20} className="text-primary" /> LOUNGES AN DIESEM ABEND
+            <Wine size={20} className="text-primary" /> {lang === "de" ? "LOUNGES AN DIESEM ABEND" : "LOUNGES THIS EVENING"}
           </h2>
           <p className="text-xs text-muted-foreground mb-4">
-            Sichere dir eine exklusive VIP Lounge – mit Fast Lane Einlass & Freiverzehr.
+            {lang === "de" ? "Sichere dir eine exklusive VIP Lounge – mit Fast Lane Einlass & Freiverzehr." : "Secure an exclusive VIP lounge – with fast lane entry & complimentary drinks."}
           </p>
 
           <div className="flex flex-col gap-3">
@@ -123,10 +127,10 @@ const EventLoungeSection = ({ event }: Props) => {
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {group.freeCount > 0 ? (
                             <span className="text-green-400">
-                              {group.freeCount} von {group.totalCount} verfügbar
+                            {group.freeCount} {lang === "de" ? "von" : "of"} {group.totalCount} {lang === "de" ? "verfügbar" : "available"}
                             </span>
                           ) : (
-                            <span className="text-destructive">Ausgebucht</span>
+                            <span className="text-destructive">{lang === "de" ? "Ausgebucht" : "Sold out"}</span>
                           )}
                         </p>
                       </div>
@@ -187,20 +191,20 @@ const EventLoungeSection = ({ event }: Props) => {
                                     )}
 
                                     <div className="p-3 relative">
-                                      <h4 className="font-display text-sm tracking-wider text-foreground">{lounge.name}</h4>
+                    <h4 className="font-display text-sm tracking-wider text-foreground">{tr(lounge.name)}</h4>
                                       <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground mt-1.5">
                                         <span className="flex items-center gap-1"><Users size={10} /> max. {lounge.capacity}</span>
-                                        <span className="flex items-center gap-1"><Wine size={10} /> {lounge.min_spend}€ Mindest.</span>
+                                        <span className="flex items-center gap-1"><Wine size={10} /> {lounge.min_spend}€ {lang === "de" ? "Mindest." : "min."}</span>
                                       </div>
 
                                       <div className="mt-2">
                                         {isNonBinding ? (
                                           <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded-full">
-                                            <Shield size={10} /> Unverbindlich vorgemerkt
+                                            <Shield size={10} /> {lang === "de" ? "Unverbindlich vorgemerkt" : "Non-binding reservation"}
                                           </span>
                                         ) : (
                                           <span className="inline-flex items-center gap-1 text-[10px] text-green-400 bg-green-500/10 px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                                            Jetzt reservieren →
+                                            {lang === "de" ? "Jetzt reservieren →" : "Reserve now →"}
                                           </span>
                                         )}
                                       </div>
@@ -217,7 +221,7 @@ const EventLoungeSection = ({ event }: Props) => {
                               {group.freeLounges.length > 0 && (
                                 <div className="flex items-center gap-2 pt-2 pb-1">
                                   <div className="h-px flex-1 bg-border" />
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Ausgebucht</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{lang === "de" ? "Ausgebucht" : "Sold out"}</span>
                                   <div className="h-px flex-1 bg-border" />
                                 </div>
                               )}
@@ -238,14 +242,14 @@ const EventLoungeSection = ({ event }: Props) => {
                                     </div>
                                   )}
                                   <div className="p-3 relative">
-                                    <h4 className="font-display text-sm tracking-wider text-foreground">{lounge.name}</h4>
+                                    <h4 className="font-display text-sm tracking-wider text-foreground">{tr(lounge.name)}</h4>
                                     <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground mt-1.5">
                                       <span className="flex items-center gap-1"><Users size={10} /> max. {lounge.capacity}</span>
-                                      <span className="flex items-center gap-1"><Wine size={10} /> {lounge.min_spend}€ Mindest.</span>
+                                      <span className="flex items-center gap-1"><Wine size={10} /> {lounge.min_spend}€ {lang === "de" ? "Mindest." : "min."}</span>
                                     </div>
                                     <div className="mt-2">
                                       <span className="inline-flex items-center gap-1 text-[10px] text-destructive bg-destructive/10 px-2 py-1 rounded-full">
-                                        <ShieldCheck size={10} /> Bereits reserviert
+                                        <ShieldCheck size={10} /> {lang === "de" ? "Bereits reserviert" : "Already reserved"}
                                       </span>
                                     </div>
                                   </div>
