@@ -127,9 +127,9 @@ const AdminOrders = () => {
       });
       Object.values(byType).forEach((t) => { csv += `${t.name};${t.qty};${t.rev.toFixed(2)}€\n`; });
     } else if (type === "orders") {
-      csv = "Order-ID;Bestelldatum;Käufername;E-Mail;Status;Rechnungsnr.;Menge;Brutto;Rabattcode;Check-in\n";
+      csv = "Order-ID;Bestelldatum;Käufername;E-Mail;Telefon;Status;Rechnungsnr.;Menge;Brutto;Rabattcode;Check-in\n";
       filtered.forEach((o) => {
-        csv += `${o.id};${new Date(o.created_at).toLocaleString("de-DE")};${o.buyer_name || "-"};${o.buyer_email};${o.status};-;${o.quantity};${o.total_price.toFixed(2)}€;${o.discount_code_id ? "Ja" : "-"};${o.checked_in ? "Ja" : "Nein"}\n`;
+        csv += `${o.id};${new Date(o.created_at).toLocaleString("de-DE")};${o.buyer_name || "-"};${o.buyer_email};${o.buyer_phone || "-"};${o.status};-;${o.quantity};${o.total_price.toFixed(2)}€;${o.discount_code_id ? "Ja" : "-"};${o.checked_in ? "Ja" : "Nein"}\n`;
       });
     } else {
       csv = "Ticket-ID;Order-ID;Kategorie;Preis;Käufername;E-Mail;QR-Code;Status;Check-in;Scan-Zeitpunkt\n";
