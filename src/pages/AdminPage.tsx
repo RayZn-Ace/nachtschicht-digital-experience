@@ -39,8 +39,9 @@ const AdminPage = () => {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [eventTagsMap, setEventTagsMap] = useState<Record<string, EventTag[]>>({});
   const [formData, setFormData] = useState({
-    title: "", description: "", date: "", time: "22:00", genre: "", areas: "" as string,
+    title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19,
+    has_muttizettel: false, has_abendkasse: false,
   });
   const [selectedAreas, setSelectedAreas] = useState<string[]>(ALWAYS_OPEN_AREAS);
 
@@ -79,7 +80,7 @@ const AdminPage = () => {
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const resetForm = () => {
-    setFormData({ title: "", description: "", date: "", time: "22:00", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19 });
+    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
     setSelectedTagIds([]);
     setEditing(null);
@@ -91,11 +92,13 @@ const AdminPage = () => {
     const areas = parseAreas(event.areas);
     setSelectedAreas([...new Set([...areas, ...ALWAYS_OPEN_AREAS])]);
     setFormData({
-      title: event.title, description: event.description || "", date: event.date.split("T")[0],
-      time: event.time, genre: event.genre || "", areas: event.areas || "",
+      title: event.title, subtitle: (event as any).subtitle || "", description: event.description || "", date: event.date.split("T")[0],
+      time: event.time, end_time: (event as any).end_time || "", genre: event.genre || "", areas: event.areas || "",
       image_url: event.image_url || "", ticket_price: event.ticket_price,
       ticket_quantity: event.ticket_quantity, is_published: event.is_published,
       vat_rate: (event as any).vat_rate ?? 19,
+      has_muttizettel: (event as any).has_muttizettel ?? false,
+      has_abendkasse: (event as any).has_abendkasse ?? false,
     });
     // Load existing tag assignments for this event
     const { data } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
@@ -146,6 +149,8 @@ const AdminPage = () => {
   const handleSave = async () => {
     const payload = {
       ...formData,
+      subtitle: formData.subtitle || null,
+      end_time: formData.end_time || null,
       areas: formatAreas(selectedAreas),
       date: new Date(formData.date).toISOString(),
       ticket_price: Number(formData.ticket_price),
@@ -258,6 +263,10 @@ const AdminPage = () => {
                 <label className="text-sm text-foreground mb-1 block">Titel *</label>
                 <input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
               </div>
+              <div>
+                <label className="text-sm text-foreground mb-1 block">Untertitel</label>
+                <input value={formData.subtitle} onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })} placeholder="z.B. Special Guest: DJ XY" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+              </div>
 
               {/* Genre dropdown with custom creation */}
               <div>
@@ -291,8 +300,12 @@ const AdminPage = () => {
                 <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
               </div>
               <div>
-                <label className="text-sm text-foreground mb-1 block">Uhrzeit</label>
-                <input value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+                <label className="text-sm text-foreground mb-1 block">Beginn</label>
+                <input value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} placeholder="22:00" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-sm text-foreground mb-1 block">Ende</label>
+                <input value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} placeholder="05:00" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
               </div>
 
               {/* Areas multi-select */}
@@ -412,15 +425,33 @@ const AdminPage = () => {
                 <label className="text-sm text-foreground mb-1 block">Beschreibung</label>
                 <textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none resize-none" />
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })} className="accent-primary" />
-                <span className="text-sm text-foreground">Veröffentlicht</span>
-              </label>
+              <div className="md:col-span-2 flex flex-wrap gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={formData.has_muttizettel} onChange={(e) => setFormData({ ...formData, has_muttizettel: e.target.checked })} className="accent-primary" />
+                  <span className="text-sm text-foreground">Muttizettel erforderlich (U18)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={formData.has_abendkasse} onChange={(e) => setFormData({ ...formData, has_abendkasse: e.target.checked })} className="accent-primary" />
+                  <span className="text-sm text-foreground">Abendkasse verfügbar</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })} className="accent-primary" />
+                  <span className="text-sm text-foreground">Veröffentlicht</span>
+                </label>
+              </div>
             </div>
             <div className="flex gap-3 mt-4">
               <button onClick={handleSave} className="px-6 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors">
                 {editing ? "SPEICHERN" : "ERSTELLEN"}
               </button>
+              {!formData.is_published && (
+                <button
+                  onClick={() => { setFormData((f) => ({ ...f, is_published: false })); handleSave(); }}
+                  className="px-6 py-2 bg-muted text-foreground font-display tracking-wider rounded-md hover:bg-muted/80 transition-colors border border-border"
+                >
+                  ALS ENTWURF SPEICHERN
+                </button>
+              )}
               <button onClick={resetForm} className="px-6 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors">
                 ABBRECHEN
               </button>
@@ -449,12 +480,21 @@ const AdminPage = () => {
                     ) : (
                       <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Entwurf</span>
                     )}
+                    {(event as any).has_muttizettel && (
+                      <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">U18</span>
+                    )}
+                    {(event as any).has_abendkasse && (
+                      <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Abendkasse</span>
+                    )}
                     {eventTags.map((tag) => (
                       <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>{tag.name}</span>
                     ))}
                   </div>
+                  {(event as any).subtitle && (
+                    <p className="text-muted-foreground text-xs italic">{(event as any).subtitle}</p>
+                  )}
                   <p className="text-muted-foreground text-sm">
-                    {new Date(event.date).toLocaleDateString("de-DE")} – {event.time} | {event.genre} | {event.ticket_price}€ | {event.tickets_sold}/{event.ticket_quantity} Tickets
+                    {new Date(event.date).toLocaleDateString("de-DE")} – {event.time}{(event as any).end_time ? ` bis ${(event as any).end_time}` : ""} | {event.genre} | {event.ticket_price}€ | {event.tickets_sold}/{event.ticket_quantity} Tickets
                   </p>
                   {eventAreas.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">

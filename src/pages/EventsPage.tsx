@@ -74,11 +74,14 @@ const EventsPage = () => {
                       )}
                     </div>
                     <div className="p-5">
-                      <h2 className="font-display text-2xl tracking-wider text-foreground mb-2">{event.title}</h2>
+                      <h2 className="font-display text-2xl tracking-wider text-foreground mb-1">{event.title}</h2>
+                      {(event as any).subtitle && (
+                        <p className="text-muted-foreground text-sm italic mb-2">{(event as any).subtitle}</p>
+                      )}
                       <div className="flex items-center gap-4 text-muted-foreground text-sm mb-1">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
-                          {new Date(event.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })} – {event.time}
+                          {new Date(event.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })} – {event.time}{(event as any).end_time ? ` bis ${(event as any).end_time}` : ""}
                         </span>
                       </div>
 

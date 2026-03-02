@@ -2,9 +2,11 @@
 export interface Event {
   id: string;
   title: string;
+  subtitle: string | null;
   description: string | null;
   date: string;
   time: string;
+  end_time: string | null;
   genre: string | null;
   areas: string | null;
   image_url: string | null;
@@ -12,6 +14,8 @@ export interface Event {
   ticket_quantity: number;
   tickets_sold: number;
   is_published: boolean;
+  has_muttizettel: boolean;
+  has_abendkasse: boolean;
   created_at: string;
   updated_at: string;
 }
