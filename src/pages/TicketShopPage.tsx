@@ -254,7 +254,7 @@ const TicketShopPage = () => {
                   {event.has_abendkasse && (
                     <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-accent/50 text-accent-foreground font-medium">
                       <DoorOpen size={13} />
-                      {lang === "de" ? "Auch an der Abendkasse erhältlich" : "Also available at the door"}
+                      {lang === "de" ? "Abendkasse verfügbar" : "Available at the door"}
                     </span>
                   )}
                   {event.has_muttizettel && (
