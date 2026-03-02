@@ -7,6 +7,7 @@ import type { Event, TicketType, DiscountCode } from "@/types/database";
 import { toast } from "sonner";
 import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2, ShieldCheck, DoorOpen } from "lucide-react";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
+import { calcOrderFees, type FeeConfig, type TicketTypeFeeOverride } from "@/lib/fees";
 import ScrollReveal from "@/components/ScrollReveal";
 import EventLoungeSection from "@/components/EventLoungeSection";
 
@@ -76,6 +77,30 @@ const TicketShopPage = () => {
   const rawTotal = useGlobalPrice ? globalSubtotal : subtotal;
   const totalCount = useGlobalPrice ? globalQuantity : totalTickets;
 
+  // Fee calculation
+  const eventFee: FeeConfig = {
+    fee_enabled: (event as any)?.fee_enabled ?? false,
+    fee_type: (event as any)?.fee_type ?? "per_ticket",
+    fee_mode: (event as any)?.fee_mode ?? "fixed",
+    fee_amount: (event as any)?.fee_amount ?? 0,
+  };
+
+  const feeItems = useGlobalPrice
+    ? [{ price: event?.ticket_price || 0, quantity: globalQuantity }]
+    : ticketTypes
+        .filter((tt) => (cart[tt.id] || 0) > 0)
+        .map((tt) => ({
+          price: tt.price,
+          quantity: cart[tt.id] || 0,
+          override: {
+            fee_override_enabled: (tt as any).fee_override_enabled ?? false,
+            fee_mode_override: (tt as any).fee_mode_override ?? null,
+            fee_amount_override: (tt as any).fee_amount_override ?? null,
+          } as TicketTypeFeeOverride,
+        }));
+
+  const totalFees = totalCount > 0 ? calcOrderFees(eventFee, feeItems) : 0;
+
   let discount = 0;
   if (appliedDiscount) {
     if (appliedDiscount.discount_type === "percent") {
@@ -84,7 +109,7 @@ const TicketShopPage = () => {
       discount = Math.min(appliedDiscount.discount_value, rawTotal);
     }
   }
-  const finalTotal = Math.max(0, rawTotal - discount);
+  const finalTotal = Math.max(0, rawTotal - discount + totalFees);
 
   const updateCart = (typeId: string, delta: number) => {
     setCart((prev) => {
@@ -152,6 +177,7 @@ const TicketShopPage = () => {
         user_id: user?.id || null,
         quantity: globalQuantity,
         total_price: finalTotal,
+        fee_amount: totalFees,
         buyer_email: email,
         buyer_name: name || null,
         buyer_phone: guestPhone || null,
@@ -161,21 +187,28 @@ const TicketShopPage = () => {
       if (error) { toast.error(error.message); setBuying(false); return; }
       if (data) ticketIds = data.map((t: any) => t.id);
     } else {
-      // One ticket per type
+      // One ticket per type – distribute fee proportionally
       const inserts = ticketTypes
         .filter((tt) => (cart[tt.id] || 0) > 0)
-        .map((tt) => ({
-          event_id: eventId!,
-          user_id: user?.id || null,
-          ticket_type_id: tt.id,
-          quantity: cart[tt.id],
-          total_price: tt.price * cart[tt.id] - (appliedDiscount ? discount * (tt.price * cart[tt.id] / rawTotal) : 0),
-          buyer_email: email,
-          buyer_name: name || null,
-          buyer_phone: guestPhone || null,
-          qr_code: `TKT-${crypto.randomUUID()}`,
-          discount_code_id: appliedDiscount?.id || null,
-        }));
+        .map((tt) => {
+          const ticketSubtotal = tt.price * cart[tt.id];
+          const ticketDiscount = appliedDiscount ? discount * (ticketSubtotal / rawTotal) : 0;
+          // Proportional fee per ticket row
+          const ticketFee = rawTotal > 0 ? totalFees * (ticketSubtotal / rawTotal) : 0;
+          return {
+            event_id: eventId!,
+            user_id: user?.id || null,
+            ticket_type_id: tt.id,
+            quantity: cart[tt.id],
+            total_price: +(ticketSubtotal - ticketDiscount + ticketFee).toFixed(2),
+            fee_amount: +ticketFee.toFixed(2),
+            buyer_email: email,
+            buyer_name: name || null,
+            buyer_phone: guestPhone || null,
+            qr_code: `TKT-${crypto.randomUUID()}`,
+            discount_code_id: appliedDiscount?.id || null,
+          };
+        });
       const { data, error } = await supabase.from("tickets").insert(inserts as any).select("id");
       if (error) { toast.error(error.message); setBuying(false); return; }
       if (data) ticketIds = data.map((t: any) => t.id);
@@ -537,16 +570,24 @@ const TicketShopPage = () => {
               {/* Summary */}
               {totalCount > 0 && (
                 <div className="border-t border-border pt-4 space-y-1">
-                  {discount > 0 && (
+                  {(discount > 0 || totalFees > 0) && (
                     <>
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{lang === "de" ? "Zwischensumme" : "Subtotal"}</span>
                         <span>{rawTotal.toFixed(2)}€</span>
                       </div>
-                      <div className="flex justify-between text-sm text-green-400">
-                        <span>{lang === "de" ? "Rabatt" : "Discount"}</span>
-                        <span>-{discount.toFixed(2)}€</span>
-                      </div>
+                      {discount > 0 && (
+                        <div className="flex justify-between text-sm text-green-400">
+                          <span>{lang === "de" ? "Rabatt" : "Discount"}</span>
+                          <span>-{discount.toFixed(2)}€</span>
+                        </div>
+                      )}
+                      {totalFees > 0 && (
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
+                          <span>{totalFees.toFixed(2)}€</span>
+                        </div>
+                      )}
                     </>
                   )}
                   <div className="flex justify-between text-lg font-bold text-foreground">
@@ -626,6 +667,12 @@ const TicketShopPage = () => {
                   <div className="flex justify-between text-sm text-green-400">
                     <span>{lang === "de" ? "Rabatt" : "Discount"} ({appliedDiscount?.code})</span>
                     <span>-{discount.toFixed(2)}€</span>
+                  </div>
+                )}
+                {totalFees > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
+                    <span>{totalFees.toFixed(2)}€</span>
                   </div>
                 )}
                 <div className="border-t border-border pt-2 flex justify-between font-bold text-foreground">

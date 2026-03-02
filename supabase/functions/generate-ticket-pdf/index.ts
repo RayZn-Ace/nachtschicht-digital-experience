@@ -141,8 +141,45 @@ Deno.serve(async (req) => {
       yPos -= 18;
     }
 
-    // Price
+    // Price + Fee
     yPos -= 10;
+    const ticketFee = Number(ticket.fee_amount || 0);
+    const ticketPriceExFee = Number(ticket.total_price) - ticketFee;
+
+    if (ticketFee > 0) {
+      // Show ticket price
+      page.drawRectangle({
+        x: 30, y: yPos - 5, width: width - 60, height: 22,
+        color: rgb(0.96, 0.96, 0.96),
+      });
+      page.drawText("Ticketpreis", {
+        x: 40, y: yPos + 1,
+        size: 9, font: fontRegular, color: gray,
+      });
+      page.drawText(`${ticketPriceExFee.toFixed(2)} €`, {
+        x: width - 120, y: yPos + 1,
+        size: 10, font: fontRegular, color: black,
+      });
+
+      // Show fee
+      yPos -= 22;
+      page.drawRectangle({
+        x: 30, y: yPos - 5, width: width - 60, height: 22,
+        color: rgb(0.96, 0.96, 0.96),
+      });
+      page.drawText("Servicegebühr", {
+        x: 40, y: yPos + 1,
+        size: 9, font: fontRegular, color: gray,
+      });
+      page.drawText(`${ticketFee.toFixed(2)} €`, {
+        x: width - 120, y: yPos + 1,
+        size: 10, font: fontRegular, color: black,
+      });
+
+      // Total
+      yPos -= 24;
+    }
+
     page.drawRectangle({
       x: 30, y: yPos - 5, width: width - 60, height: 28,
       color: rgb(0.96, 0.96, 0.96),

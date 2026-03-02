@@ -43,6 +43,8 @@ const AdminEventRevenue = () => {
   const refunded = eventTickets.filter((t) => t.status === "refunded");
 
   const totalBrutto = confirmed.reduce((s, t) => s + t.total_price, 0);
+  const totalFees = confirmed.reduce((s, t) => s + ((t as any).fee_amount || 0), 0);
+  const totalBruttoExFees = totalBrutto - totalFees;
   const totalQty = confirmed.reduce((s, t) => s + t.quantity, 0);
   const canceledQty = canceled.reduce((s, t) => s + t.quantity, 0);
   const refundedQty = refunded.reduce((s, t) => s + t.quantity, 0);
@@ -95,6 +97,7 @@ const AdminEventRevenue = () => {
     csv += `Erstattet;${refundedQty}\n`;
     csv += `Eingecheckt;${checkedIn}\n`;
     csv += `Umsatz brutto;${totalBrutto.toFixed(2)} €\n`;
+    if (totalFees > 0) csv += `davon Servicegebühren;${totalFees.toFixed(2)} €\n`;
     csv += `Umsatz netto;${totalNetto.toFixed(2)} €\n`;
     csv += `MwSt.;${totalVat.toFixed(2)} €\n\n`;
 
@@ -200,7 +203,7 @@ const AdminEventRevenue = () => {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
             <div className="glass-card p-4">
               <p className="text-xs text-muted-foreground">Verkauft</p>
               <p className="text-2xl font-bold text-foreground">{totalQty}</p>
@@ -209,6 +212,12 @@ const AdminEventRevenue = () => {
               <p className="text-xs text-muted-foreground">Umsatz brutto</p>
               <p className="text-2xl font-bold text-primary">{totalBrutto.toFixed(2)} €</p>
             </div>
+            {totalFees > 0 && (
+              <div className="glass-card p-4">
+                <p className="text-xs text-muted-foreground">davon Servicegebühren</p>
+                <p className="text-2xl font-bold text-foreground">{totalFees.toFixed(2)} €</p>
+              </div>
+            )}
             <div className="glass-card p-4">
               <p className="text-xs text-muted-foreground">Umsatz netto</p>
               <p className="text-2xl font-bold text-foreground">{totalNetto.toFixed(2)} €</p>
