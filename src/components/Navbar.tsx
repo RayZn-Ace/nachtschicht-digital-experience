@@ -68,12 +68,13 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
     ],
   },
   {
-    label: "Finanzen & Tracking",
+    label: "Controlling & Tracking",
     icon: TrendingUp,
     items: [
+      { label: "Controlling", tab: "controlling", icon: BarChart3 },
       { label: "Umsatz", tab: "revenue", icon: TrendingUp },
       { label: "Rechnungen", tab: "invoiceconfig", icon: Receipt },
-      { label: "Tracking", tab: "tracking", icon: BarChart3 },
+      { label: "Tracking", tab: "tracking", icon: Settings },
     ],
   },
 ];

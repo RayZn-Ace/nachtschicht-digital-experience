@@ -20,6 +20,7 @@ import AdminDrinks from "@/components/AdminDrinks";
 import AdminHolidaySpecials from "@/components/AdminHolidaySpecials";
 import AdminInvoiceConfig from "@/components/AdminInvoiceConfig";
 import AdminEventRevenue from "@/components/AdminEventRevenue";
+import AdminControlling from "@/components/AdminControlling";
 import AdminPhotoReports from "@/components/AdminPhotoReports";
 import AdminApplicants from "@/components/AdminApplicants";
 
@@ -35,7 +36,7 @@ interface Genre {
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["events", "ticketcenter", "albums", "newsletter", "u18", "tracking", "tags", "codes", "lounges", "drinks", "holidays", "invoiceconfig", "revenue", "reports", "applicants"] as const;
+  const validTabs = ["events", "ticketcenter", "albums", "newsletter", "u18", "tracking", "tags", "codes", "lounges", "drinks", "holidays", "invoiceconfig", "revenue", "controlling", "reports", "applicants"] as const;
   type TabType = typeof validTabs[number];
   const urlTab = searchParams.get("tab") as TabType | null;
   const [tab, setTabState] = useState<TabType>(validTabs.includes(urlTab as any) ? urlTab! : "events");
@@ -248,6 +249,8 @@ const AdminPage = () => {
           <AdminApplicants />
         ) : tab === "reports" ? (
           <AdminPhotoReports />
+        ) : tab === "controlling" ? (
+          <AdminControlling />
         ) : tab === "revenue" ? (
           <AdminEventRevenue />
         ) : tab === "invoiceconfig" ? (

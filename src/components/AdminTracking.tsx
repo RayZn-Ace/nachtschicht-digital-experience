@@ -10,6 +10,9 @@ interface Config {
   meta_pixel_active: boolean; meta_pixel_id: string; meta_advanced_matching: boolean;
   meta_capi_active: boolean; meta_access_token: string; meta_dataset_id: string; meta_test_event_code: string;
   tiktok_pixel_active: boolean; tiktok_pixel_id: string; tiktok_events_api_active: boolean; tiktok_access_token: string;
+  snapchat_pixel_active: boolean; snapchat_pixel_id: string; snapchat_access_token: string; snapchat_capi_active: boolean;
+  pinterest_tag_active: boolean; pinterest_tag_id: string; pinterest_access_token: string; pinterest_capi_active: boolean;
+  linkedin_insight_active: boolean; linkedin_partner_id: string; linkedin_access_token: string; linkedin_capi_active: boolean;
   ga4_active: boolean; ga4_measurement_id: string;
   google_ads_active: boolean; google_ads_conversion_id: string; google_ads_conversion_labels: Record<string, string>;
   google_enhanced_conversions: boolean; google_server_backup: boolean; ga4_api_secret: string;
@@ -180,6 +183,42 @@ const AdminTracking = () => {
             )}
           </Section>
 
+          {/* Snapchat */}
+          <Section title="SNAPCHAT">
+            <Toggle label="Pixel aktiv" checked={config.snapchat_pixel_active} onChange={(v) => update("snapchat_pixel_active", v)} />
+            {config.snapchat_pixel_active && (
+              <Field label="Pixel ID" value={config.snapchat_pixel_id} onChange={(v) => update("snapchat_pixel_id", v)} placeholder="xxxxxxxx-xxxx-xxxx-xxxx" />
+            )}
+            <Toggle label="Conversions API (CAPI) aktiv" checked={config.snapchat_capi_active} onChange={(v) => update("snapchat_capi_active", v)} />
+            {config.snapchat_capi_active && (
+              <Field label="Access Token" value={config.snapchat_access_token} onChange={(v) => update("snapchat_access_token", v)} type="password" />
+            )}
+          </Section>
+
+          {/* Pinterest */}
+          <Section title="PINTEREST">
+            <Toggle label="Tag aktiv" checked={config.pinterest_tag_active} onChange={(v) => update("pinterest_tag_active", v)} />
+            {config.pinterest_tag_active && (
+              <Field label="Tag ID" value={config.pinterest_tag_id} onChange={(v) => update("pinterest_tag_id", v)} placeholder="123456789" />
+            )}
+            <Toggle label="Conversions API aktiv" checked={config.pinterest_capi_active} onChange={(v) => update("pinterest_capi_active", v)} />
+            {config.pinterest_capi_active && (
+              <Field label="Access Token" value={config.pinterest_access_token} onChange={(v) => update("pinterest_access_token", v)} type="password" />
+            )}
+          </Section>
+
+          {/* LinkedIn */}
+          <Section title="LINKEDIN">
+            <Toggle label="Insight Tag aktiv" checked={config.linkedin_insight_active} onChange={(v) => update("linkedin_insight_active", v)} />
+            {config.linkedin_insight_active && (
+              <Field label="Partner ID" value={config.linkedin_partner_id} onChange={(v) => update("linkedin_partner_id", v)} placeholder="123456" />
+            )}
+            <Toggle label="Conversions API aktiv" checked={config.linkedin_capi_active} onChange={(v) => update("linkedin_capi_active", v)} />
+            {config.linkedin_capi_active && (
+              <Field label="Access Token" value={config.linkedin_access_token} onChange={(v) => update("linkedin_access_token", v)} type="password" />
+            )}
+          </Section>
+
           {/* Google */}
           <Section title="GOOGLE ANALYTICS & ADS">
             <Toggle label="GA4 aktiv" checked={config.ga4_active} onChange={(v) => update("ga4_active", v)} />
@@ -287,6 +326,12 @@ const AdminTracking = () => {
                 { name: "Meta CAPI", active: config.meta_capi_active },
                 { name: "TikTok Pixel", active: config.tiktok_pixel_active },
                 { name: "TikTok API", active: config.tiktok_events_api_active },
+                { name: "Snapchat Pixel", active: config.snapchat_pixel_active },
+                { name: "Snapchat CAPI", active: config.snapchat_capi_active },
+                { name: "Pinterest Tag", active: config.pinterest_tag_active },
+                { name: "Pinterest CAPI", active: config.pinterest_capi_active },
+                { name: "LinkedIn Insight", active: config.linkedin_insight_active },
+                { name: "LinkedIn CAPI", active: config.linkedin_capi_active },
                 { name: "GA4", active: config.ga4_active },
                 { name: "Google Ads", active: config.google_ads_active },
                 { name: "Server Backup", active: config.google_server_backup },
