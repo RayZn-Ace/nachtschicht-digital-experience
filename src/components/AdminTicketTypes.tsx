@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketType } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Pencil, X, Calendar } from "lucide-react";
 
 const PRESET_TYPES = [
   { name: "Early Bird", price: 8 },
@@ -23,7 +23,8 @@ interface Props {
 const AdminTicketTypes = ({ eventId }: Props) => {
   const [types, setTypes] = useState<TicketType[]>([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: 0, quantity: 100 });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: "", description: "", price: 0, quantity: 100, sale_start: "", sale_end: "" });
 
   const fetchTypes = async () => {
     const { data } = await supabase
@@ -36,20 +37,58 @@ const AdminTicketTypes = ({ eventId }: Props) => {
 
   useEffect(() => { fetchTypes(); }, [eventId]);
 
+  const resetForm = () => {
+    setForm({ name: "", description: "", price: 0, quantity: 100, sale_start: "", sale_end: "" });
+    setEditingId(null);
+    setShowAdd(false);
+  };
+
   const handleAdd = async () => {
     if (!form.name.trim()) return;
-    const { error } = await supabase.from("ticket_types").insert({
+    const payload: any = {
       event_id: eventId,
       name: form.name.trim(),
       description: form.description || null,
       price: Number(form.price),
       quantity: Number(form.quantity),
       sort_order: types.length,
-    });
+      sale_start: form.sale_start ? new Date(form.sale_start).toISOString() : null,
+      sale_end: form.sale_end ? new Date(form.sale_end).toISOString() : null,
+    };
+    const { error } = await supabase.from("ticket_types").insert(payload);
     if (error) { toast.error(error.message); return; }
     toast.success("Ticketart erstellt!");
-    setForm({ name: "", description: "", price: 0, quantity: 100 });
+    resetForm();
+    fetchTypes();
+  };
+
+  const handleEdit = (t: TicketType) => {
+    setEditingId(t.id);
+    setForm({
+      name: t.name,
+      description: t.description || "",
+      price: t.price,
+      quantity: t.quantity,
+      sale_start: t.sale_start ? t.sale_start.slice(0, 16) : "",
+      sale_end: t.sale_end ? t.sale_end.slice(0, 16) : "",
+    });
     setShowAdd(false);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingId || !form.name.trim()) return;
+    const payload: any = {
+      name: form.name.trim(),
+      description: form.description || null,
+      price: Number(form.price),
+      quantity: Number(form.quantity),
+      sale_start: form.sale_start ? new Date(form.sale_start).toISOString() : null,
+      sale_end: form.sale_end ? new Date(form.sale_end).toISOString() : null,
+    };
+    const { error } = await supabase.from("ticket_types").update(payload).eq("id", editingId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Ticketart aktualisiert!");
+    resetForm();
     fetchTypes();
   };
 
@@ -67,23 +106,33 @@ const AdminTicketTypes = ({ eventId }: Props) => {
 
   const addPreset = (preset: { name: string; price: number }) => {
     setForm({ ...form, name: preset.name, price: preset.price });
+    setEditingId(null);
     setShowAdd(true);
   };
+
+  const formatDateTime = (iso: string | null) => {
+    if (!iso) return null;
+    try {
+      return new Date(iso).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+    } catch { return null; }
+  };
+
+  const isFormOpen = showAdd || editingId;
 
   return (
     <div className="mt-4 border border-border rounded-lg p-4 bg-muted/30">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-display text-lg tracking-wider text-foreground">TICKETARTEN</h3>
         <button
-          onClick={() => setShowAdd(!showAdd)}
+          onClick={() => { if (isFormOpen) resetForm(); else { resetForm(); setShowAdd(true); } }}
           className="flex items-center gap-1 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
-          <Plus size={14} /> HINZUFÜGEN
+          {isFormOpen ? <><X size={14} /> SCHLIEßEN</> : <><Plus size={14} /> HINZUFÜGEN</>}
         </button>
       </div>
 
-      {/* Presets */}
-      {showAdd && (
+      {/* Presets - only for new */}
+      {showAdd && !editingId && (
         <div className="mb-3">
           <p className="text-xs text-muted-foreground mb-2">Schnellauswahl:</p>
           <div className="flex flex-wrap gap-1.5 mb-3">
@@ -98,6 +147,15 @@ const AdminTicketTypes = ({ eventId }: Props) => {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Add / Edit Form */}
+      {isFormOpen && (
+        <div className="mb-3 p-3 border border-border rounded-md bg-background/50">
+          <p className="text-xs font-medium text-foreground mb-2">
+            {editingId ? "TICKETART BEARBEITEN" : "NEUE TICKETART"}
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
             <input
               placeholder="Name *"
@@ -127,9 +185,41 @@ const AdminTicketTypes = ({ eventId }: Props) => {
               className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
             />
           </div>
-          <button onClick={handleAdd} className="px-4 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-            SPEICHERN
-          </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
+                <Calendar size={12} /> Verkaufsstart (optional)
+              </label>
+              <input
+                type="datetime-local"
+                value={form.sale_start}
+                onChange={(e) => setForm({ ...form, sale_start: e.target.value })}
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
+                <Calendar size={12} /> Verkaufsende (optional)
+              </label>
+              <input
+                type="datetime-local"
+                value={form.sale_end}
+                onChange={(e) => setForm({ ...form, sale_end: e.target.value })}
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={editingId ? handleUpdate : handleAdd}
+              className="px-4 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              {editingId ? "AKTUALISIEREN" : "SPEICHERN"}
+            </button>
+            <button onClick={resetForm} className="px-4 py-1.5 text-sm border border-border text-foreground rounded-md hover:bg-muted">
+              ABBRECHEN
+            </button>
+          </div>
         </div>
       )}
 
@@ -142,15 +232,30 @@ const AdminTicketTypes = ({ eventId }: Props) => {
             <div key={t.id} className={`flex items-center gap-3 p-2 rounded-md border ${t.is_active ? 'border-border' : 'border-border/50 opacity-50'}`}>
               <GripVertical size={14} className="text-muted-foreground" />
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-foreground">{t.name}</span>
-                {t.description && <span className="text-xs text-muted-foreground ml-2">{t.description}</span>}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{t.name}</span>
+                  {t.description && <span className="text-xs text-muted-foreground">{t.description}</span>}
+                </div>
+                {(t.sale_start || t.sale_end) && (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Calendar size={10} className="text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {t.sale_start ? `Ab ${formatDateTime(t.sale_start)}` : ""}
+                      {t.sale_start && t.sale_end ? " – " : ""}
+                      {t.sale_end ? `Bis ${formatDateTime(t.sale_end)}` : ""}
+                    </span>
+                  </div>
+                )}
               </div>
               <span className="text-sm text-foreground font-medium">{t.price}€</span>
               <span className="text-xs text-muted-foreground">{t.sold}/{t.quantity}</span>
               <button onClick={() => handleToggle(t)} className={`text-xs px-2 py-0.5 rounded-full ${t.is_active ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'}`}>
                 {t.is_active ? "Aktiv" : "Inaktiv"}
               </button>
-              <button onClick={() => handleDelete(t.id)} className="text-destructive hover:text-destructive/80">
+              <button onClick={() => handleEdit(t)} className="text-foreground hover:text-primary transition-colors" title="Bearbeiten">
+                <Pencil size={14} />
+              </button>
+              <button onClick={() => handleDelete(t.id)} className="text-destructive hover:text-destructive/80" title="Löschen">
                 <Trash2 size={14} />
               </button>
             </div>
