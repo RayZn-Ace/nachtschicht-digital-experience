@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Instagram, Facebook, ChevronRight, MapPin, Calendar } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
+import { usePageSEO } from "@/hooks/usePageSEO";
 
 const galleryImages = [
   "/images/gallery-1.jpg", "/images/gallery-2.jpg", "/images/gallery-3.jpg",
@@ -19,6 +20,60 @@ const Index = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+
+  const jsonLd = useMemo(() => [
+    {
+      "@context": "https://schema.org",
+      "@type": "NightClub",
+      "name": "Nachtschicht Kaiserslautern",
+      "description": "Der angesagteste Club in Kaiserslautern für Events, Partys, VIP-Lounges und unvergessliche Nächte. Charts, Hip-Hop, House, 90er & 2000er.",
+      "url": "https://nachtschicht-kaiserslautern.de",
+      "telephone": "+49 631 3105759",
+      "email": "info@nachtschicht-kaiserslautern.de",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Zollamtstraße 28",
+        "addressLocality": "Kaiserslautern",
+        "postalCode": "67663",
+        "addressRegion": "Rheinland-Pfalz",
+        "addressCountry": "DE"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 49.444,
+        "longitude": 7.768
+      },
+      "openingHoursSpecification": [
+        { "@type": "OpeningHoursSpecification", "dayOfWeek": "Friday", "opens": "22:00", "closes": "05:00" },
+        { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "22:00", "closes": "05:00" }
+      ],
+      "sameAs": [
+        "https://www.instagram.com/nachtschichtkl",
+        "https://www.facebook.com/nachtschichtkaiserslautern/",
+        "https://www.tiktok.com/@nachtschicht.kl"
+      ],
+      "image": "https://nachtschicht-kaiserslautern.de/images/gallery-8.jpg",
+      "priceRange": "€€"
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Nachtschicht Kaiserslautern",
+      "url": "https://nachtschicht-kaiserslautern.de",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://nachtschicht-kaiserslautern.de/events?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ], []);
+
+  usePageSEO({
+    title: "Nachtschicht Kaiserslautern – Der Club für unvergessliche Nächte",
+    description: "Nachtschicht Kaiserslautern: DER Club für Partys, Events, VIP-Lounges & Tickets in Kaiserslautern. Charts, Hip-Hop, House, 90er/2000er – jedes Wochenende live. Jetzt Tickets sichern!",
+    canonical: "/",
+    jsonLd,
+  });
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -67,9 +122,9 @@ const Index = () => {
             </Link>
           </div>
           <div className="flex justify-center gap-6 mt-10 animate-fade-in" style={{ animationDelay: "0.6s" }}>
-            <a href="https://www.instagram.com/nachtschichtkl" target="_blank" rel="noopener noreferrer" className="text-foreground/60 hover:text-primary transition-colors" aria-label="Instagram"><Instagram size={28} /></a>
-            <a href="https://www.facebook.com/nachtschichtkaiserslautern/" target="_blank" rel="noopener noreferrer" className="text-foreground/60 hover:text-primary transition-colors" aria-label="Facebook"><Facebook size={28} /></a>
-            <a href="https://www.tiktok.com/@nachtschicht.kl" target="_blank" rel="noopener noreferrer" className="text-foreground/60 hover:text-primary transition-colors" aria-label="TikTok">
+            <a href="https://www.instagram.com/nachtschichtkl" target="_blank" rel="noopener noreferrer" className="text-foreground/60 hover:text-primary transition-colors" aria-label="Nachtschicht Kaiserslautern auf Instagram"><Instagram size={28} /></a>
+            <a href="https://www.facebook.com/nachtschichtkaiserslautern/" target="_blank" rel="noopener noreferrer" className="text-foreground/60 hover:text-primary transition-colors" aria-label="Nachtschicht Kaiserslautern auf Facebook"><Facebook size={28} /></a>
+            <a href="https://www.tiktok.com/@nachtschicht.kl" target="_blank" rel="noopener noreferrer" className="text-foreground/60 hover:text-primary transition-colors" aria-label="Nachtschicht Kaiserslautern auf TikTok">
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.98a8.22 8.22 0 004.76 1.52V7.05a4.84 4.84 0 01-1-.36z" /></svg>
             </a>
           </div>
@@ -117,7 +172,7 @@ const Index = () => {
       )}
 
       {/* Next Events */}
-      <section className="section-padding">
+      <section className="section-padding" aria-label="Kommende Events">
         <div className="container mx-auto">
           <ScrollReveal>
             <div className="text-center mb-12">
@@ -129,13 +184,13 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {events.map((event, i) => (
                 <ScrollReveal key={event.id} delay={i * 0.15}>
-                <div className="glass-card overflow-hidden hover-lift group cursor-pointer" onClick={() => navigate(`/tickets/${event.id}`)}>
+                <article className="glass-card overflow-hidden hover-lift group cursor-pointer" onClick={() => navigate(`/tickets/${event.id}`)}>
                   <div className="relative h-56 overflow-hidden">
-                    <img src={event.image_url || "/images/gallery-1.jpg"} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                    <img src={event.image_url || "/images/gallery-1.jpg"} alt={`${event.title} – Event Party Nachtschicht Kaiserslautern`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
                     <div className="absolute bottom-3 left-3 flex items-center gap-2 text-foreground/80 text-sm">
                       <Calendar size={14} />
-                      {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" })}
+                      <time dateTime={event.date}>{new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" })}</time>
                     </div>
                   </div>
                   <div className="p-5">
@@ -158,7 +213,7 @@ const Index = () => {
                       </span>
                     </div>
                   </div>
-                </div>
+                </article>
                 </ScrollReveal>
               ))}
             </div>
@@ -174,7 +229,7 @@ const Index = () => {
       </section>
 
       {/* Gallery Preview */}
-      <section className="section-padding bg-secondary/50">
+      <section className="section-padding bg-secondary/50" aria-label="Fotogalerie">
         <div className="container mx-auto">
           <ScrollReveal>
             <div className="text-center mb-12">
@@ -185,7 +240,7 @@ const Index = () => {
             {galleryImages.map((img, i) => (
               <ScrollReveal key={i} delay={i * 0.1}>
                 <div className="relative aspect-square overflow-hidden rounded-lg group">
-                  <img src={img} alt={`Nachtschicht Party Foto ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                  <img src={img} alt={`Partyfotos Nachtschicht Kaiserslautern – Impressionen ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                   <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-colors duration-300" />
                 </div>
               </ScrollReveal>
@@ -198,23 +253,24 @@ const Index = () => {
       </section>
 
       {/* About / SEO */}
-      <section className="section-padding">
+      <section className="section-padding" aria-label="Über die Nachtschicht">
         <div className="container mx-auto max-w-4xl">
           <ScrollReveal>
             <h2 className="font-display text-3xl md:text-5xl tracking-wider text-foreground text-center mb-8">{t("index.welcome")} <span className="text-gradient">NACHTSCHICHT</span></h2>
           </ScrollReveal>
           <ScrollReveal delay={0.2}>
             <div className="space-y-4 text-muted-foreground leading-relaxed text-sm md:text-base">
-              <p>Die Nachtschicht Kaiserslautern gehört zu den bekanntesten Clubs in der Region und ist ein zentraler Treffpunkt für Nachtschwärmer, Partygäste und Musikliebhaber. Mit verschiedenen Areas, angesagten DJs und regelmäßig wechselnden Events bietet die Location ein abwechslungsreiches Nachtleben für jeden Geschmack. Ob Charts, Black, House oder 90er- und 2000er-Partys – in der Nachtschicht Kaiserslautern wird jedes Wochenende gefeiert.</p>
-              <p>Besucher aus Kaiserslautern, dem gesamten Rheinland-Pfalz sowie aus dem Saarland und der Umgebung reisen gezielt an, um unvergessliche Nächte zu erleben. Die moderne Clubtechnik, hochwertige Sound- und Lichtanlagen sowie aufwendige Dekorationen sorgen für eine einzigartige Atmosphäre. Neben klassischen Clubnächten finden regelmäßig Mottopartys, Special Events, Live-Acts und besondere Shows statt.</p>
-              <p>Die Nachtschicht Kaiserslautern ist außerdem bekannt für ihre große Community, professionelle Organisation und ein sicheres Umfeld. Wer ein außergewöhnliches Nachtleben in Kaiserslautern sucht, ist hier genau richtig.</p>
+              <p>Die <strong>Nachtschicht Kaiserslautern</strong> gehört zu den bekanntesten <strong>Clubs in Kaiserslautern</strong> und der gesamten Region Rheinland-Pfalz. Als zentraler Treffpunkt für Nachtschwärmer, Partygäste und Musikliebhaber bietet die Location ein abwechslungsreiches <strong>Nachtleben in Kaiserslautern</strong> für jeden Geschmack. Ob Charts, Black Music, Hip-Hop, House, EDM oder 90er- und 2000er-Partys – in der Nachtschicht wird jedes Wochenende gefeiert.</p>
+              <p>Mit über 5 verschiedenen Areas, darunter die <strong>Agostea Mainhall</strong>, <strong>La Vie</strong>, <strong>Mausefalle</strong>, ein <strong>Open-Air-Floor</strong> und ein <strong>Bistro</strong>, bietet der Club eine einzigartige Vielfalt. Angesagte DJs, moderne Clubtechnik mit hochwertigem Sound- und Lichtsystem sowie aufwendige Dekorationen sorgen für eine unvergleichliche Atmosphäre. Neben klassischen Clubnächten finden regelmäßig Mottopartys, Special Events, Live-Acts und <strong>Konzerte in Kaiserslautern</strong> statt.</p>
+              <p>Besucher aus Kaiserslautern, dem gesamten Rheinland-Pfalz, dem Saarland und der Pfalz reisen gezielt an, um unvergessliche Nächte zu erleben. <strong>VIP-Lounges</strong> können für besondere Anlässe wie Geburtstage oder Firmenevents reserviert werden. Die Nachtschicht Kaiserslautern ist bekannt für ihre große Community, professionelle Organisation, ein sicheres Umfeld und die besten <strong>Partys in Kaiserslautern</strong>.</p>
+              <p>Du suchst den besten <strong>Club in der Nähe</strong>, spannende <strong>Events heute Abend</strong> oder möchtest direkt <strong>Tickets kaufen</strong>? Dann bist du bei der Nachtschicht genau richtig. Entdecke unser Programm, sichere dir deine Tickets online und erlebe das beste Nachtleben der Region!</p>
             </div>
           </ScrollReveal>
         </div>
       </section>
 
       {/* Map */}
-      <section className="section-padding bg-secondary/50">
+      <section className="section-padding bg-secondary/50" aria-label="Anfahrt">
         <div className="container mx-auto">
           <ScrollReveal>
             <div className="text-center mb-8">
@@ -223,7 +279,7 @@ const Index = () => {
             </div>
           </ScrollReveal>
           <div className="rounded-xl overflow-hidden border border-border/50 aspect-video max-w-4xl mx-auto">
-            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2587.5!2d7.768!3d49.444!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4796320c3b0c9c5f%3A0x0!2sZollamtstra%C3%9Fe+28%2C+67663+Kaiserslautern!5e0!3m2!1sde!2sde!4v1" width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Nachtschicht Kaiserslautern Karte" />
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2587.5!2d7.768!3d49.444!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4796320c3b0c9c5f%3A0x0!2sZollamtstra%C3%9Fe+28%2C+67663+Kaiserslautern!5e0!3m2!1sde!2sde!4v1" width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Standort Nachtschicht Kaiserslautern – Zollamtstraße 28" />
           </div>
           <div className="text-center mt-6">
             <a href="https://www.google.com/maps/dir/?api=1&destination=Zollamtstraße+28,+67663+Kaiserslautern" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors">{t("index.planRoute")}</a>

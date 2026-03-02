@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Clock, PartyPopper, CalendarDays, Info, Sparkles } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useI18n } from "@/hooks/useI18n";
+import { usePageSEO } from "@/hooks/usePageSEO";
 import { supabase } from "@/integrations/supabase/client";
 
 interface HolidaySpecial {
@@ -57,6 +58,23 @@ const OeffnungszeitenPage = () => {
   const de = lang === "de";
   const hours = de ? regularHours : regularHoursEN;
   const [holidays, setHolidays] = useState<HolidaySpecial[]>([]);
+
+  usePageSEO({
+    title: "Öffnungszeiten – Nachtschicht Kaiserslautern | Freitag & Samstag ab 22 Uhr",
+    description: "Öffnungszeiten der Nachtschicht Kaiserslautern: Freitag & Samstag 22:00–05:00 Uhr, Vorfeiertage ab 22:00 Uhr. Einlass ab 18 (ab 16 mit Muttizettel). Letzter Einlass 03:00 Uhr.",
+    canonical: "/oeffnungszeiten",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "NightClub",
+      "name": "Nachtschicht Kaiserslautern",
+      "url": "https://nachtschicht-kaiserslautern.de/oeffnungszeiten",
+      "openingHoursSpecification": [
+        { "@type": "OpeningHoursSpecification", "dayOfWeek": "Friday", "opens": "22:00", "closes": "05:00" },
+        { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "22:00", "closes": "05:00" }
+      ],
+      "address": { "@type": "PostalAddress", "streetAddress": "Zollamtstraße 28", "addressLocality": "Kaiserslautern", "postalCode": "67663", "addressCountry": "DE" }
+    },
+  });
 
   useEffect(() => {
     supabase.from("holiday_specials").select("*").eq("is_active", true).order("sort_order").then(({ data }) => {
