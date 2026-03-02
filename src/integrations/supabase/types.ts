@@ -281,10 +281,14 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          end_time: string | null
           genre: string | null
+          has_abendkasse: boolean
+          has_muttizettel: boolean
           id: string
           image_url: string | null
           is_published: boolean | null
+          subtitle: string | null
           ticket_price: number | null
           ticket_quantity: number | null
           tickets_sold: number | null
@@ -298,10 +302,14 @@ export type Database = {
           created_at?: string
           date: string
           description?: string | null
+          end_time?: string | null
           genre?: string | null
+          has_abendkasse?: boolean
+          has_muttizettel?: boolean
           id?: string
           image_url?: string | null
           is_published?: boolean | null
+          subtitle?: string | null
           ticket_price?: number | null
           ticket_quantity?: number | null
           tickets_sold?: number | null
@@ -315,10 +323,14 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          end_time?: string | null
           genre?: string | null
+          has_abendkasse?: boolean
+          has_muttizettel?: boolean
           id?: string
           image_url?: string | null
           is_published?: boolean | null
+          subtitle?: string | null
           ticket_price?: number | null
           ticket_quantity?: number | null
           tickets_sold?: number | null
