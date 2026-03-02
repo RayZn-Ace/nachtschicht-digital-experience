@@ -145,9 +145,11 @@ const TicketShopPage = () => {
       billing_country: billingCountry,
     };
 
+    let ticketIds: string[] = [];
+
     if (useGlobalPrice) {
       // Single ticket with global price
-      const { error } = await supabase.from("tickets").insert({
+      const { data, error } = await supabase.from("tickets").insert({
         event_id: eventId!,
         user_id: user?.id || null,
         quantity: globalQuantity,
@@ -157,8 +159,9 @@ const TicketShopPage = () => {
         qr_code: qrCode,
         discount_code_id: appliedDiscount?.id || null,
         ...billingFields,
-      } as any);
+      } as any).select("id");
       if (error) { toast.error(error.message); setBuying(false); return; }
+      if (data) ticketIds = data.map((t: any) => t.id);
     } else {
       // One ticket per type
       const inserts = ticketTypes
@@ -175,13 +178,23 @@ const TicketShopPage = () => {
           discount_code_id: appliedDiscount?.id || null,
           ...billingFields,
         }));
-      const { error } = await supabase.from("tickets").insert(inserts as any);
+      const { data, error } = await supabase.from("tickets").insert(inserts as any).select("id");
       if (error) { toast.error(error.message); setBuying(false); return; }
+      if (data) ticketIds = data.map((t: any) => t.id);
     }
 
     // Increment discount uses
     if (appliedDiscount) {
       await supabase.from("discount_codes").update({ uses: appliedDiscount.uses + 1 }).eq("id", appliedDiscount.id);
+    }
+
+    // Create invoice automatically (fire-and-forget, don't block checkout)
+    if (ticketIds.length > 0) {
+      supabase.functions.invoke("create-invoice", {
+        body: { ticket_ids: ticketIds },
+      }).then(({ error: invError }) => {
+        if (invError) console.error("Invoice creation failed:", invError);
+      });
     }
 
     toast.success(lang === "de" ? "Ticket erfolgreich gebucht! 🎉" : "Ticket booked successfully! 🎉");
