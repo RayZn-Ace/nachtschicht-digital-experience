@@ -400,7 +400,7 @@ const AdminPage = () => {
                 <label className="text-sm text-foreground mb-1 block">Titelbild</label>
                 <div className="flex items-start gap-3">
                   {formData.image_url ? (
-                    <div className="relative w-full max-w-md h-48 rounded-md overflow-hidden shrink-0 border border-border">
+                    <div className="relative w-full max-w-lg rounded-md overflow-hidden shrink-0 border border-border" style={{ aspectRatio: '1920/1080' }}>
                       <img src={formData.image_url} alt="Titelbild" className="w-full h-full object-cover" />
                       <button
                         onClick={() => setFormData({ ...formData, image_url: "" })}
