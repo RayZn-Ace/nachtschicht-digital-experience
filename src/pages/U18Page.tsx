@@ -25,6 +25,12 @@ interface EventOption {
 
 const COUNTRIES = ["Deutschland", "Österreich", "Schweiz"];
 
+const handleZipChange = (value: string, country: string): string => {
+  const digitsOnly = value.replace(/\D/g, "");
+  const maxLen = country === "Deutschland" ? 5 : 10;
+  return digitsOnly.slice(0, maxLen);
+};
+
 const calcAge = (birthday: string, refDate?: Date): number => {
   const birth = new Date(birthday);
   const today = refDate || new Date();
@@ -399,7 +405,7 @@ const U18Page = () => {
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <Label>PLZ *</Label>
-                      <Input value={parentZip} onChange={(e) => setParentZip(e.target.value)} className="bg-secondary border-border" placeholder="67663" />
+                      <Input value={parentZip} onChange={(e) => setParentZip(handleZipChange(e.target.value, parentCountry))} className="bg-secondary border-border" placeholder="67663" inputMode="numeric" maxLength={parentCountry === "Deutschland" ? 5 : 10} />
                     </div>
                     <div className="col-span-2">
                       <Label>Ort *</Label>
@@ -447,7 +453,7 @@ const U18Page = () => {
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <Label>PLZ *</Label>
-                      <Input value={minorZip} onChange={(e) => { setMinorZip(e.target.value); setCopyParentAddress(false); }} className="bg-secondary border-border" placeholder="67663" />
+                      <Input value={minorZip} onChange={(e) => { setMinorZip(handleZipChange(e.target.value, minorCountry)); setCopyParentAddress(false); }} className="bg-secondary border-border" placeholder="67663" inputMode="numeric" maxLength={minorCountry === "Deutschland" ? 5 : 10} />
                     </div>
                     <div className="col-span-2">
                       <Label>Ort *</Label>
@@ -515,7 +521,7 @@ const U18Page = () => {
                     <div className="grid grid-cols-3 gap-3">
                       <div>
                         <Label>PLZ *</Label>
-                        <Input value={supervisorZip} onChange={(e) => { setSupervisorZip(e.target.value); setCopySupervisorAddress(false); }} className="bg-secondary border-border" placeholder="67663" />
+                        <Input value={supervisorZip} onChange={(e) => { setSupervisorZip(handleZipChange(e.target.value, supervisorCountry)); setCopySupervisorAddress(false); }} className="bg-secondary border-border" placeholder="67663" inputMode="numeric" maxLength={supervisorCountry === "Deutschland" ? 5 : 10} />
                       </div>
                       <div className="col-span-2">
                         <Label>Ort *</Label>
