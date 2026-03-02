@@ -84,7 +84,8 @@ serve(async (req) => {
       </div>
     `;
 
-    const res = await fetch("https://api.resend.com/emails", {
+    // 1) Admin notification
+    const adminRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -98,20 +99,59 @@ serve(async (req) => {
       }),
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("Resend error:", data);
-      return new Response(JSON.stringify({ success: false, error: data }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const adminData = await adminRes.json();
+    if (!adminRes.ok) {
+      console.error("Resend admin error:", adminData);
     }
 
-    return new Response(JSON.stringify({ success: true, id: data.id }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // 2) Guest confirmation email
+    const clubName = config?.company_name || "Nachtschicht Kaiserslautern";
+    const guestSubject = `Deine VIP-Reservierung am ${formattedDate} – ${clubName}`;
+
+    const guestHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #111; color: #eee; padding: 32px; border-radius: 12px;">
+        <h1 style="font-size: 22px; color: #a78bfa;">Reservierung bestätigt 🎉</h1>
+        <p>Hallo ${body.name},</p>
+        <p>vielen Dank für deine VIP-Reservierung! Wir haben deine Anfrage erhalten und melden uns in Kürze bei dir.</p>
+        <table style="width: 100%; margin: 24px 0; border-collapse: collapse;">
+          <tr><td style="padding: 8px 0; color: #aaa;">Datum</td><td style="padding: 8px 0;">${formattedDate}</td></tr>
+          <tr><td style="padding: 8px 0; color: #aaa;">Gäste</td><td style="padding: 8px 0;">${body.guest_count}</td></tr>
+          <tr><td style="padding: 8px 0; color: #aaa;">Lounge</td><td style="padding: 8px 0;">${loungeLabels[body.lounge_type] || body.lounge_type}</td></tr>
+          ${body.message ? `<tr><td style="padding: 8px 0; color: #aaa;">Nachricht</td><td style="padding: 8px 0;">${body.message}</td></tr>` : ""}
+        </table>
+        <p style="color: #aaa;">Falls du Fragen hast, antworte einfach auf diese E-Mail oder kontaktiere uns direkt.</p>
+        <p style="margin-top: 24px;">Wir freuen uns auf dich! 🥂</p>
+        <p style="color: #888; font-size: 12px; margin-top: 24px;">${clubName}</p>
+      </div>
+    `;
+
+    const guestRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${resendApiKey}`,
+      },
+      body: JSON.stringify({
+        from: `${clubName} <noreply@resend.dev>`,
+        to: [body.email],
+        subject: guestSubject,
+        html: guestHtml,
+      }),
     });
+
+    const guestData = await guestRes.json();
+    if (!guestRes.ok) {
+      console.error("Resend guest error:", guestData);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: adminRes.ok || guestRes.ok,
+        admin_id: adminData?.id,
+        guest_id: guestData?.id,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (err) {
     console.error("Edge function error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
