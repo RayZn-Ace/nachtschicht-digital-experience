@@ -419,6 +419,49 @@ const AdminTicketCenter = () => {
             <FileText size={16} /> Rechnung erstellen
           </button>
 
+          {/* Download cancellation invoice PDF */}
+          {(selectedOrder.status === "canceled" || selectedOrder.status === "refunded") && (
+            <button
+              onClick={async () => {
+                try {
+                  // Find cancellation invoice linked to this ticket
+                  const { data: invoices, error: invErr } = await supabase
+                    .from("invoices")
+                    .select("id, invoice_number, cancellation_invoice_id")
+                    .eq("ticket_id", selectedOrder.id)
+                    .single();
+                  if (invErr || !invoices) {
+                    toast.error("Keine Rechnung für dieses Ticket gefunden.");
+                    return;
+                  }
+                  const cancelInvoiceId = invoices.cancellation_invoice_id;
+                  if (!cancelInvoiceId) {
+                    toast.error("Keine Stornorechnung vorhanden.");
+                    return;
+                  }
+                  const { data, error } = await supabase.functions.invoke("generate-invoice-pdf", {
+                    body: { invoice_id: cancelInvoiceId },
+                  });
+                  if (error) throw error;
+                  const blob = new Blob([data], { type: "application/pdf" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `stornorechnung-${selectedOrder.id.slice(0, 8)}.pdf`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success("Stornorechnung heruntergeladen");
+                } catch (err: any) {
+                  toast.error("Download fehlgeschlagen: " + (err.message || "Unbekannt"));
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border border-destructive/30 text-destructive rounded-md hover:bg-destructive/20 transition-colors text-sm"
+            >
+              <FileText size={16} /> Stornorechnung PDF
+            </button>
+          )}
+
+
           {/* Send ticket email */}
           <button
             onClick={async () => {
