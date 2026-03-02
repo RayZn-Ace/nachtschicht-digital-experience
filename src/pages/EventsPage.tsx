@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Users } from "lucide-react";
+import { Calendar, Users, ShieldCheck, DoorOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
@@ -137,8 +137,18 @@ const EventsPage = () => {
                         <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
                       )}
 
-                      {/* Social proof */}
-                      <div className="flex items-center gap-3 mb-3">
+                      {/* Info badges */}
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        {event.has_muttizettel && (
+                          <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-accent/50 text-accent-foreground font-medium">
+                            <ShieldCheck size={10} /> {lang === "de" ? "Muttizettel" : "Parental Consent"}
+                          </span>
+                        )}
+                        {event.has_abendkasse && (
+                          <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-accent/50 text-accent-foreground font-medium">
+                            <DoorOpen size={10} /> {lang === "de" ? "Abendkasse" : "Door Sales"}
+                          </span>
+                        )}
                         {event.tickets_sold > 0 && (
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Users size={12} /> {event.tickets_sold} {lang === "de" ? "Gäste" : "guests"}
