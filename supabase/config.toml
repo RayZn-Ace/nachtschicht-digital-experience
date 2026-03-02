@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.check-in-ticket]
 verify_jwt = false
+
+[functions.analyze-image-crop]
+verify_jwt = false

@@ -290,6 +290,8 @@ export type Database = {
           has_abendkasse: boolean
           has_muttizettel: boolean
           id: string
+          image_focus_x: number | null
+          image_focus_y: number | null
           image_url: string | null
           is_published: boolean | null
           subtitle: string | null
@@ -315,6 +317,8 @@ export type Database = {
           has_abendkasse?: boolean
           has_muttizettel?: boolean
           id?: string
+          image_focus_x?: number | null
+          image_focus_y?: number | null
           image_url?: string | null
           is_published?: boolean | null
           subtitle?: string | null
@@ -340,6 +344,8 @@ export type Database = {
           has_abendkasse?: boolean
           has_muttizettel?: boolean
           id?: string
+          image_focus_x?: number | null
+          image_focus_y?: number | null
           image_url?: string | null
           is_published?: boolean | null
           subtitle?: string | null
