@@ -86,27 +86,27 @@ const PUBLIC_CATEGORIES: NavCategory[] = [
     labelKey: "nav.category.events",
     icon: Calendar,
     items: [
-      { label: "Events & Tickets", path: "/events", icon: Calendar },
-      { label: "Muttizettel", path: "/u18", icon: FileText },
-      { label: "Getränkekarte", path: "/getraenkekarte", icon: GlassWater },
+      { label: "nav.sub.eventsTickets", path: "/events", icon: Calendar },
+      { label: "nav.sub.muttizettel", path: "/u18", icon: FileText },
+      { label: "nav.sub.drinks", path: "/getraenkekarte", icon: GlassWater },
     ],
   },
   {
     labelKey: "nav.category.club",
     icon: Building2,
     items: [
-      { label: "Club", path: "/club", icon: Building2 },
-      { label: "Lounges", path: "/lounges", icon: Sofa },
-      { label: "Fotos & Videos", path: "/fotos", icon: Camera },
+      { label: "nav.sub.club", path: "/club", icon: Building2 },
+      { label: "nav.sub.lounges", path: "/lounges", icon: Sofa },
+      { label: "nav.sub.photos", path: "/fotos", icon: Camera },
     ],
   },
   {
     labelKey: "nav.category.info",
     icon: HelpCircle,
     items: [
-      { label: "FAQ", path: "/faq", icon: HelpCircle },
-      { label: "Jobs", path: "/jobs", icon: Briefcase },
-      { label: "Kontakt", path: "/kontakt", icon: MessageSquare },
+      { label: "nav.sub.faq", path: "/faq", icon: HelpCircle },
+      { label: "nav.sub.jobs", path: "/jobs", icon: Briefcase },
+      { label: "nav.sub.contact", path: "/kontakt", icon: MessageSquare },
     ],
   },
 ];
@@ -200,7 +200,7 @@ const PublicDropdown = ({ category }: { category: NavCategory }) => {
             }`}
           >
             <SubIcon size={15} className="shrink-0" />
-            {item.label}
+            {t(item.label)}
           </Link>
         );
       })}
@@ -352,7 +352,7 @@ const Navbar = () => {
                   className="flex items-center gap-2 text-lg font-display tracking-wider text-muted-foreground mb-2"
                 >
                   <ArrowLeft size={18} />
-                  Zurück zur Website
+                  {t("nav.backToSite")}
                 </Link>
 
                 <Link
@@ -443,7 +443,7 @@ const Navbar = () => {
                               }`}
                             >
                               <SubIcon size={15} />
-                              {item.label}
+                              {t(item.label)}
                             </Link>
                           );
                         })}

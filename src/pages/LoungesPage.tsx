@@ -4,6 +4,8 @@ import { Users, Wine, Calendar, X } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import LoungeReservationWizard from "@/components/LoungeReservationWizard";
 import { parseAreas } from "@/lib/areas";
+import { useI18n } from "@/hooks/useI18n";
+import { useTranslate } from "@/hooks/useTranslate";
 import type { Event } from "@/types/database";
 
 interface Lounge {
@@ -26,6 +28,8 @@ interface Booking {
 }
 
 const LoungesPage = () => {
+  const { lang, t } = useI18n();
+  const translate = useTranslate(lang);
   const [lounges, setLounges] = useState<Lounge[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -76,37 +80,39 @@ const LoungesPage = () => {
     return "available";
   };
 
+  const dateFmt = (d: string) =>
+    new Date(d).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" });
+
   return (
     <section className="section-padding">
       <div className="container mx-auto">
         <ScrollReveal>
           <div className="text-center mb-12">
             <h1 className="font-display text-4xl md:text-7xl tracking-wider text-foreground">
-              VIP <span className="text-gradient">LOUNGES</span>
+              {t("lounges.title")} <span className="text-gradient">{t("lounges.titleHighlight")}</span>
             </h1>
             <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
             <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
-              Sichere dir eine unserer exklusiven VIP Lounges.
-              Wähle zuerst dein Event – verfügbare Lounges werden je nach offener Area angezeigt.
+              {t("lounges.subtitle")}
             </p>
           </div>
         </ScrollReveal>
 
         {loading ? (
-          <div className="text-center text-muted-foreground py-16">Laden...</div>
+          <div className="text-center text-muted-foreground py-16">{t("lounges.loading")}</div>
         ) : error && lounges.length === 0 ? (
           <div className="text-center py-16 space-y-4">
-            <p className="text-muted-foreground">Lounges konnten nicht geladen werden.</p>
+            <p className="text-muted-foreground">{t("lounges.error")}</p>
             <button
               onClick={() => window.location.reload()}
               className="px-6 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors"
             >
-              ERNEUT VERSUCHEN
+              {t("lounges.retry")}
             </button>
           </div>
         ) : loungeEvents.length === 0 ? (
           <div className="text-center text-muted-foreground py-16">
-            Aktuell keine Events mit Lounge-Bereichen verfügbar. Schau bald wieder vorbei!
+            {t("lounges.noEvents")}
           </div>
         ) : (
           <>
@@ -115,17 +121,17 @@ const LoungesPage = () => {
               <div className="max-w-2xl mx-auto mb-10">
                 <label className="text-sm text-muted-foreground mb-2 block font-medium">
                   <Calendar size={14} className="inline mr-1.5 -mt-0.5" />
-                  EVENT WÄHLEN
+                  {t("lounges.selectEvent")}
                 </label>
                 <select
                   value={selectedEvent}
                   onChange={(e) => { setSelectedEvent(e.target.value); setSelectedLounge(null); }}
                   className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                 >
-                  <option value="">— Bitte Event wählen —</option>
+                  <option value="">{t("lounges.selectPlaceholder")}</option>
                   {loungeEvents.map((ev) => (
                     <option key={ev.id} value={ev.id}>
-                      {ev.title} — {new Date(ev.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })}
+                      {translate(ev.title)} — {dateFmt(ev.date)}
                     </option>
                   ))}
                 </select>
@@ -153,7 +159,7 @@ const LoungesPage = () => {
                           {isGuaranteed && (
                             <div className="absolute inset-0 flex items-center justify-center bg-background/60">
                               <span className="bg-destructive text-primary-foreground px-4 py-2 rounded-full font-display tracking-wider text-sm">
-                                RESERVIERT
+                                {t("lounges.reserved")}
                               </span>
                             </div>
                           )}
@@ -164,25 +170,25 @@ const LoungesPage = () => {
 
                         {/* Info */}
                         <div className="p-5">
-                          <h2 className="font-display text-2xl tracking-wider text-foreground mb-2">{lounge.name}</h2>
+                          <h2 className="font-display text-2xl tracking-wider text-foreground mb-2">{translate(lounge.name)}</h2>
                           {lounge.description && (
-                            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{lounge.description}</p>
+                            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{translate(lounge.description)}</p>
                           )}
 
                           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mb-4">
                             <span className="flex items-center gap-1">
                               <Users size={14} className="text-primary" />
-                              max. {lounge.capacity} Personen
+                              max. {lounge.capacity} {t("lounges.maxPersons")}
                             </span>
                             <span className="flex items-center gap-1">
                               <Wine size={14} className="text-primary" />
-                              {lounge.min_spend}€ Mindestverzehr
+                              {lounge.min_spend}€ {t("lounges.minSpend")}
                             </span>
                           </div>
 
                           <div className="flex items-center justify-between mb-3">
                             <span className="font-display text-xl text-foreground">
-                              {lounge.price_per_person}€ <span className="text-sm text-muted-foreground font-sans">/ Person</span>
+                              {lounge.price_per_person}€ <span className="text-sm text-muted-foreground font-sans">{t("lounges.perPerson")}</span>
                             </span>
                           </div>
 
@@ -191,7 +197,7 @@ const LoungesPage = () => {
                             disabled={isGuaranteed}
                             className="w-full py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {isGuaranteed ? "RESERVIERT" : "JETZT RESERVIEREN"}
+                            {isGuaranteed ? t("lounges.reserved") : t("lounges.bookNow")}
                           </button>
                         </div>
                       </div>

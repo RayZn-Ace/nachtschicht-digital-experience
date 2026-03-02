@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
+import { useTranslate } from "@/hooks/useTranslate";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Wine, Beer, Coffee, Martini, GlassWater, Grape, CupSoda, Search, X } from "lucide-react";
 
@@ -34,6 +35,7 @@ interface Drink {
 
 const DrinksPage = () => {
   const { lang } = useI18n();
+  const translate = useTranslate(lang);
   const navigate = useNavigate();
   const [categories, setCategories] = useState<DrinkCategory[]>([]);
   const [drinks, setDrinks] = useState<Drink[]>([]);
@@ -128,7 +130,7 @@ const DrinksPage = () => {
                     }`}
                   >
                     <span className="scale-75">{ICON_MAP[cat.icon] || <Wine size={16} />}</span>
-                    {cat.name}
+                    {translate(cat.name)}
                   </button>
                 ))}
               </div>
@@ -157,15 +159,15 @@ const DrinksPage = () => {
                     <div className="glass-card p-6">
                       <div className="flex items-center gap-3 mb-4">
                         <span className="text-primary">{ICON_MAP[cat.icon] || <Wine size={24} />}</span>
-                        <h2 className="font-display text-2xl tracking-wider text-foreground">{cat.name}</h2>
+                        <h2 className="font-display text-2xl tracking-wider text-foreground">{translate(cat.name)}</h2>
                       </div>
                       <div className="divide-y divide-border/50">
                         {catDrinks.map((item) => (
                           <div key={item.id} className="flex items-center justify-between py-3">
                             <div>
-                              <span className="text-foreground font-medium">{item.name}</span>
+                              <span className="text-foreground font-medium">{translate(item.name)}</span>
                               {item.size && <span className="text-muted-foreground text-sm ml-2">{item.size}</span>}
-                              {item.description && <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>}
+                              {item.description && <p className="text-muted-foreground text-xs mt-0.5">{translate(item.description)}</p>}
                             </div>
                             <span className="text-primary font-bold text-lg shrink-0 ml-4">
                               {item.price.toFixed(2).replace(".", ",")} €

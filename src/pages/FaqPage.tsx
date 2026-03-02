@@ -1,5 +1,7 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ScrollReveal from "@/components/ScrollReveal";
+import { useI18n } from "@/hooks/useI18n";
+import { useTranslate } from "@/hooks/useTranslate";
 
 const faqs = [
   { q: "Ich habe kein Ticket erhalten – was tun?", a: "Bitte prüfe zunächst deinen Spam-Ordner. Stelle sicher, dass die Zahlung erfolgreich war und die richtige E-Mail-Adresse angegeben wurde. Falls du weiterhin Probleme hast, kontaktiere unseren Support: Telefon +49 631 3105759 oder E-Mail info@nachtschicht-kaiserslautern.de" },
@@ -11,39 +13,44 @@ const faqs = [
   { q: "Kann ich Gutscheine kaufen?", a: "Ja, Gutscheine sind an der Abendkasse oder per E-Mail erhältlich. Kontaktiere uns für weitere Informationen." },
 ];
 
-const FaqPage = () => (
-  <section className="section-padding">
-    <div className="container mx-auto max-w-3xl">
-      <ScrollReveal>
-        <div className="text-center mb-12">
-          <h1 className="font-display text-4xl md:text-7xl tracking-wider text-foreground">
-            HÄUFIGE <span className="text-gradient">FRAGEN</span>
-          </h1>
-          <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
-        </div>
-      </ScrollReveal>
+const FaqPage = () => {
+  const { lang, t } = useI18n();
+  const translate = useTranslate(lang);
 
-      <Accordion type="single" collapsible className="space-y-3">
-        {faqs.map((faq, i) => (
-          <ScrollReveal key={i} delay={i * 0.08}>
-            <AccordionItem value={`faq-${i}`} className="glass-card px-5 border-none">
-              <AccordionTrigger className="text-foreground text-left font-medium py-5 hover:no-underline hover:text-primary">
-                {faq.q}
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-5">
-                {faq.a}
-                {faq.link && (
-                  <a href={faq.link} className="block mt-2 text-primary underline hover:text-primary/80">
-                    U18 Formular öffnen
-                  </a>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          </ScrollReveal>
-        ))}
-      </Accordion>
-    </div>
-  </section>
-);
+  return (
+    <section className="section-padding">
+      <div className="container mx-auto max-w-3xl">
+        <ScrollReveal>
+          <div className="text-center mb-12">
+            <h1 className="font-display text-4xl md:text-7xl tracking-wider text-foreground">
+              {t("faq.title")} <span className="text-gradient">{t("faq.titleHighlight")}</span>
+            </h1>
+            <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
+          </div>
+        </ScrollReveal>
+
+        <Accordion type="single" collapsible className="space-y-3">
+          {faqs.map((faq, i) => (
+            <ScrollReveal key={i} delay={i * 0.08}>
+              <AccordionItem value={`faq-${i}`} className="glass-card px-5 border-none">
+                <AccordionTrigger className="text-foreground text-left font-medium py-5 hover:no-underline hover:text-primary">
+                  {translate(faq.q)}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-5">
+                  {translate(faq.a)}
+                  {faq.link && (
+                    <a href={faq.link} className="block mt-2 text-primary underline hover:text-primary/80">
+                      {t("faq.u18Link")}
+                    </a>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </ScrollReveal>
+          ))}
+        </Accordion>
+      </div>
+    </section>
+  );
+};
 
 export default FaqPage;

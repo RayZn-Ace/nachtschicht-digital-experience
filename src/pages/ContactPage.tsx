@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useI18n } from "@/hooks/useI18n";
 
 const ContactPage = () => {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
@@ -18,7 +20,7 @@ const ContactPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !message.trim()) {
-      toast.error("Bitte fülle alle Pflichtfelder aus.");
+      toast.error(t("contact.fillAll"));
       return;
     }
     setSending(true);
@@ -28,14 +30,11 @@ const ContactPage = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success("Nachricht erfolgreich gesendet! ✉️");
-      setName("");
-      setEmail("");
-      setSubject("");
-      setMessage("");
+      toast.success(t("contact.success"));
+      setName(""); setEmail(""); setSubject(""); setMessage("");
     } catch (err: any) {
       console.error("Contact email error:", err);
-      toast.error("Senden fehlgeschlagen. Bitte versuche es erneut.");
+      toast.error(t("contact.error"));
     }
     setSending(false);
   };
@@ -46,7 +45,7 @@ const ContactPage = () => {
         <ScrollReveal>
           <div className="text-center mb-12">
             <h1 className="font-display text-4xl md:text-7xl tracking-wider text-foreground">
-              <span className="text-gradient">KONTAKT</span>
+              <span className="text-gradient">{t("contact.title")}</span>
             </h1>
             <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
           </div>
@@ -54,9 +53,9 @@ const ContactPage = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {[
-            { icon: <MapPin className="text-primary" size={28} />, title: "ADRESSE", text: "Zollamtstraße 28\n67663 Kaiserslautern" },
-            { icon: <Phone className="text-primary" size={28} />, title: "TELEFON", text: "+49 631 3105759" },
-            { icon: <Mail className="text-primary" size={28} />, title: "E-MAIL", text: "info@nachtschicht-kaiserslautern.de" },
+            { icon: <MapPin className="text-primary" size={28} />, title: t("contact.address"), text: "Zollamtstraße 28\n67663 Kaiserslautern" },
+            { icon: <Phone className="text-primary" size={28} />, title: t("contact.phone"), text: "+49 631 3105759" },
+            { icon: <Mail className="text-primary" size={28} />, title: t("contact.email"), text: "info@nachtschicht-kaiserslautern.de" },
           ].map((item, i) => (
             <ScrollReveal key={item.title} delay={i * 0.12}>
               <div className="glass-card p-6 text-center hover-lift">
@@ -68,32 +67,31 @@ const ContactPage = () => {
           ))}
         </div>
 
-        {/* Kontaktformular */}
         <ScrollReveal delay={0.15}>
           <div className="glass-card p-6 md:p-8 mb-12">
-            <h2 className="font-display text-2xl tracking-wider text-foreground mb-6">SCHREIB UNS</h2>
+            <h2 className="font-display text-2xl tracking-wider text-foreground mb-6">{t("contact.writeUs")}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Name *</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-secondary border-border" placeholder="Dein Name" />
+                  <Label>{t("contact.name")} *</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-secondary border-border" placeholder={t("contact.namePlaceholder")} />
                 </div>
                 <div>
-                  <Label>E-Mail *</Label>
+                  <Label>{t("contact.email")} *</Label>
                   <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary border-border" placeholder="deine@email.de" />
                 </div>
               </div>
               <div>
-                <Label>Betreff</Label>
-                <Input value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-secondary border-border" placeholder="z.B. Reservierung, Frage, Feedback" />
+                <Label>{t("contact.subject")}</Label>
+                <Input value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-secondary border-border" placeholder={t("contact.subjectPlaceholder")} />
               </div>
               <div>
-                <Label>Nachricht *</Label>
-                <Textarea value={message} onChange={(e) => setMessage(e.target.value)} className="bg-secondary border-border min-h-[120px]" placeholder="Deine Nachricht an uns..." />
+                <Label>{t("contact.message")} *</Label>
+                <Textarea value={message} onChange={(e) => setMessage(e.target.value)} className="bg-secondary border-border min-h-[120px]" placeholder={t("contact.messagePlaceholder")} />
               </div>
               <Button type="submit" disabled={sending} className="font-display tracking-wider gap-2">
                 {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                NACHRICHT SENDEN
+                {t("contact.send")}
               </Button>
             </form>
           </div>
