@@ -130,17 +130,17 @@ const PhotosPage = () => {
               {lang === "de" ? "Keine Fotos in diesem Album." : "No photos in this album."}
             </p>
           ) : (
-            <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {photos.map((photo, i) => (
                 <ScrollReveal key={photo.id} delay={i * 0.05}>
                   <div
-                    className={`break-inside-avoid overflow-hidden rounded-lg group cursor-pointer relative ${selectedPhotos.has(photo.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
+                    className={`relative aspect-[4/5] overflow-hidden rounded-lg group cursor-pointer bg-muted ${selectedPhotos.has(photo.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
                     onClick={() => setLightboxIndex(i)}
                   >
                     <img
                       src={photo.image_url}
                       alt={photo.title || `Foto ${i + 1}`}
-                      className="w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-colors" />
