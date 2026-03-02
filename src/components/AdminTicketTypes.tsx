@@ -160,33 +160,45 @@ const AdminTicketTypes = ({ eventId }: Props) => {
             {editingId ? "TICKETART BEARBEITEN" : "NEUE TICKETART"}
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-            <input
-              placeholder="Name *"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-            />
-            <input
-              placeholder="Beschreibung"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-            />
-            <input
-              placeholder="Eintrittspreis (€)"
-              value={form.price || ""}
-              onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-              className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-              type="number"
-              step="0.01"
-            />
-            <input
-              type="number"
-              placeholder="Ticketkontingent"
-              value={form.quantity || ""}
-              onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
-              className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-            />
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Titel *</label>
+              <input
+                placeholder="z.B. Early Bird"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Beschreibung</label>
+              <input
+                placeholder="Optional"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Eintrittspreis (€)</label>
+              <input
+                placeholder="0.00"
+                value={form.price || ""}
+                onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                type="number"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Kapazität</label>
+              <input
+                type="number"
+                placeholder="100"
+                value={form.quantity || ""}
+                onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
             <div>
