@@ -39,13 +39,18 @@ const DrinksPage = () => {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [{ data: cats }, { data: drs }] = await Promise.all([
-        supabase.from("drink_categories").select("*").order("sort_order"),
-        supabase.from("drinks").select("*").order("sort_order"),
-      ]);
-      if (cats) setCategories(cats as any);
-      if (drs) setDrinks(drs as any);
-      setLoading(false);
+      try {
+        // @ts-ignore - tables not yet in generated types
+        const catsRes = await supabase.from("drink_categories").select("*").order("sort_order");
+        // @ts-ignore
+        const drsRes = await supabase.from("drinks").select("*").order("sort_order");
+        if (catsRes.data) setCategories(catsRes.data as any);
+        if (drsRes.data) setDrinks(drsRes.data as any);
+      } catch (e) {
+        console.error("Error fetching drinks:", e);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchAll();
   }, []);

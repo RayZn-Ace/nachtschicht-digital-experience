@@ -40,8 +40,8 @@ const AdminDrinks = () => {
 
   const fetchAll = async () => {
     const [{ data: cats }, { data: drs }] = await Promise.all([
-      supabase.from("drink_categories").select("*").order("sort_order"),
-      supabase.from("drinks").select("*").order("sort_order"),
+      supabase.from("drink_categories" as any).select("*").order("sort_order"),
+      supabase.from("drinks" as any).select("*").order("sort_order"),
     ]);
     if (cats) setCategories(cats as any);
     if (drs) setDrinks(drs as any);
@@ -53,12 +53,12 @@ const AdminDrinks = () => {
   const saveCat = async () => {
     if (!catForm.name.trim()) return;
     if (editingCat) {
-      const { error } = await supabase.from("drink_categories").update({ name: catForm.name, icon: catForm.icon } as any).eq("id", editingCat);
+      const { error } = await supabase.from("drink_categories" as any).update({ name: catForm.name, icon: catForm.icon } as any).eq("id", editingCat);
       if (error) { toast.error(error.message); return; }
       toast.success("Kategorie aktualisiert!");
     } else {
       const maxSort = categories.length > 0 ? Math.max(...categories.map((c) => c.sort_order)) + 1 : 0;
-      const { error } = await supabase.from("drink_categories").insert({ name: catForm.name, icon: catForm.icon, sort_order: maxSort } as any);
+      const { error } = await supabase.from("drink_categories" as any).insert({ name: catForm.name, icon: catForm.icon, sort_order: maxSort } as any);
       if (error) { toast.error(error.message); return; }
       toast.success("Kategorie erstellt!");
     }
@@ -69,7 +69,7 @@ const AdminDrinks = () => {
 
   const deleteCat = async (id: string) => {
     if (!confirm("Kategorie und alle Getränke darin löschen?")) return;
-    await supabase.from("drink_categories").delete().eq("id", id);
+    await supabase.from("drink_categories" as any).delete().eq("id", id);
     toast.success("Gelöscht");
     fetchAll();
   };
@@ -80,8 +80,8 @@ const AdminDrinks = () => {
     if (swapIdx < 0 || swapIdx >= categories.length) return;
     const a = categories[idx], b = categories[swapIdx];
     await Promise.all([
-      supabase.from("drink_categories").update({ sort_order: b.sort_order } as any).eq("id", a.id),
-      supabase.from("drink_categories").update({ sort_order: a.sort_order } as any).eq("id", b.id),
+      supabase.from("drink_categories" as any).update({ sort_order: b.sort_order } as any).eq("id", a.id),
+      supabase.from("drink_categories" as any).update({ sort_order: a.sort_order } as any).eq("id", b.id),
     ]);
     fetchAll();
   };
@@ -97,13 +97,13 @@ const AdminDrinks = () => {
       category_id: catId,
     };
     if (editingDrink) {
-      const { error } = await supabase.from("drinks").update(payload as any).eq("id", editingDrink);
+      const { error } = await supabase.from("drinks" as any).update(payload as any).eq("id", editingDrink);
       if (error) { toast.error(error.message); return; }
       toast.success("Getränk aktualisiert!");
     } else {
       const catDrinks = drinks.filter((d) => d.category_id === catId);
       const maxSort = catDrinks.length > 0 ? Math.max(...catDrinks.map((d) => d.sort_order)) + 1 : 0;
-      const { error } = await supabase.from("drinks").insert({ ...payload, sort_order: maxSort } as any);
+      const { error } = await supabase.from("drinks" as any).insert({ ...payload, sort_order: maxSort } as any);
       if (error) { toast.error(error.message); return; }
       toast.success("Getränk hinzugefügt!");
     }
@@ -113,7 +113,7 @@ const AdminDrinks = () => {
 
   const deleteDrink = async (id: string) => {
     if (!confirm("Getränk löschen?")) return;
-    await supabase.from("drinks").delete().eq("id", id);
+    await supabase.from("drinks" as any).delete().eq("id", id);
     toast.success("Gelöscht");
     fetchAll();
   };
