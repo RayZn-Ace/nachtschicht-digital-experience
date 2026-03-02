@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useI18n } from "@/hooks/useI18n";
+import { usePageSEO } from "@/hooks/usePageSEO";
 
 const ContactPage = () => {
   const { t } = useI18n();
@@ -16,6 +17,25 @@ const ContactPage = () => {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+
+  usePageSEO({
+    title: "Kontakt – Nachtschicht Kaiserslautern | Anfahrt & Adresse",
+    description: "Kontaktiere die Nachtschicht Kaiserslautern: Zollamtstraße 28, 67663 Kaiserslautern. Tel. +49 631 3105759. Schreib uns eine Nachricht oder komm vorbei!",
+    canonical: "/kontakt",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "ContactPage",
+      "name": "Kontakt Nachtschicht Kaiserslautern",
+      "url": "https://nachtschicht-kaiserslautern.de/kontakt",
+      "mainEntity": {
+        "@type": "NightClub",
+        "name": "Nachtschicht Kaiserslautern",
+        "telephone": "+49 631 3105759",
+        "email": "info@nachtschicht-kaiserslautern.de",
+        "address": { "@type": "PostalAddress", "streetAddress": "Zollamtstraße 28", "addressLocality": "Kaiserslautern", "postalCode": "67663", "addressCountry": "DE" }
+      }
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,11 +78,11 @@ const ContactPage = () => {
             { icon: <Mail className="text-primary" size={28} />, title: t("contact.email"), text: "info@nachtschicht-kaiserslautern.de" },
           ].map((item, i) => (
             <ScrollReveal key={item.title} delay={i * 0.12}>
-              <div className="glass-card p-6 text-center hover-lift">
+              <address className="glass-card p-6 text-center hover-lift not-italic">
                 <div className="flex justify-center mb-3">{item.icon}</div>
                 <h2 className="font-display text-xl tracking-wider text-foreground mb-2">{item.title}</h2>
                 <p className="text-muted-foreground text-sm whitespace-pre-line">{item.text}</p>
-              </div>
+              </address>
             </ScrollReveal>
           ))}
         </div>
@@ -106,7 +126,7 @@ const ContactPage = () => {
               style={{ border: 0 }}
               allowFullScreen
               loading="lazy"
-              title="Standort Nachtschicht"
+              title="Standort Nachtschicht Kaiserslautern – Zollamtstraße 28, Kaiserslautern"
             />
           </div>
         </ScrollReveal>

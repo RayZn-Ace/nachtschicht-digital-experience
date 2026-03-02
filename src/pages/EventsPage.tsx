@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
+import { usePageSEO } from "@/hooks/usePageSEO";
 import type { Event } from "@/types/database";
 import ScrollReveal from "@/components/ScrollReveal";
 import { EventSkeletonCard } from "@/components/SkeletonCard";
@@ -16,6 +17,46 @@ const EventsPage = () => {
   const navigate = useNavigate();
   const { t, lang } = useI18n();
   const tr = useTranslate(lang);
+
+  usePageSEO({
+    title: "Events & Partys – Nachtschicht Kaiserslautern | Tickets online kaufen",
+    description: "Alle kommenden Events, Partys & Konzerte in der Nachtschicht Kaiserslautern. Tickets online kaufen, Abendkasse, VIP-Lounges. Charts, Hip-Hop, House, 90er/2000er jeden Freitag & Samstag.",
+    canonical: "/events",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Events in der Nachtschicht Kaiserslautern",
+      "description": "Aktuelle Events, Partys und Konzerte in der Nachtschicht Kaiserslautern",
+      "url": "https://nachtschicht-kaiserslautern.de/events",
+      "numberOfItems": events.length,
+      "itemListElement": events.slice(0, 10).map((event, i) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "item": {
+          "@type": "Event",
+          "name": event.title,
+          "startDate": `${event.date}T${event.time || "22:00"}`,
+          "description": event.description || `${event.title} in der Nachtschicht Kaiserslautern`,
+          "image": event.image_url || "https://nachtschicht-kaiserslautern.de/images/gallery-8.jpg",
+          "url": `https://nachtschicht-kaiserslautern.de/tickets/${event.id}`,
+          "location": {
+            "@type": "Place",
+            "name": "Nachtschicht Kaiserslautern",
+            "address": { "@type": "PostalAddress", "streetAddress": "Zollamtstraße 28", "addressLocality": "Kaiserslautern", "postalCode": "67663", "addressCountry": "DE" }
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": event.ticket_price || 0,
+            "priceCurrency": "EUR",
+            "availability": event.tickets_sold >= event.ticket_quantity ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+            "url": `https://nachtschicht-kaiserslautern.de/tickets/${event.id}`
+          },
+          "organizer": { "@type": "Organization", "name": "Nachtschicht Kaiserslautern", "url": "https://nachtschicht-kaiserslautern.de" },
+          "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode"
+        }
+      }))
+    },
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +104,11 @@ const EventsPage = () => {
               {t("events.title")} <span className="text-gradient">{t("events.titleHighlight")}</span>
             </h1>
             <div className="w-20 h-1 bg-primary mx-auto mt-4 rounded-full" />
+            <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
+              {lang === "de"
+                ? "Entdecke alle kommenden Partys, Konzerte und Events in der Nachtschicht Kaiserslautern. Sichere dir jetzt deine Tickets online!"
+                : "Discover all upcoming parties, concerts and events at Nachtschicht Kaiserslautern. Get your tickets online now!"}
+            </p>
           </div>
         </ScrollReveal>
 
@@ -99,7 +145,7 @@ const EventsPage = () => {
                     <div className="relative aspect-video overflow-hidden">
                       <img
                         src={event.image_url || "/images/gallery-1.jpg"}
-                        alt={event.title}
+                        alt={`${event.title} – Party Event Nachtschicht Kaiserslautern`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         loading="lazy"
                       />
@@ -123,7 +169,9 @@ const EventsPage = () => {
                       <div className="flex items-center gap-4 text-muted-foreground text-sm mb-1">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
-                          {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" })} – {event.time}{(event as any).end_time ? ` ${lang === "de" ? "bis" : "to"} ${(event as any).end_time}` : ""}
+                          <time dateTime={event.date}>
+                            {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" })}
+                          </time> – {event.time}{(event as any).end_time ? ` ${lang === "de" ? "bis" : "to"} ${(event as any).end_time}` : ""}
                         </span>
                       </div>
 
@@ -173,7 +221,7 @@ const EventsPage = () => {
                           className="px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md text-sm"
                           onClick={(e) => { e.stopPropagation(); navigate(`/tickets/${event.id}`); }}
                         >
-                          {soldOut ? (lang === "de" ? "AUSVERKAUFT" : "SOLD OUT") : (lang === "de" ? "TICKETS" : "TICKETS")}
+                          {soldOut ? (lang === "de" ? "AUSVERKAUFT" : "SOLD OUT") : "TICKETS"}
                         </span>
                         <span
                           className="px-4 py-2 bg-muted text-foreground font-display tracking-wider rounded-md text-sm hover:bg-muted/80 transition-colors"
