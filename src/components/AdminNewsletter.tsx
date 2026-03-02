@@ -197,6 +197,9 @@ const AdminNewsletter = () => {
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [sendTargetId, setSendTargetId] = useState<string | null>(null);
   const [sendCatIds, setSendCatIds] = useState<string[]>([]);
+  const [extraRecipients, setExtraRecipients] = useState<{ name: string; email: string }[]>([]);
+  const [extraName, setExtraName] = useState("");
+  const [extraEmail, setExtraEmail] = useState("");
 
   const fetchSubscribers = useCallback(async () => {
     const { data } = await supabase
@@ -399,13 +402,32 @@ const AdminNewsletter = () => {
   const openSendDialog = (nlId: string) => {
     setSendTargetId(nlId);
     setSendCatIds([]);
+    setExtraRecipients([]);
+    setExtraName("");
+    setExtraEmail("");
     setShowSendDialog(true);
   };
 
   const getRecipientCount = () => {
-    if (sendCatIds.length === 0) return activeCount;
-    const subIdsInCats = new Set(subCats.filter((sc) => sendCatIds.includes(sc.category_id)).map((sc) => sc.subscriber_id));
-    return subscribers.filter((s) => s.is_active && subIdsInCats.has(s.id)).length;
+    let count = 0;
+    if (sendCatIds.length === 0) {
+      count = activeCount;
+    } else {
+      const subIdsInCats = new Set(subCats.filter((sc) => sendCatIds.includes(sc.category_id)).map((sc) => sc.subscriber_id));
+      count = subscribers.filter((s) => s.is_active && subIdsInCats.has(s.id)).length;
+    }
+    return count + extraRecipients.length;
+  };
+
+  const addExtraRecipient = () => {
+    const email = extraEmail.trim().toLowerCase();
+    if (!email) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) { toast.error("Ungültige E-Mail"); return; }
+    if (extraRecipients.some((r) => r.email === email)) { toast.error("Bereits hinzugefügt"); return; }
+    setExtraRecipients((prev) => [...prev, { name: extraName.trim(), email }]);
+    setExtraName("");
+    setExtraEmail("");
   };
 
   const sendNewsletter = async () => {
@@ -426,7 +448,11 @@ const AdminNewsletter = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-          body: JSON.stringify({ newsletter_id: sendTargetId, category_ids: sendCatIds.length > 0 ? sendCatIds : null }),
+          body: JSON.stringify({
+            newsletter_id: sendTargetId,
+            category_ids: sendCatIds.length > 0 ? sendCatIds : null,
+            extra_recipients: extraRecipients.length > 0 ? extraRecipients : null,
+          }),
         }
       );
 
@@ -653,14 +679,15 @@ const AdminNewsletter = () => {
   /* ─── SEND DIALOG (overlay) ─── */
   const sendDialog = showSendDialog && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowSendDialog(false)}>
-      <div className="glass-card p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+      <div className="glass-card p-6 max-w-lg w-full mx-4 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="font-display text-lg tracking-wider text-foreground">NEWSLETTER SENDEN</h3>
           <button onClick={() => setShowSendDialog(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
         </div>
 
+        {/* Category selection */}
         <div>
-          <label className="text-sm text-foreground mb-2 block">An welche Kategorien senden?</label>
+          <label className="text-sm text-foreground mb-2 block font-medium">Empfänger-Kategorien</label>
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
               <input type="checkbox" checked={sendCatIds.length === 0} onChange={() => setSendCatIds([])} className="rounded border-border" />
@@ -686,6 +713,42 @@ const AdminNewsletter = () => {
               );
             })}
           </div>
+        </div>
+
+        {/* Manual extra recipients */}
+        <div>
+          <label className="text-sm text-foreground mb-2 block font-medium">Zusätzliche Empfänger</label>
+          <div className="flex gap-2">
+            <input
+              value={extraName}
+              onChange={(e) => setExtraName(e.target.value)}
+              placeholder="Name"
+              className="flex-1 px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            />
+            <input
+              value={extraEmail}
+              onChange={(e) => setExtraEmail(e.target.value)}
+              placeholder="E-Mail"
+              type="email"
+              className="flex-1 px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              onKeyDown={(e) => e.key === "Enter" && addExtraRecipient()}
+            />
+            <button onClick={addExtraRecipient} className="px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm hover:bg-muted/80">
+              <Plus size={16} />
+            </button>
+          </div>
+          {extraRecipients.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {extraRecipients.map((r, i) => (
+                <span key={i} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-primary/15 text-primary">
+                  {r.name ? `${r.name} (${r.email})` : r.email}
+                  <button onClick={() => setExtraRecipients((prev) => prev.filter((_, idx) => idx !== i))} className="hover:text-destructive">
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="glass-card p-3 text-center">
