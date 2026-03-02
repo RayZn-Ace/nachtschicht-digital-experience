@@ -69,6 +69,30 @@ const AdminLoungeBookings = () => {
     const { error } = await supabase.from("lounge_bookings").update({ status }).eq("id", id);
     if (error) { toast.error("Fehler: " + error.message); return; }
     toast.success(status === "confirmed" ? "Reservierung bestätigt!" : "Reservierung abgelehnt.");
+
+    // Send email notification
+    if (status === "confirmed" || status === "rejected") {
+      const booking = bookings.find((b) => b.id === id);
+      if (booking) {
+        const loungeName = lounges[booking.lounge_id] || "Lounge";
+        const eventName = events[booking.event_id] || "Event";
+        try {
+          await supabase.functions.invoke("send-booking-email", {
+            body: {
+              to: booking.user_email,
+              userName: booking.user_name,
+              status,
+              loungeName,
+              eventName,
+              guestCount: booking.guest_count,
+            },
+          });
+        } catch (emailErr) {
+          console.warn("E-Mail konnte nicht gesendet werden:", emailErr);
+        }
+      }
+    }
+
     fetchData();
   };
 
