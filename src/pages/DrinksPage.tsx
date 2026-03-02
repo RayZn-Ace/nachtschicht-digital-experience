@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import ScrollReveal from "@/components/ScrollReveal";
-import { Wine, Beer, Coffee, Martini, GlassWater, Grape, CupSoda } from "lucide-react";
+import { Wine, Beer, Coffee, Martini, GlassWater, Grape, CupSoda, Search, X } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Martini: <Martini size={24} />,
@@ -36,6 +36,8 @@ const DrinksPage = () => {
   const [categories, setCategories] = useState<DrinkCategory[]>([]);
   const [drinks, setDrinks] = useState<Drink[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -72,38 +74,111 @@ const DrinksPage = () => {
           </div>
         </ScrollReveal>
 
+        {/* Search & Category Filter */}
+        {!loading && categories.length > 0 && (
+          <ScrollReveal delay={0.1}>
+            <div className="space-y-4 mb-8">
+              {/* Search */}
+              <div className="relative max-w-md mx-auto">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={lang === "de" ? "Getränk suchen..." : "Search drinks..."}
+                  className="w-full pl-9 pr-9 py-2.5 bg-muted border border-border rounded-lg text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  onClick={() => setActiveCategory(null)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    activeCategory === null
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {lang === "de" ? "Alle" : "All"}
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      activeCategory === cat.id
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className="scale-75">{ICON_MAP[cat.icon] || <Wine size={16} />}</span>
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
         {loading ? (
           <p className="text-muted-foreground text-center py-12">Laden...</p>
         ) : (
           <div className="space-y-8">
-            {categories.map((cat, i) => {
-              const catDrinks = drinks.filter((d) => d.category_id === cat.id);
-              if (catDrinks.length === 0) return null;
-              return (
-                <ScrollReveal key={cat.id} delay={i * 0.1}>
-                  <div className="glass-card p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-primary">{ICON_MAP[cat.icon] || <Wine size={24} />}</span>
-                      <h2 className="font-display text-2xl tracking-wider text-foreground">{cat.name}</h2>
-                    </div>
-                    <div className="divide-y divide-border/50">
-                      {catDrinks.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between py-3">
-                          <div>
-                            <span className="text-foreground font-medium">{item.name}</span>
-                            {item.size && <span className="text-muted-foreground text-sm ml-2">{item.size}</span>}
-                            {item.description && <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>}
+            {categories
+              .filter((cat) => !activeCategory || cat.id === activeCategory)
+              .map((cat, i) => {
+                const searchLower = search.toLowerCase();
+                const catDrinks = drinks.filter(
+                  (d) =>
+                    d.category_id === cat.id &&
+                    (!search ||
+                      d.name.toLowerCase().includes(searchLower) ||
+                      d.description?.toLowerCase().includes(searchLower))
+                );
+                if (catDrinks.length === 0) return null;
+                return (
+                  <ScrollReveal key={cat.id} delay={i * 0.1}>
+                    <div className="glass-card p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <span className="text-primary">{ICON_MAP[cat.icon] || <Wine size={24} />}</span>
+                        <h2 className="font-display text-2xl tracking-wider text-foreground">{cat.name}</h2>
+                      </div>
+                      <div className="divide-y divide-border/50">
+                        {catDrinks.map((item) => (
+                          <div key={item.id} className="flex items-center justify-between py-3">
+                            <div>
+                              <span className="text-foreground font-medium">{item.name}</span>
+                              {item.size && <span className="text-muted-foreground text-sm ml-2">{item.size}</span>}
+                              {item.description && <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>}
+                            </div>
+                            <span className="text-primary font-bold text-lg shrink-0 ml-4">
+                              {item.price.toFixed(2).replace(".", ",")} €
+                            </span>
                           </div>
-                          <span className="text-primary font-bold text-lg shrink-0 ml-4">
-                            {item.price.toFixed(2).replace(".", ",")} €
-                          </span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </ScrollReveal>
-              );
-            })}
+                  </ScrollReveal>
+                );
+              })}
+
+            {/* No results */}
+            {search && drinks.filter((d) =>
+              d.name.toLowerCase().includes(search.toLowerCase()) ||
+              d.description?.toLowerCase().includes(search.toLowerCase())
+            ).length === 0 && (
+              <p className="text-muted-foreground text-center py-8">
+                {lang === "de" ? "Keine Getränke gefunden." : "No drinks found."}
+              </p>
+            )}
           </div>
         )}
 
