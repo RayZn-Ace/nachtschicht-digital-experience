@@ -411,16 +411,24 @@ const AdminTicketCenter = () => {
             <FileText size={16} /> Rechnung erstellen
           </button>
 
-          {/* Resend email placeholder */}
+          {/* Send ticket email */}
           <button
-            onClick={() => {
-              const mailto = `mailto:${selectedOrder.buyer_email}?subject=Dein Ticket für ${selectedOrder.event?.title || "Event"}&body=Hallo ${selectedOrder.buyer_name || ""},%0A%0AAnbei dein Ticket. QR-Code: ${selectedOrder.qr_code || "—"}%0A%0AViele Grüße,%0ANachtschicht Kaiserslautern`;
-              window.open(mailto, "_blank");
-              toast.success("E-Mail-Programm geöffnet");
+            onClick={async () => {
+              const ticketIds = relatedTickets.map((t) => t.id);
+              try {
+                const { data, error } = await supabase.functions.invoke("send-ticket-email", {
+                  body: { ticket_ids: ticketIds },
+                });
+                if (error) throw error;
+                if (data?.error) throw new Error(data.error);
+                toast.success("Ticket-E-Mail gesendet! ✉️");
+              } catch (err: any) {
+                toast.error("E-Mail fehlgeschlagen: " + (err.message || "Unbekannt"));
+              }
             }}
             className="flex items-center gap-2 px-4 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 transition-colors text-sm"
           >
-            <Mail size={16} /> E-Mail senden
+            <Mail size={16} /> Ticket per E-Mail senden
           </button>
         </div>
       </div>

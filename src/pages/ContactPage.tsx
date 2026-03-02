@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MapPin, Phone, Mail, Send, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,10 +22,21 @@ const ContactPage = () => {
       return;
     }
     setSending(true);
-    // Simulate send (mailto fallback)
-    const mailtoLink = `mailto:info@nachtschicht-kaiserslautern.de?subject=${encodeURIComponent(subject || "Kontaktanfrage")}&body=${encodeURIComponent(`Name: ${name}\nE-Mail: ${email}\n\n${message}`)}`;
-    window.open(mailtoLink, "_blank");
-    toast.success("E-Mail-Programm wurde geöffnet!");
+    try {
+      const { data, error } = await supabase.functions.invoke("send-contact-email", {
+        body: { name, email, subject, message },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Nachricht erfolgreich gesendet! ✉️");
+      setName("");
+      setEmail("");
+      setSubject("");
+      setMessage("");
+    } catch (err: any) {
+      console.error("Contact email error:", err);
+      toast.error("Senden fehlgeschlagen. Bitte versuche es erneut.");
+    }
     setSending(false);
   };
 

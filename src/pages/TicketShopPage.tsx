@@ -190,12 +190,18 @@ const TicketShopPage = () => {
       await supabase.from("discount_codes").update({ uses: appliedDiscount.uses + 1 }).eq("id", appliedDiscount.id);
     }
 
-    // Create invoice automatically (fire-and-forget, don't block checkout)
+    // Create invoice + send ticket email (fire-and-forget, don't block checkout)
     if (ticketIds.length > 0) {
       supabase.functions.invoke("create-invoice", {
         body: { ticket_ids: ticketIds },
       }).then(({ error: invError }) => {
         if (invError) console.error("Invoice creation failed:", invError);
+      });
+
+      supabase.functions.invoke("send-ticket-email", {
+        body: { ticket_ids: ticketIds },
+      }).then(({ error: emailError }) => {
+        if (emailError) console.error("Ticket email failed:", emailError);
       });
     }
 
