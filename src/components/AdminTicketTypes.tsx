@@ -112,16 +112,17 @@ const AdminTicketTypes = ({ eventId }: Props) => {
               className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
             />
             <input
-              type="number"
-              placeholder="Preis €"
-              value={form.price}
+              placeholder="Eintrittspreis (€)"
+              value={form.price || ""}
               onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
               className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              type="number"
+              step="0.01"
             />
             <input
               type="number"
-              placeholder="Kontingent"
-              value={form.quantity}
+              placeholder="Ticketkontingent"
+              value={form.quantity || ""}
               onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
               className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
             />
