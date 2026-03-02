@@ -27,7 +27,7 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50" role="navigation" aria-label="Hauptnavigation">
       <div className="container mx-auto flex items-center justify-between h-16 md:h-20 px-4">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm">
           <img src="/images/logo-light.png" alt="Nachtschicht Kaiserslautern" className="h-8 md:h-10 dark:brightness-100 brightness-0" />
         </Link>
 
@@ -37,7 +37,7 @@ const Navbar = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`text-sm font-medium tracking-wide transition-colors hover:text-primary ${
+              className={`text-sm font-medium tracking-wide transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm ${
                 location.pathname === item.path ? "text-primary" : "text-foreground/80"
               }`}
             >
@@ -47,7 +47,7 @@ const Navbar = () => {
           {user && isAdmin && (
             <Link
               to="/dashboard"
-              className={`flex items-center gap-1 text-sm font-medium tracking-wide transition-colors hover:text-primary ${
+              className={`flex items-center gap-1 text-sm font-medium tracking-wide transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm ${
                 location.pathname === "/dashboard" ? "text-primary" : "text-foreground/80"
               }`}
             >
@@ -61,7 +61,7 @@ const Navbar = () => {
           {/* Language toggle */}
           <button
             onClick={() => setLang(lang === "de" ? "en" : "de")}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors text-xs font-medium"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label="Sprache wechseln"
           >
             <Globe size={16} />
@@ -71,7 +71,7 @@ const Navbar = () => {
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
+            className="p-2 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label="Theme wechseln"
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -79,7 +79,7 @@ const Navbar = () => {
 
           <Link
             to="/events"
-            className="inline-flex items-center px-5 py-2 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors animate-pulse-glow"
+            className="inline-flex items-center px-5 py-2 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors animate-pulse-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {t("nav.tickets")}
           </Link>
@@ -88,7 +88,7 @@ const Navbar = () => {
         {/* Mobile toggle */}
         <button
           onClick={() => setOpen(!open)}
-          className="lg:hidden text-foreground p-2"
+          className="lg:hidden text-foreground p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
           aria-label="Menü öffnen"
         >
           {open ? <X size={24} /> : <Menu size={24} />}
