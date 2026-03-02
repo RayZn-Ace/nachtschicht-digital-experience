@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { qr_code, ticket_number } = await req.json();
+    const { qr_code, ticket_number, expected_event_id } = await req.json();
     const searchValue = (qr_code || ticket_number || "").trim();
 
     if (!searchValue) {
@@ -129,6 +129,29 @@ Deno.serve(async (req) => {
           buyer_email: ticket.buyer_email,
           quantity: ticket.quantity,
           checked_in_at: ticket.checked_in_at,
+          event_id: ticket.event_id,
+          event_title: ticket.events?.title,
+          event_date: ticket.events?.date,
+          event_time: ticket.events?.time,
+          ticket_type: ticket.ticket_types?.name || "Standard",
+          qr_code: ticket.qr_code,
+        },
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check wrong event (before check-in!)
+    if (expected_event_id && ticket.event_id !== expected_event_id) {
+      return new Response(JSON.stringify({
+        status: "wrong_event",
+        message: "Ticket gehört zu einem anderen Event",
+        ticket: {
+          id: ticket.id,
+          buyer_name: ticket.buyer_name,
+          buyer_email: ticket.buyer_email,
+          quantity: ticket.quantity,
           event_id: ticket.event_id,
           event_title: ticket.events?.title,
           event_date: ticket.events?.date,

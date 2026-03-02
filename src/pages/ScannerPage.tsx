@@ -214,7 +214,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-in-ticket`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ qr_code: trimmed }) }
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ qr_code: trimmed, expected_event_id: selectedEvent !== "all" ? selectedEvent : undefined }) }
       );
 
       const data = await res.json();
@@ -223,18 +223,9 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
         playSound("error");
         vibrate([100, 50, 100]);
       } else {
-        let scanData = data as ScanResult;
-        // Check if ticket is for the wrong event when a filter is active
-        if (
-          scanData.status === "success" &&
-          selectedEvent !== "all" &&
-          scanData.ticket?.event_id &&
-          scanData.ticket.event_id !== selectedEvent
-        ) {
-          scanData = { ...scanData, status: "wrong_event", message: "Ticket gehört zu einem anderen Event" };
-          playSound("error");
-          vibrate([100, 50, 100]);
-        } else if (scanData.status === "success") {
+        const scanData = data as ScanResult;
+        setResult(scanData);
+        if (scanData.status === "success") {
           playSound("success");
           vibrate(100);
           fetchStats();
@@ -242,7 +233,6 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
           playSound("error");
           vibrate([100, 50, 100]);
         }
-        setResult(scanData);
       }
     } catch {
       addToQueue(trimmed);
