@@ -25,6 +25,7 @@ const FundgrubePage = () => {
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   usePageSEO({
     title: "Fundgrube – Nachtschicht Kaiserslautern | Verlorene Gegenstände",
@@ -57,14 +58,7 @@ const FundgrubePage = () => {
       return;
     }
 
-    toast.success("Deine Anfrage wurde gesendet! Wir melden uns bei dir.");
-    setFirstName("");
-    setLastName("");
-    setPhone("");
-    setEmail("");
-    setEventDate("");
-    setCategory("");
-    setDescription("");
+    setSubmitted(true);
   };
 
   return (
@@ -88,6 +82,18 @@ const FundgrubePage = () => {
         </ScrollReveal>
 
         <ScrollReveal delay={0.1}>
+          {submitted ? (
+            <div className="glass-card p-8 rounded-xl text-center space-y-4">
+              <div className="text-5xl">✅</div>
+              <h2 className="font-display text-2xl tracking-wider text-foreground">ANFRAGE GESENDET</h2>
+              <p className="text-muted-foreground">
+                Vielen Dank! Wir haben deine Anfrage erhalten und melden uns schnellstmöglich bei dir.
+              </p>
+              <Button variant="outline" onClick={() => setSubmitted(false)} className="mt-4">
+                Weitere Anfrage stellen
+              </Button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4 glass-card p-6 rounded-xl">
             {/* Date */}
             <div>
@@ -97,7 +103,7 @@ const FundgrubePage = () => {
                 type="date"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
-                className="mt-1 bg-muted border-border"
+                className="mt-1 bg-muted border-border max-w-[220px]"
                 required
               />
             </div>
@@ -197,6 +203,7 @@ const FundgrubePage = () => {
               <Link to="/datenschutz" className="underline hover:text-primary">Datenschutzbestimmungen</Link>.
             </p>
           </form>
+          )}
         </ScrollReveal>
       </div>
     </section>
