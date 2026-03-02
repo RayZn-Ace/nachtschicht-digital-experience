@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Instagram, Facebook, ChevronRight, MapPin, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,33 +14,36 @@ const galleryImages = [
 
 const Index = () => {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("events")
-        .select("*")
-        .eq("is_published", true)
-        .order("date", { ascending: true })
-        .limit(3);
-      if (data) setEvents(data as unknown as Event[]);
+    const fetchAll = async () => {
+      const [eventsRes, featuredRes] = await Promise.all([
+        supabase.from("events").select("*").eq("is_published", true).order("date", { ascending: true }).limit(3),
+        supabase.from("events").select("*").eq("is_published", true).filter("is_featured", "eq", true).order("date", { ascending: true }).limit(3),
+      ]);
+      if (eventsRes.data) setEvents(eventsRes.data as any);
+      if (featuredRes.data) setFeaturedEvents(featuredRes.data as any);
     };
-    fetch();
+    fetchAll();
   }, []);
+
+  const featuredGridCols =
+    featuredEvents.length === 3 ? "md:grid-cols-3" :
+    featuredEvents.length === 2 ? "md:grid-cols-2" : "";
+
+  const featuredAspect =
+    featuredEvents.length === 1 ? "aspect-[21/9]" :
+    featuredEvents.length === 2 ? "aspect-video" : "aspect-[3/4] md:aspect-video";
 
   return (
     <>
       {/* Hero */}
       <section className="relative h-[100vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-          >
+          <video autoPlay muted loop playsInline className="w-full h-full object-cover">
             <source src="/videos/hero-bg.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background" />
@@ -71,26 +74,45 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Highlight Event */}
-      <section className="py-8 md:py-12">
-        <div className="container mx-auto">
-          <ScrollReveal>
-            <Link to="/events" className="block relative rounded-2xl overflow-hidden group hover-lift">
-              <img
-                src="/images/events/ak-ausserkontrolle.png"
-                alt="AK Ausserkontrolle Live – 21.03.26 in der Nachtschicht Kaiserslautern"
-                className="w-full aspect-[21/9] object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8">
-                <span className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded font-display text-xs tracking-wider mb-2">HIGHLIGHT</span>
-                <h2 className="font-display text-2xl md:text-4xl tracking-wider text-foreground">AK AUSSERKONTROLLE</h2>
-                <p className="text-muted-foreground text-sm">21. März 2026 · Live in der Nachtschicht</p>
+      {/* Featured / Highlight Events */}
+      {featuredEvents.length > 0 && (
+        <section className="py-8 md:py-12">
+          <div className="container mx-auto">
+            <ScrollReveal>
+              <div className={`grid grid-cols-1 ${featuredGridCols} gap-4`}>
+                {featuredEvents.map((event, i) => (
+                  <div
+                    key={event.id}
+                    className="block relative rounded-2xl overflow-hidden group hover-lift cursor-pointer"
+                    onClick={() => navigate(`/tickets/${event.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && navigate(`/tickets/${event.id}`)}
+                  >
+                    <img
+                      src={event.image_url || "/images/gallery-1.jpg"}
+                      alt={`${event.title} – Highlight Event in der Nachtschicht Kaiserslautern`}
+                      className={`w-full ${featuredAspect} object-cover group-hover:scale-105 transition-transform duration-700`}
+                      loading={i === 0 ? "eager" : "lazy"}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                    <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6">
+                      <span className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded font-display text-xs tracking-wider mb-2">HIGHLIGHT</span>
+                      <h2 className={`font-display tracking-wider text-foreground ${featuredEvents.length === 1 ? "text-2xl md:text-4xl" : "text-lg md:text-2xl"}`}>
+                        {event.title}
+                      </h2>
+                      <p className="text-muted-foreground text-sm">
+                        {new Date(event.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })}
+                        {event.time ? ` · ${event.time} Uhr` : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </Link>
-          </ScrollReveal>
-        </div>
-      </section>
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
 
       {/* Next Events */}
       <section className="section-padding">
@@ -105,7 +127,7 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {events.map((event, i) => (
                 <ScrollReveal key={event.id} delay={i * 0.15}>
-                <div className="glass-card overflow-hidden hover-lift group">
+                <div className="glass-card overflow-hidden hover-lift group cursor-pointer" onClick={() => navigate(`/tickets/${event.id}`)}>
                   <div className="relative h-56 overflow-hidden">
                     <img src={event.image_url || "/images/gallery-1.jpg"} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
@@ -129,9 +151,9 @@ const Index = () => {
                     )}
                     <div className="flex items-center justify-between mt-3">
                       <span className="font-display text-lg text-foreground">{event.ticket_price > 0 ? `${event.ticket_price.toFixed(2)}€` : "KOSTENLOS"}</span>
-                      <Link to="/events" className="inline-flex items-center gap-1 text-primary text-sm font-medium hover:gap-2 transition-all">
+                      <span className="inline-flex items-center gap-1 text-primary text-sm font-medium">
                         Tickets <ChevronRight size={16} />
-                      </Link>
+                      </span>
                     </div>
                   </div>
                 </div>
