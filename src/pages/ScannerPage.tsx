@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Camera, CameraOff, CheckCircle, XCircle, AlertTriangle,
-  Users, Keyboard, ScanLine, RotateCcw
+  Users, Keyboard, ScanLine, RotateCcw, WifiOff, Wifi, CloudUpload, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,43 @@ interface ScanResult {
   message: string;
   ticket?: TicketResult;
 }
+
+interface QueuedCheckIn {
+  id: string;
+  qr_code: string;
+  timestamp: number;
+  retries: number;
+}
+
+const QUEUE_KEY = "nachtschicht_offline_checkins";
+
+// ── Offline Queue helpers ──
+const loadQueue = (): QueuedCheckIn[] => {
+  try {
+    return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+  } catch { return []; }
+};
+
+const saveQueue = (queue: QueuedCheckIn[]) => {
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+};
+
+const addToQueue = (qr_code: string): QueuedCheckIn => {
+  const queue = loadQueue();
+  const item: QueuedCheckIn = {
+    id: crypto.randomUUID(),
+    qr_code,
+    timestamp: Date.now(),
+    retries: 0,
+  };
+  queue.push(item);
+  saveQueue(queue);
+  return item;
+};
+
+const removeFromQueue = (id: string) => {
+  saveQueue(loadQueue().filter((q) => q.id !== id));
+};
 
 // Audio feedback using Web Audio API
 const playSound = (type: "success" | "error") => {
@@ -73,11 +110,109 @@ const ScannerPage = () => {
   const [selectedEvent, setSelectedEvent] = useState<string>("all");
   const [events, setEvents] = useState<{ id: string; title: string; date: string }[]>([]);
 
+  // Offline state
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [queue, setQueue] = useState<QueuedCheckIn[]>(loadQueue);
+  const [syncing, setSyncing] = useState(false);
+
   const scannerRef = useRef<any>(null);
   const videoRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autoResetTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastScanned = useRef<string>("");
+  const syncInterval = useRef<ReturnType<typeof setInterval>>();
+
+  // ── Online/offline detection ──
+  useEffect(() => {
+    const goOnline = () => {
+      setIsOnline(true);
+      toast.success("Verbindung wiederhergestellt", { icon: <Wifi size={16} /> });
+    };
+    const goOffline = () => {
+      setIsOnline(false);
+      toast.warning("Keine Internetverbindung – Check-ins werden lokal gespeichert", { icon: <WifiOff size={16} />, duration: 5000 });
+    };
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+
+  // ── Auto-sync when coming back online ──
+  const syncQueue = useCallback(async () => {
+    const currentQueue = loadQueue();
+    if (currentQueue.length === 0 || !navigator.onLine) return;
+
+    setSyncing(true);
+    const { data: session } = await supabase.auth.getSession();
+    const token = session?.session?.access_token;
+    if (!token) { setSyncing(false); return; }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of currentQueue) {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-in-ticket`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ qr_code: item.qr_code }),
+          }
+        );
+        const data = await res.json();
+        if (data.status === "success" || data.status === "already_redeemed") {
+          removeFromQueue(item.id);
+          successCount++;
+        } else {
+          // Increment retries, remove after 5 failed attempts
+          const q = loadQueue();
+          const idx = q.findIndex((x) => x.id === item.id);
+          if (idx >= 0) {
+            q[idx].retries++;
+            if (q[idx].retries >= 5) q.splice(idx, 1);
+            saveQueue(q);
+          }
+          failCount++;
+        }
+      } catch {
+        // Still offline or network error, stop trying
+        break;
+      }
+    }
+
+    setQueue(loadQueue());
+    setSyncing(false);
+
+    if (successCount > 0) {
+      toast.success(`${successCount} Offline-Check-in${successCount > 1 ? "s" : ""} synchronisiert ✓`);
+      fetchStats();
+    }
+    if (failCount > 0) {
+      toast.warning(`${failCount} Check-in${failCount > 1 ? "s" : ""} fehlgeschlagen`);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOnline && queue.length > 0) {
+      syncQueue();
+    }
+  }, [isOnline, syncQueue]);
+
+  // Periodic sync attempt every 30s
+  useEffect(() => {
+    syncInterval.current = setInterval(() => {
+      if (navigator.onLine && loadQueue().length > 0) syncQueue();
+    }, 30000);
+    return () => { if (syncInterval.current) clearInterval(syncInterval.current); };
+  }, [syncQueue]);
 
   const fetchStats = useCallback(async () => {
     const eventFilter = selectedEvent !== "all" ? selectedEvent : undefined;
@@ -100,12 +235,29 @@ const ScannerPage = () => {
   const handleCheckIn = useCallback(async (code: string) => {
     const trimmed = code.trim();
     if (!trimmed || processing) return;
-    // Prevent double-scan of same code within 3s
     if (trimmed === lastScanned.current) return;
     lastScanned.current = trimmed;
     setTimeout(() => { lastScanned.current = ""; }, 3000);
 
     setProcessing(true);
+
+    // ── Offline path: queue locally ──
+    if (!navigator.onLine) {
+      const item = addToQueue(trimmed);
+      setQueue(loadQueue());
+      setResult({
+        status: "success",
+        message: `Offline gespeichert – wird synchronisiert sobald Verbindung besteht`,
+      });
+      playSound("success");
+      setProcessing(false);
+      setManualInput("");
+      if (autoResetTimer.current) clearTimeout(autoResetTimer.current);
+      autoResetTimer.current = setTimeout(() => setResult(null), 3000);
+      return;
+    }
+
+    // ── Online path ──
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
@@ -139,16 +291,19 @@ const ScannerPage = () => {
         if (data.status === "success") fetchStats();
       }
     } catch (err) {
-      setResult({ status: "invalid", message: "Netzwerkfehler" });
-      playSound("error");
+      // Network failed mid-request → queue offline
+      const item = addToQueue(trimmed);
+      setQueue(loadQueue());
+      setResult({
+        status: "success",
+        message: "Verbindung verloren – Check-in offline gespeichert",
+      });
+      playSound("success");
     } finally {
       setProcessing(false);
       setManualInput("");
-      // Auto-reset after 3 seconds
       if (autoResetTimer.current) clearTimeout(autoResetTimer.current);
-      autoResetTimer.current = setTimeout(() => {
-        setResult(null);
-      }, 3000);
+      autoResetTimer.current = setTimeout(() => setResult(null), 3000);
     }
   }, [processing, fetchStats]);
 
@@ -202,6 +357,12 @@ const ScannerPage = () => {
   const dismissResult = () => {
     setResult(null);
     if (autoResetTimer.current) clearTimeout(autoResetTimer.current);
+  };
+
+  const clearQueue = () => {
+    saveQueue([]);
+    setQueue([]);
+    toast.info("Offline-Warteschlange geleert");
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
@@ -303,6 +464,61 @@ const ScannerPage = () => {
             TICKET <span className="text-gradient">SCANNER</span>
           </h1>
         </div>
+
+        {/* Online/Offline indicator */}
+        <div className={`flex items-center gap-2 mb-4 px-3 py-2 rounded-lg text-sm font-medium ${
+          isOnline
+            ? "bg-green-500/10 text-green-400 border border-green-500/20"
+            : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+        }`}>
+          {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
+          {isOnline ? "Online – Check-ins werden sofort verarbeitet" : "Offline – Check-ins werden lokal zwischengespeichert"}
+        </div>
+
+        {/* Offline queue banner */}
+        {queue.length > 0 && (
+          <div className="mb-4 glass-card p-4 border border-yellow-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-display tracking-wider text-sm text-foreground flex items-center gap-2">
+                <CloudUpload size={16} className="text-yellow-400" />
+                OFFLINE-WARTESCHLANGE ({queue.length})
+              </h3>
+              <div className="flex gap-2">
+                {isOnline && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={syncQueue}
+                    disabled={syncing}
+                    className="text-xs gap-1"
+                  >
+                    <CloudUpload size={14} />
+                    {syncing ? "Sync..." : "Jetzt synchronisieren"}
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={clearQueue}
+                  className="text-xs text-muted-foreground hover:text-destructive gap-1"
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-1.5 max-h-32 overflow-y-auto">
+              {queue.map((item) => (
+                <div key={item.id} className="flex items-center justify-between text-xs bg-white/5 rounded-md px-3 py-1.5">
+                  <span className="font-mono text-muted-foreground truncate max-w-[180px]">{item.qr_code}</span>
+                  <span className="text-muted-foreground shrink-0 ml-2">
+                    {new Date(item.timestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                    {item.retries > 0 && <span className="text-yellow-400 ml-1">({item.retries}×)</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Event filter */}
         <div className="mb-4">
