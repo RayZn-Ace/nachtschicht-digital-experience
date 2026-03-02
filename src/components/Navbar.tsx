@@ -74,6 +74,7 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
     items: [
       { label: "Controlling", tab: "controlling", icon: BarChart3 },
       { label: "Umsatz", tab: "revenue", icon: TrendingUp },
+      { label: "Kundendaten", tab: "customers", icon: Users },
       { label: "Rechnungen", tab: "invoiceconfig", icon: Receipt },
       { label: "Tracking", tab: "tracking", icon: Settings },
     ],
