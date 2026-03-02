@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
-import QRCode from "https://esm.sh/qrcode@1.5.4/lib/browser.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,9 +9,9 @@ const corsHeaders = {
 
 async function generateTicketPdf(ticket: any, event: any, ticketType: any): Promise<Uint8Array> {
   const qrData = ticket.qr_code || ticket.id;
-  const qrDataUrl: string = await QRCode.toDataURL(qrData, {
-    width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" },
-  });
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+  const qrRes = await fetch(qrUrl);
+  const qrBytes = new Uint8Array(await qrRes.arrayBuffer());
 
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([400, 600]);
@@ -68,8 +67,6 @@ async function generateTicketPdf(ticket: any, event: any, ticketType: any): Prom
   page.drawText(`${Number(ticket.total_price).toFixed(2)} €`, { x: width - 120, y: yPos + 3, size: 14, font: fontBold, color: accent });
 
   yPos -= 50;
-  const qrBase64 = qrDataUrl.split(",")[1];
-  const qrBytes = Uint8Array.from(atob(qrBase64), (c) => c.charCodeAt(0));
   const qrImage = await pdfDoc.embedPng(qrBytes);
   const qrSize = 150;
   page.drawImage(qrImage, { x: (width - qrSize) / 2, y: yPos - qrSize, width: qrSize, height: qrSize });
