@@ -431,7 +431,7 @@ const AdminPage = () => {
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="Eintrittspreis"
+                  placeholder="Abendkasse"
                   value={formData.ticket_price || ""}
                   onChange={(e) => setFormData({ ...formData, ticket_price: Number(e.target.value) })}
                   className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
