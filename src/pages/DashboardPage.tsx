@@ -33,6 +33,8 @@ interface TicketRow {
   qr_code: string | null;
   created_at: string;
   ticket_type_id: string | null;
+  billing_city: string | null;
+  billing_zip: string | null;
 }
 
 interface EventRow {
@@ -105,7 +107,7 @@ const DashboardPage = () => {
     if (!user) return;
     setDataLoading(true);
     const [ticketsRes, eventsRes, typesRes] = await Promise.all([
-      supabase.from("tickets").select("id, event_id, quantity, total_price, status, checked_in, checked_in_at, buyer_name, buyer_email, qr_code, created_at, ticket_type_id").order("created_at", { ascending: false }),
+      supabase.from("tickets").select("id, event_id, quantity, total_price, status, checked_in, checked_in_at, buyer_name, buyer_email, qr_code, created_at, ticket_type_id, billing_city, billing_zip").order("created_at", { ascending: false }),
       supabase.from("events").select("id, title, date, image_url, genre, areas, ticket_quantity, tickets_sold").order("date", { ascending: true }),
       supabase.from("ticket_types").select("id, name, sold, quantity, price, event_id"),
     ]);
@@ -651,20 +653,140 @@ const DashboardPage = () => {
           </ScrollReveal>
         )}
 
-        {/* ─── Heatmap Placeholder ─── */}
-        {isAdmin && (
-          <ScrollReveal delay={0.35}>
-            <div className="gradient-card rounded-xl p-6 border border-border/50 mb-6">
-              <h2 className="font-display text-xl tracking-wider text-foreground mb-2 flex items-center gap-2">
-                <MapPin size={18} className="text-primary" /> HERKUNFT <span className="text-gradient">HEATMAP</span>
-              </h2>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-8 text-center justify-center">
-                <AlertCircle size={16} />
-                <span>Heatmap wird verfügbar, sobald Adressdaten beim Checkout erfasst werden. Erfordert Geolocation-Integration.</span>
+        {/* ─── Buyer Origin Heatmap ─── */}
+        {isAdmin && (() => {
+          const confirmedWithCity = filteredTickets.filter(
+            (t) => t.status === "confirmed" && t.billing_city
+          );
+          const cityMap = new Map<string, { count: number; revenue: number; zip: string }>();
+          for (const t of confirmedWithCity) {
+            const city = t.billing_city!.trim();
+            const prev = cityMap.get(city) || { count: 0, revenue: 0, zip: t.billing_zip || "" };
+            prev.count += t.quantity;
+            prev.revenue += Number(t.total_price);
+            if (!prev.zip && t.billing_zip) prev.zip = t.billing_zip;
+            cityMap.set(city, prev);
+          }
+          const topCities = Array.from(cityMap.entries())
+            .map(([city, d]) => ({ city, ...d }))
+            .sort((a, b) => b.count - a.count);
+          const maxCount = topCities[0]?.count || 1;
+          const totalBuyers = topCities.reduce((s, c) => s + c.count, 0);
+          const uniqueCities = topCities.length;
+          const topDisplay = topCities.slice(0, 10);
+
+          // PLZ prefix distribution (first 2 digits = region)
+          const plzMap = new Map<string, number>();
+          for (const t of confirmedWithCity) {
+            if (t.billing_zip) {
+              const prefix = t.billing_zip.trim().substring(0, 2);
+              plzMap.set(prefix, (plzMap.get(prefix) || 0) + t.quantity);
+            }
+          }
+          const plzRegions = Array.from(plzMap.entries())
+            .map(([prefix, count]) => ({ prefix, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 12);
+          const maxPlz = plzRegions[0]?.count || 1;
+
+          return (
+            <ScrollReveal delay={0.35}>
+              <div className="gradient-card rounded-xl p-6 border border-border/50 mb-6" aria-labelledby="heatmap-heading">
+                <h2 id="heatmap-heading" className="font-display text-xl tracking-wider text-foreground mb-4 flex items-center gap-2">
+                  <MapPin size={18} className="text-primary" /> HERKUNFT <span className="text-gradient">HEATMAP</span>
+                </h2>
+
+                {topCities.length === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-8 text-center justify-center">
+                    <AlertCircle size={16} />
+                    <span>Noch keine Adressdaten im gewählten Zeitraum vorhanden.</span>
+                  </div>
+                ) : (
+                  <>
+                    {/* KPI row */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="bg-muted/30 rounded-lg p-3 text-center">
+                        <p className="font-display text-2xl text-foreground">{totalBuyers}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tickets mit Ort</p>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-3 text-center">
+                        <p className="font-display text-2xl text-foreground">{uniqueCities}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Städte</p>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-3 text-center">
+                        <p className="font-display text-2xl text-foreground">{topCities[0]?.city || "—"}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Top-Stadt</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Top Cities */}
+                      <div>
+                        <h3 className="text-sm font-display tracking-wider text-muted-foreground mb-3 uppercase">Top Städte</h3>
+                        <div className="space-y-2">
+                          {topDisplay.map((c, i) => {
+                            const pctWidth = Math.max(8, (c.count / maxCount) * 100);
+                            const share = totalBuyers > 0 ? Math.round((c.count / totalBuyers) * 100) : 0;
+                            return (
+                              <div key={c.city} className="group">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-[10px] text-muted-foreground w-4 text-right shrink-0">{i + 1}.</span>
+                                    <span className="text-foreground truncate">{c.city}</span>
+                                    {c.zip && <span className="text-[10px] text-muted-foreground">({c.zip})</span>}
+                                  </div>
+                                  <div className="flex items-center gap-3 shrink-0">
+                                    <span className="text-xs text-muted-foreground">{share}%</span>
+                                    <span className="text-xs font-medium text-foreground">{c.count}</span>
+                                  </div>
+                                </div>
+                                <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all duration-500"
+                                    style={{
+                                      width: `${pctWidth}%`,
+                                      background: i === 0
+                                        ? "hsl(var(--primary))"
+                                        : i < 3
+                                        ? "hsl(var(--primary) / 0.7)"
+                                        : "hsl(var(--primary) / 0.4)",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* PLZ Region Grid */}
+                      <div>
+                        <h3 className="text-sm font-display tracking-wider text-muted-foreground mb-3 uppercase">PLZ-Regionen</h3>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {plzRegions.map((r) => {
+                            const intensity = r.count / maxPlz;
+                            return (
+                              <div
+                                key={r.prefix}
+                                className="rounded-lg p-3 text-center transition-all hover:scale-105 border border-border/30"
+                                style={{
+                                  background: `hsl(var(--primary) / ${Math.max(0.08, intensity * 0.5)})`,
+                                }}
+                              >
+                                <p className="font-mono text-lg font-bold text-foreground">{r.prefix}xxx</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">{r.count} Tickets</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          </ScrollReveal>
-        )}
+            </ScrollReveal>
+          );
+        })()}
       </div>
     </section>
   );
