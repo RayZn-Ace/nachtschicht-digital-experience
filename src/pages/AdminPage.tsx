@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event, EventTag } from "@/types/database";
 import { toast } from "sonner";
@@ -33,7 +33,22 @@ interface Genre {
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "ticketcenter" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes" | "lounges" | "drinks" | "holidays" | "invoiceconfig" | "revenue" | "reports" | "applicants">("events");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validTabs = ["events", "ticketcenter", "albums", "newsletter", "u18", "tracking", "tags", "codes", "lounges", "drinks", "holidays", "invoiceconfig", "revenue", "reports", "applicants"] as const;
+  type TabType = typeof validTabs[number];
+  const urlTab = searchParams.get("tab") as TabType | null;
+  const [tab, setTabState] = useState<TabType>(validTabs.includes(urlTab as any) ? urlTab! : "events");
+
+  const setTab = (t: TabType) => {
+    setTabState(t);
+    setSearchParams({ tab: t }, { replace: true });
+  };
+
+  useEffect(() => {
+    if (urlTab && validTabs.includes(urlTab as any)) {
+      setTabState(urlTab);
+    }
+  }, [urlTab]);
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
