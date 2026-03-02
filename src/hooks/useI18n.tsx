@@ -19,6 +19,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "nav.jobs": { de: "Jobs", en: "Jobs" },
   "nav.contact": { de: "Kontakt", en: "Contact" },
   "nav.drinks": { de: "Getränkekarte", en: "Drinks Menu" },
+  "nav.hours": { de: "Öffnungszeiten", en: "Opening Hours" },
   "nav.tickets": { de: "TICKETS", en: "TICKETS" },
   "nav.getTickets": { de: "TICKETS SICHERN", en: "GET TICKETS" },
 
