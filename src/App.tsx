@@ -40,55 +40,57 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <ThemeProvider>
-        <I18nProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/events" element={<EventsPage />} />
-                  <Route path="/club" element={<ClubPage />} />
-                  <Route path="/fotos" element={<PhotosPage />} />
-                  <Route path="/lounges" element={<LoungesPage />} />
-                  <Route path="/getraenkekarte" element={<DrinksPage />} />
-                  <Route path="/reservierung" element={<ReservationPage />} />
-                  <Route path="/u18" element={<U18Page />} />
-                  <Route path="/faq" element={<FaqPage />} />
-                  <Route path="/oeffnungszeiten" element={<OeffnungszeitenPage />} />
-                  <Route path="/jobs" element={<JobsPage />} />
-                  <Route path="/kontakt" element={<ContactPage />} />
-                  <Route path="/agb" element={<AgbPage />} />
-                  <Route path="/datenschutz" element={<DatenschutzPage />} />
-                  <Route path="/impressum" element={<ImpressumPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/registrieren" element={<RegisterPage />} />
-                  <Route path="/passwort-vergessen" element={<ForgotPasswordPage />} />
-                  <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/meine-tickets" element={<MyTicketsPage />} />
-                  <Route path="/meine-bestellungen" element={<MeineBestellungenPage />} />
-                  <Route path="/meine-rechnungen" element={<MeineRechnungenPage />} />
-                  <Route path="/account-loeschen" element={<AccountDeletePage />} />
-                  <Route path="/daten-export" element={<DatenschutzExportPage />} />
-                  <Route path="/tickets/:eventId" element={<TicketShopPage />} />
-                  <Route path="/scanner" element={<ScannerPage />} />
-                  <Route path="/profil" element={<ProfilPage />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Layout>
-            </BrowserRouter>
-          </TooltipProvider>
-        </I18nProvider>
-      </ThemeProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ThemeProvider>
+          <I18nProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/events" element={<EventsPage />} />
+                    <Route path="/club" element={<ClubPage />} />
+                    <Route path="/fotos" element={<PhotosPage />} />
+                    <Route path="/lounges" element={<LoungesPage />} />
+                    <Route path="/getraenkekarte" element={<DrinksPage />} />
+                    <Route path="/reservierung" element={<ReservationPage />} />
+                    <Route path="/u18" element={<U18Page />} />
+                    <Route path="/faq" element={<FaqPage />} />
+                    <Route path="/oeffnungszeiten" element={<OeffnungszeitenPage />} />
+                    <Route path="/jobs" element={<JobsPage />} />
+                    <Route path="/kontakt" element={<ContactPage />} />
+                    <Route path="/agb" element={<AgbPage />} />
+                    <Route path="/datenschutz" element={<DatenschutzPage />} />
+                    <Route path="/impressum" element={<ImpressumPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/registrieren" element={<RegisterPage />} />
+                    <Route path="/passwort-vergessen" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/meine-tickets" element={<MyTicketsPage />} />
+                    <Route path="/meine-bestellungen" element={<MeineBestellungenPage />} />
+                    <Route path="/meine-rechnungen" element={<MeineRechnungenPage />} />
+                    <Route path="/account-loeschen" element={<AccountDeletePage />} />
+                    <Route path="/daten-export" element={<DatenschutzExportPage />} />
+                    <Route path="/tickets/:eventId" element={<TicketShopPage />} />
+                    <Route path="/scanner" element={<ScannerPage />} />
+                    <Route path="/profil" element={<ProfilPage />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Layout>
+              </BrowserRouter>
+            </TooltipProvider>
+          </I18nProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
