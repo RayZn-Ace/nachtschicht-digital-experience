@@ -85,6 +85,7 @@ const PUBLIC_CATEGORIES: NavCategory[] = [
     items: [
       { label: "Events & Tickets", path: "/events", icon: Calendar },
       { label: "Muttizettel", path: "/u18", icon: FileText },
+      { label: "Getränkekarte", path: "/getraenkekarte", icon: GlassWater },
     ],
   },
   {
@@ -94,7 +95,6 @@ const PUBLIC_CATEGORIES: NavCategory[] = [
       { label: "Club", path: "/club", icon: Building2 },
       { label: "Lounges", path: "/lounges", icon: Sofa },
       { label: "Fotos & Videos", path: "/fotos", icon: Camera },
-      { label: "Getränkekarte", path: "/getraenkekarte", icon: GlassWater },
     ],
   },
   {
