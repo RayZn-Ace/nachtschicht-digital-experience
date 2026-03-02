@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { newsletter_id, category_ids } = await req.json();
+    const { newsletter_id, category_ids, extra_recipients } = await req.json();
     if (!newsletter_id) {
       return new Response(JSON.stringify({ error: "newsletter_id required" }), {
         status: 400,
@@ -99,10 +99,9 @@ Deno.serve(async (req) => {
     }
 
     // Get subscribers – filtered by categories if provided
-    let subscriberEmails: Set<string> | null = null;
+    let subscribers: { email: string; name?: string | null }[] = [];
 
     if (category_ids && Array.isArray(category_ids) && category_ids.length > 0) {
-      // Get subscriber IDs for selected categories
       const { data: subCatRows } = await adminClient
         .from("newsletter_subscriber_categories")
         .select("subscriber_id")
@@ -115,36 +114,32 @@ Deno.serve(async (req) => {
           .select("email, name")
           .in("id", subIds)
           .eq("is_active", true);
-        
-        if (!catSubs || catSubs.length === 0) {
-          return new Response(JSON.stringify({ error: "Keine aktiven Abonnenten in den gewählten Kategorien" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Use these subscribers
-        var subscribers = catSubs;
-      } else {
-        return new Response(JSON.stringify({ error: "Keine Abonnenten in den gewählten Kategorien" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        if (catSubs) subscribers = catSubs;
       }
     } else {
-      // All active subscribers
       const { data: allSubs } = await adminClient
         .from("newsletter_subscribers")
         .select("email, name")
         .eq("is_active", true);
+      if (allSubs) subscribers = allSubs;
+    }
 
-      if (!allSubs || allSubs.length === 0) {
-        return new Response(JSON.stringify({ error: "Keine aktiven Abonnenten" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+    // Add extra manual recipients (deduplicate by email)
+    if (extra_recipients && Array.isArray(extra_recipients)) {
+      const existingEmails = new Set(subscribers.map((s) => s.email.toLowerCase()));
+      for (const r of extra_recipients) {
+        if (r.email && !existingEmails.has(r.email.toLowerCase())) {
+          subscribers.push({ email: r.email, name: r.name || null });
+          existingEmails.add(r.email.toLowerCase());
+        }
       }
-      var subscribers = allSubs;
+    }
+
+    if (subscribers.length === 0) {
+      return new Response(JSON.stringify({ error: "Keine Empfänger" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     await adminClient
