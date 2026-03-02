@@ -1,83 +1,54 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import ScrollReveal from "@/components/ScrollReveal";
-import { Wine, Beer, Coffee, Martini, GlassWater } from "lucide-react";
+import { Wine, Beer, Coffee, Martini, GlassWater, Grape, CupSoda } from "lucide-react";
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Martini: <Martini size={24} />,
+  Beer: <Beer size={24} />,
+  Wine: <Wine size={24} />,
+  GlassWater: <GlassWater size={24} />,
+  Coffee: <Coffee size={24} />,
+  Grape: <Grape size={24} />,
+  CupSoda: <CupSoda size={24} />,
+};
 
 interface DrinkCategory {
-  titleDe: string;
-  titleEn: string;
-  icon: React.ReactNode;
-  items: { name: string; size?: string; price: string; description?: string }[];
+  id: string;
+  name: string;
+  icon: string;
+  sort_order: number;
 }
 
-const categories: DrinkCategory[] = [
-  {
-    titleDe: "Longdrinks & Cocktails",
-    titleEn: "Longdrinks & Cocktails",
-    icon: <Martini size={24} />,
-    items: [
-      { name: "Gin Tonic", price: "9,00 €" },
-      { name: "Vodka Bull", price: "9,00 €" },
-      { name: "Cuba Libre", price: "9,00 €" },
-      { name: "Whiskey Cola", price: "9,00 €" },
-      { name: "Mojito", price: "10,00 €" },
-      { name: "Aperol Spritz", price: "8,00 €" },
-      { name: "Moscow Mule", price: "10,00 €" },
-      { name: "Tequila Sunrise", price: "9,00 €" },
-      { name: "Sex on the Beach", price: "9,00 €" },
-      { name: "Long Island Iced Tea", price: "11,00 €" },
-    ],
-  },
-  {
-    titleDe: "Bier",
-    titleEn: "Beer",
-    icon: <Beer size={24} />,
-    items: [
-      { name: "Pils vom Fass", size: "0,3l", price: "4,00 €" },
-      { name: "Pils vom Fass", size: "0,5l", price: "5,00 €" },
-      { name: "Weizen", size: "0,5l", price: "5,50 €" },
-      { name: "Radler", size: "0,3l", price: "4,00 €" },
-    ],
-  },
-  {
-    titleDe: "Wein & Sekt",
-    titleEn: "Wine & Sparkling",
-    icon: <Wine size={24} />,
-    items: [
-      { name: "Weißwein", size: "0,2l", price: "5,00 €" },
-      { name: "Rotwein", size: "0,2l", price: "5,00 €" },
-      { name: "Rosé", size: "0,2l", price: "5,00 €" },
-      { name: "Prosecco", size: "0,1l", price: "4,50 €" },
-      { name: "Sekt (Flasche)", price: "25,00 €" },
-    ],
-  },
-  {
-    titleDe: "Shots",
-    titleEn: "Shots",
-    icon: <GlassWater size={24} />,
-    items: [
-      { name: "Jägermeister", price: "3,00 €" },
-      { name: "Vodka", price: "3,00 €" },
-      { name: "Tequila", price: "3,00 €" },
-      { name: "Sambuca", price: "3,00 €" },
-      { name: "Mexikaner", price: "3,00 €" },
-      { name: "Berliner Luft", price: "3,00 €" },
-    ],
-  },
-  {
-    titleDe: "Alkoholfrei",
-    titleEn: "Non-Alcoholic",
-    icon: <Coffee size={24} />,
-    items: [
-      { name: "Cola / Fanta / Sprite", size: "0,3l", price: "3,50 €" },
-      { name: "Red Bull", size: "0,25l", price: "4,00 €" },
-      { name: "Wasser", size: "0,3l", price: "3,00 €" },
-      { name: "Saft (verschiedene)", size: "0,2l", price: "3,50 €" },
-    ],
-  },
-];
+interface Drink {
+  id: string;
+  category_id: string;
+  name: string;
+  size: string | null;
+  price: number;
+  description: string | null;
+  sort_order: number;
+}
 
 const DrinksPage = () => {
   const { lang } = useI18n();
+  const [categories, setCategories] = useState<DrinkCategory[]>([]);
+  const [drinks, setDrinks] = useState<Drink[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      const [{ data: cats }, { data: drs }] = await Promise.all([
+        supabase.from("drink_categories").select("*").order("sort_order"),
+        supabase.from("drinks").select("*").order("sort_order"),
+      ]);
+      if (cats) setCategories(cats as any);
+      if (drs) setDrinks(drs as any);
+      setLoading(false);
+    };
+    fetchAll();
+  }, []);
 
   return (
     <section className="section-padding">
@@ -96,36 +67,40 @@ const DrinksPage = () => {
           </div>
         </ScrollReveal>
 
-        <div className="space-y-8">
-          {categories.map((cat, i) => (
-            <ScrollReveal key={cat.titleDe} delay={i * 0.1}>
-              <div className="glass-card p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-primary">{cat.icon}</span>
-                  <h2 className="font-display text-2xl tracking-wider text-foreground">
-                    {lang === "de" ? cat.titleDe : cat.titleEn}
-                  </h2>
-                </div>
-                <div className="divide-y divide-border/50">
-                  {cat.items.map((item, j) => (
-                    <div key={j} className="flex items-center justify-between py-3">
-                      <div>
-                        <span className="text-foreground font-medium">{item.name}</span>
-                        {item.size && (
-                          <span className="text-muted-foreground text-sm ml-2">{item.size}</span>
-                        )}
-                        {item.description && (
-                          <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
-                        )}
-                      </div>
-                      <span className="text-primary font-bold text-lg shrink-0 ml-4">{item.price}</span>
+        {loading ? (
+          <p className="text-muted-foreground text-center py-12">Laden...</p>
+        ) : (
+          <div className="space-y-8">
+            {categories.map((cat, i) => {
+              const catDrinks = drinks.filter((d) => d.category_id === cat.id);
+              if (catDrinks.length === 0) return null;
+              return (
+                <ScrollReveal key={cat.id} delay={i * 0.1}>
+                  <div className="glass-card p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-primary">{ICON_MAP[cat.icon] || <Wine size={24} />}</span>
+                      <h2 className="font-display text-2xl tracking-wider text-foreground">{cat.name}</h2>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
+                    <div className="divide-y divide-border/50">
+                      {catDrinks.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between py-3">
+                          <div>
+                            <span className="text-foreground font-medium">{item.name}</span>
+                            {item.size && <span className="text-muted-foreground text-sm ml-2">{item.size}</span>}
+                            {item.description && <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>}
+                          </div>
+                          <span className="text-primary font-bold text-lg shrink-0 ml-4">
+                            {item.price.toFixed(2).replace(".", ",")} €
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </ScrollReveal>
+              );
+            })}
+          </div>
+        )}
 
         <ScrollReveal delay={0.5}>
           <p className="text-center text-muted-foreground text-sm mt-8">

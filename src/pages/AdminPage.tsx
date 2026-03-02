@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event, EventTag } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X, Wine } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
 import AdminNewsletter from "@/components/AdminNewsletter";
@@ -15,6 +15,7 @@ import AdminDiscountCodes from "@/components/AdminDiscountCodes";
 import AdminTicketTypes from "@/components/AdminTicketTypes";
 import AdminOrders from "@/components/AdminOrders";
 import AdminLoungeBookings from "@/components/AdminLoungeBookings";
+import AdminDrinks from "@/components/AdminDrinks";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ALWAYS_OPEN_AREAS = ["openair", "bistro"];
@@ -27,7 +28,7 @@ interface Genre {
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "orders" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes" | "lounges">("events");
+  const [tab, setTab] = useState<"events" | "orders" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes" | "lounges" | "drinks">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -206,6 +207,7 @@ const AdminPage = () => {
             { id: "tags", label: "TAGS", icon: Tags },
             { id: "codes", label: "RABATTCODES", icon: Ticket },
             { id: "lounges", label: "LOUNGES", icon: Sofa },
+            { id: "drinks", label: "GETRÄNKE", icon: Wine },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -217,7 +219,9 @@ const AdminPage = () => {
           ))}
         </div>
 
-        {tab === "lounges" ? (
+        {tab === "drinks" ? (
+          <AdminDrinks />
+        ) : tab === "lounges" ? (
           <AdminLoungeBookings />
         ) : tab === "orders" ? (
           <AdminOrders />
