@@ -3,16 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Trash2, Mail, Users, Search, Plus, Send, Eye, Pencil,
-  ChevronLeft, CheckCircle, XCircle, Clock, Loader2, Palette,
-  Calendar, Tag, Info,
+  ChevronLeft, CheckCircle, Loader2, Palette,
+  Calendar, Tag, UserPlus, FolderOpen, X,
 } from "lucide-react";
 
+/* ─── Types ─── */
 interface Subscriber {
   id: string;
   email: string;
   name: string | null;
   is_active: boolean;
   subscribed_at: string;
+  categories?: Category[];
 }
 
 interface Newsletter {
@@ -29,6 +31,18 @@ interface Newsletter {
   created_at: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+  description: string | null;
+}
+
+interface SubCatRow {
+  subscriber_id: string;
+  category_id: string;
+}
+
 interface EventRow {
   id: string;
   title: string;
@@ -40,7 +54,7 @@ interface EventRow {
   ticket_price: number | null;
 }
 
-type View = "subscribers" | "campaigns" | "editor";
+type View = "subscribers" | "campaigns" | "editor" | "categories";
 
 /* ─── Design presets ─── */
 const COLOR_PRESETS = [
@@ -51,7 +65,17 @@ const COLOR_PRESETS = [
   { name: "Hell & Clean", primary: "#e11d48", bg: "#ffffff", text: "#1a1a1a", accent: "#f43f5e" },
 ];
 
-/* ─── Placeholders ─── */
+const CAT_COLORS = [
+  "bg-rose-500/20 text-rose-400",
+  "bg-blue-500/20 text-blue-400",
+  "bg-green-500/20 text-green-400",
+  "bg-yellow-500/20 text-yellow-400",
+  "bg-purple-500/20 text-purple-400",
+  "bg-orange-500/20 text-orange-400",
+  "bg-cyan-500/20 text-cyan-400",
+  "bg-pink-500/20 text-pink-400",
+];
+
 const PLACEHOLDERS = [
   { tag: "{{NAME}}", desc: "Name des Abonnenten (oder E-Mail-Prefix)" },
   { tag: "{{EMAIL}}", desc: "E-Mail-Adresse" },
@@ -67,17 +91,14 @@ const buildEventCardHtml = (ev: EventRow, design: DesignConfig, baseUrl: string)
   const img = ev.image_url || "/images/gallery-1.jpg";
   const fullImg = img.startsWith("http") ? img : `${baseUrl}${img}`;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;border:1px solid ${design.primary}33;border-radius:12px;overflow:hidden;">
-    <tr><td>
-      <img src="${escHtml(fullImg)}" alt="${escHtml(ev.title)}" style="width:100%;height:180px;object-fit:cover;display:block;"/>
-    </td></tr>
+    <tr><td><img src="${escHtml(fullImg)}" alt="${escHtml(ev.title)}" style="width:100%;height:180px;object-fit:cover;display:block;"/></td></tr>
     <tr><td style="padding:16px;">
       <h3 style="margin:0 0 4px;font-size:20px;font-weight:bold;color:${design.primary};font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(ev.title)}</h3>
       ${ev.subtitle ? `<p style="margin:0 0 8px;font-size:14px;color:${design.text}aa;font-style:italic;font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(ev.subtitle)}</p>` : ""}
       <p style="margin:0 0 8px;font-size:14px;color:${design.text}cc;font-family:'Helvetica Neue',Arial,sans-serif;">📅 ${fmtDate(ev.date)}${ev.time ? ` · ${ev.time} Uhr` : ""}${ev.genre ? ` · ${ev.genre}` : ""}</p>
       ${ev.ticket_price ? `<p style="margin:0 0 12px;font-size:14px;color:${design.text}cc;font-family:'Helvetica Neue',Arial,sans-serif;">🎟 ab ${Number(ev.ticket_price).toFixed(2).replace(".", ",")} €</p>` : ""}
       <a href="${baseUrl}/tickets/${ev.id}" target="_blank" style="display:inline-block;padding:10px 24px;background:${design.primary};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;font-family:'Helvetica Neue',Arial,sans-serif;">Tickets sichern</a>
-    </td></tr>
-  </table>`;
+    </td></tr></table>`;
 };
 
 interface EditorBlock {
@@ -96,13 +117,7 @@ interface DesignConfig {
   accent: string;
 }
 
-const buildHtml = (
-  blocks: EditorBlock[],
-  design: DesignConfig,
-  previewText: string | undefined,
-  events: EventRow[],
-  baseUrl: string
-): string => {
+const buildHtml = (blocks: EditorBlock[], design: DesignConfig, previewText: string | undefined, events: EventRow[], baseUrl: string): string => {
   const blocksHtml = blocks
     .map((b) => {
       switch (b.type) {
@@ -153,6 +168,8 @@ const AdminNewsletter = () => {
   const [view, setView] = useState<View>("campaigns");
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCats, setSubCats] = useState<SubCatRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -166,6 +183,22 @@ const AdminNewsletter = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+
+  // Add subscriber modal
+  const [showAddSub, setShowAddSub] = useState(false);
+  const [newSubName, setNewSubName] = useState("");
+  const [newSubEmail, setNewSubEmail] = useState("");
+  const [newSubCatIds, setNewSubCatIds] = useState<string[]>([]);
+
+  // Category management
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatDesc, setNewCatDesc] = useState("");
+
+  // Send dialog
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [sendTargetId, setSendTargetId] = useState<string | null>(null);
+  const [sendCatIds, setSendCatIds] = useState<string[]>([]);
 
   const fetchSubscribers = useCallback(async () => {
     const { data } = await supabase
@@ -183,6 +216,21 @@ const AdminNewsletter = () => {
     if (data) setNewsletters(data as any);
   }, []);
 
+  const fetchCategories = useCallback(async () => {
+    const { data } = await supabase
+      .from("newsletter_categories")
+      .select("*")
+      .order("name");
+    if (data) setCategories(data as any);
+  }, []);
+
+  const fetchSubCats = useCallback(async () => {
+    const { data } = await supabase
+      .from("newsletter_subscriber_categories")
+      .select("subscriber_id, category_id");
+    if (data) setSubCats(data as any);
+  }, []);
+
   const fetchEvents = useCallback(async () => {
     const { data } = await supabase
       .from("events")
@@ -195,10 +243,13 @@ const AdminNewsletter = () => {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchSubscribers(), fetchNewsletters(), fetchEvents()]).finally(() => setLoading(false));
-  }, [fetchSubscribers, fetchNewsletters, fetchEvents]);
+    Promise.all([fetchSubscribers(), fetchNewsletters(), fetchCategories(), fetchSubCats(), fetchEvents()]).finally(() => setLoading(false));
+  }, [fetchSubscribers, fetchNewsletters, fetchCategories, fetchSubCats, fetchEvents]);
 
   const activeCount = subscribers.filter((s) => s.is_active).length;
+
+  const getSubCategoryIds = (subId: string) => subCats.filter((sc) => sc.subscriber_id === subId).map((sc) => sc.category_id);
+  const getCategorySubCount = (catId: string) => subCats.filter((sc) => sc.category_id === catId).length;
 
   /* ─── Subscriber actions ─── */
   const toggleActive = async (sub: Subscriber) => {
@@ -212,6 +263,78 @@ const AdminNewsletter = () => {
     await supabase.from("newsletter_subscribers").delete().eq("id", id);
     toast.success("Gelöscht");
     fetchSubscribers();
+    fetchSubCats();
+  };
+
+  const handleAddSubscriber = async () => {
+    if (!newSubEmail.trim()) { toast.error("E-Mail ist erforderlich"); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newSubEmail.trim())) { toast.error("Ungültige E-Mail-Adresse"); return; }
+
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .insert({ email: newSubEmail.trim().toLowerCase(), name: newSubName.trim() || null } as any)
+      .select("id")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") toast.error("Diese E-Mail existiert bereits");
+      else toast.error("Fehler: " + error.message);
+      return;
+    }
+
+    // Assign categories
+    if (data && newSubCatIds.length > 0) {
+      await supabase.from("newsletter_subscriber_categories").insert(
+        newSubCatIds.map((catId) => ({ subscriber_id: (data as any).id, category_id: catId }))
+      );
+    }
+
+    toast.success("Abonnent hinzugefügt");
+    setNewSubName("");
+    setNewSubEmail("");
+    setNewSubCatIds([]);
+    setShowAddSub(false);
+    fetchSubscribers();
+    fetchSubCats();
+  };
+
+  const toggleSubCategory = async (subId: string, catId: string) => {
+    const exists = subCats.some((sc) => sc.subscriber_id === subId && sc.category_id === catId);
+    if (exists) {
+      await supabase.from("newsletter_subscriber_categories").delete().eq("subscriber_id", subId).eq("category_id", catId);
+    } else {
+      await supabase.from("newsletter_subscriber_categories").insert({ subscriber_id: subId, category_id: catId });
+    }
+    fetchSubCats();
+  };
+
+  /* ─── Category actions ─── */
+  const handleAddCategory = async () => {
+    if (!newCatName.trim()) { toast.error("Name ist erforderlich"); return; }
+    const color = CAT_COLORS[categories.length % CAT_COLORS.length];
+    const { error } = await supabase.from("newsletter_categories").insert({
+      name: newCatName.trim(),
+      color,
+      description: newCatDesc.trim() || null,
+    } as any);
+    if (error) {
+      if (error.code === "23505") toast.error("Kategorie existiert bereits");
+      else toast.error("Fehler: " + error.message);
+      return;
+    }
+    toast.success("Kategorie erstellt");
+    setNewCatName("");
+    setNewCatDesc("");
+    fetchCategories();
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Kategorie wirklich löschen?")) return;
+    await supabase.from("newsletter_categories").delete().eq("id", id);
+    toast.success("Gelöscht");
+    fetchCategories();
+    fetchSubCats();
   };
 
   /* ─── Editor actions ─── */
@@ -230,6 +353,7 @@ const AdminNewsletter = () => {
       setBlocks([...defaultBlocks.map((b) => ({ ...b, id: crypto.randomUUID() }))]);
       setDesign(COLOR_PRESETS[0]);
     }
+    setSelectedCategoryIds([]);
     setShowPreview(false);
     setView("editor");
   };
@@ -266,7 +390,7 @@ const AdminNewsletter = () => {
     });
   };
 
-  const saveNewsletter = async (andSend = false) => {
+  const saveNewsletter = async () => {
     if (!subject.trim()) { toast.error("Betreff ist erforderlich"); return; }
     setSaving(true);
 
@@ -290,10 +414,6 @@ const AdminNewsletter = () => {
         setEditingId((data as any).id);
         toast.success("Newsletter erstellt");
       }
-
-      if (andSend) {
-        await sendNewsletter(editingId!);
-      }
     } catch (err: any) {
       toast.error("Fehler: " + err.message);
     } finally {
@@ -301,9 +421,25 @@ const AdminNewsletter = () => {
     }
   };
 
-  const sendNewsletter = async (id: string) => {
-    if (!confirm(`Newsletter an ${activeCount} aktive Abonnenten senden?`)) return;
+  const openSendDialog = (nlId: string) => {
+    setSendTargetId(nlId);
+    setSendCatIds([]);
+    setShowSendDialog(true);
+  };
+
+  const getRecipientCount = () => {
+    if (sendCatIds.length === 0) return activeCount;
+    const subIdsInCats = new Set(subCats.filter((sc) => sendCatIds.includes(sc.category_id)).map((sc) => sc.subscriber_id));
+    return subscribers.filter((s) => s.is_active && subIdsInCats.has(s.id)).length;
+  };
+
+  const sendNewsletter = async () => {
+    const recipientCount = getRecipientCount();
+    if (recipientCount === 0) { toast.error("Keine Empfänger für diese Auswahl"); return; }
+    if (!confirm(`Newsletter an ${recipientCount} Empfänger senden?`)) return;
+
     setSending(true);
+    setShowSendDialog(false);
 
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -315,7 +451,7 @@ const AdminNewsletter = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-          body: JSON.stringify({ newsletter_id: id }),
+          body: JSON.stringify({ newsletter_id: sendTargetId, category_ids: sendCatIds.length > 0 ? sendCatIds : null }),
         }
       );
 
@@ -341,7 +477,12 @@ const AdminNewsletter = () => {
     fetchNewsletters();
   };
 
-  const filtered = subscribers.filter((s) => s.email.toLowerCase().includes(search.toLowerCase()));
+  const filtered = subscribers.filter((s) => {
+    const matchesSearch = s.email.toLowerCase().includes(search.toLowerCase()) || (s.name || "").toLowerCase().includes(search.toLowerCase());
+    if (selectedCategoryIds.length === 0) return matchesSearch;
+    const sCatIds = getSubCategoryIds(s.id);
+    return matchesSearch && selectedCategoryIds.some((c) => sCatIds.includes(c));
+  });
 
   /* ─── Render ─── */
   if (loading) return <p className="text-muted-foreground text-center py-12">Laden...</p>;
@@ -365,7 +506,7 @@ const AdminNewsletter = () => {
 
             <div>
               <label className="text-sm text-foreground mb-1 block">Betreff *</label>
-              <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="z.B. 🎉 Hey {{NAME}}, dieses Wochenende: Ladys Night!" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+              <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="z.B. 🎉 Hey {{NAME}}, dieses Wochenende!" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
             </div>
 
             <div>
@@ -376,7 +517,7 @@ const AdminNewsletter = () => {
             {/* Placeholder Info */}
             <div className="glass-card p-3 space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-                <Tag size={12} className="text-primary" /> Platzhalter (werden beim Versand ersetzt)
+                <Tag size={12} className="text-primary" /> Platzhalter
               </div>
               <div className="flex flex-wrap gap-2">
                 {PLACEHOLDERS.map((p) => (
@@ -385,7 +526,6 @@ const AdminNewsletter = () => {
                   </span>
                 ))}
               </div>
-              <p className="text-[10px] text-muted-foreground">Nutze diese Tags in Betreff, Überschriften oder Texten. Beispiel: "Hey {"{{NAME}}"}, schau vorbei!"</p>
             </div>
 
             {/* Design Presets */}
@@ -393,31 +533,18 @@ const AdminNewsletter = () => {
               <label className="text-sm text-foreground mb-2 block flex items-center gap-1.5"><Palette size={14} /> Farbschema</label>
               <div className="flex flex-wrap gap-2">
                 {COLOR_PRESETS.map((p) => (
-                  <button
-                    key={p.name}
-                    onClick={() => setDesign(p)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      design.primary === p.primary && design.bg === p.bg
-                        ? "border-primary ring-2 ring-primary/30"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                    style={{ background: p.bg, color: p.text }}
-                  >
+                  <button key={p.name} onClick={() => setDesign(p)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${design.primary === p.primary && design.bg === p.bg ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"}`}
+                    style={{ background: p.bg, color: p.text }}>
                     <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: p.primary }} />
                     {p.name}
                   </button>
                 ))}
               </div>
               <div className="flex gap-3 mt-3">
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  Primär <input type="color" value={design.primary} onChange={(e) => setDesign({ ...design, primary: e.target.value })} className="w-6 h-6 rounded cursor-pointer border-0" />
-                </label>
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  Hintergrund <input type="color" value={design.bg} onChange={(e) => setDesign({ ...design, bg: e.target.value })} className="w-6 h-6 rounded cursor-pointer border-0" />
-                </label>
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  Text <input type="color" value={design.text} onChange={(e) => setDesign({ ...design, text: e.target.value })} className="w-6 h-6 rounded cursor-pointer border-0" />
-                </label>
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">Primär <input type="color" value={design.primary} onChange={(e) => setDesign({ ...design, primary: e.target.value })} className="w-6 h-6 rounded cursor-pointer border-0" /></label>
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">Hintergrund <input type="color" value={design.bg} onChange={(e) => setDesign({ ...design, bg: e.target.value })} className="w-6 h-6 rounded cursor-pointer border-0" /></label>
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">Text <input type="color" value={design.text} onChange={(e) => setDesign({ ...design, text: e.target.value })} className="w-6 h-6 rounded cursor-pointer border-0" /></label>
               </div>
             </div>
 
@@ -432,54 +559,22 @@ const AdminNewsletter = () => {
                       <div className="flex-1" />
                       <button onClick={() => moveBlock(block.id, -1)} disabled={idx === 0} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">↑</button>
                       <button onClick={() => moveBlock(block.id, 1)} disabled={idx === blocks.length - 1} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">↓</button>
-                      <button onClick={() => removeBlock(block.id)} className="text-xs text-destructive hover:text-destructive/80">
-                        <Trash2 size={14} />
-                      </button>
+                      <button onClick={() => removeBlock(block.id)} className="text-xs text-destructive hover:text-destructive/80"><Trash2 size={14} /></button>
                     </div>
-
                     {block.type === "divider" ? (
                       <hr className="border-border" />
                     ) : block.type === "event" ? (
-                      <div className="space-y-2">
-                        <select
-                          value={block.eventId || ""}
-                          onChange={(e) => updateBlock(block.id, { eventId: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                        >
-                          <option value="">Event auswählen...</option>
-                          {events.map((ev) => (
-                            <option key={ev.id} value={ev.id}>
-                              {ev.title} – {fmtDate(ev.date)}
-                            </option>
-                          ))}
-                        </select>
-                        {block.eventId && events.find((e) => e.id === block.eventId) && (
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <CheckCircle size={12} className="text-green-400" />
-                            {events.find((e) => e.id === block.eventId)?.title}
-                          </div>
-                        )}
-                      </div>
+                      <select value={block.eventId || ""} onChange={(e) => updateBlock(block.id, { eventId: e.target.value })} className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none">
+                        <option value="">Event auswählen...</option>
+                        {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title} – {fmtDate(ev.date)}</option>)}
+                      </select>
                     ) : block.type === "event-list" ? (
                       <div className="space-y-2">
-                        <input
-                          value={block.content}
-                          onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                          placeholder="Überschrift z.B. Kommende Events"
-                        />
+                        <input value={block.content} onChange={(e) => updateBlock(block.id, { content: e.target.value })} className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Überschrift z.B. Kommende Events" />
                         <div className="flex items-center gap-2">
-                          <label className="text-xs text-muted-foreground">Anzahl Events:</label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={10}
-                            value={block.eventCount || 3}
-                            onChange={(e) => updateBlock(block.id, { eventCount: Math.max(1, Math.min(10, Number(e.target.value))) })}
-                            className="w-16 px-2 py-1 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                          />
+                          <label className="text-xs text-muted-foreground">Anzahl:</label>
+                          <input type="number" min={1} max={10} value={block.eventCount || 3} onChange={(e) => updateBlock(block.id, { eventCount: Math.max(1, Math.min(10, Number(e.target.value))) })} className="w-16 px-2 py-1 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
                         </div>
-                        <p className="text-[10px] text-muted-foreground">Zeigt automatisch die nächsten {block.eventCount || 3} kommenden Events an.</p>
                       </div>
                     ) : (
                       <>
@@ -498,38 +593,29 @@ const AdminNewsletter = () => {
                   </div>
                 ))}
               </div>
-
               <div className="flex flex-wrap gap-2 mt-3">
                 <button onClick={() => addBlock("heading")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Überschrift</button>
                 <button onClick={() => addBlock("text")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Text</button>
                 <button onClick={() => addBlock("button")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Button</button>
                 <button onClick={() => addBlock("image")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Bild</button>
                 <button onClick={() => addBlock("divider")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Trennlinie</button>
-                <button onClick={() => addBlock("event")} className="px-3 py-1.5 bg-primary/20 border border-primary/30 rounded-md text-xs text-primary hover:bg-primary/30 flex items-center gap-1">
-                  <Calendar size={12} /> + Event
-                </button>
-                <button onClick={() => addBlock("event-list")} className="px-3 py-1.5 bg-primary/20 border border-primary/30 rounded-md text-xs text-primary hover:bg-primary/30 flex items-center gap-1">
-                  <Calendar size={12} /> + Event-Liste
-                </button>
+                <button onClick={() => addBlock("event")} className="px-3 py-1.5 bg-primary/20 border border-primary/30 rounded-md text-xs text-primary hover:bg-primary/30 flex items-center gap-1"><Calendar size={12} /> + Event</button>
+                <button onClick={() => addBlock("event-list")} className="px-3 py-1.5 bg-primary/20 border border-primary/30 rounded-md text-xs text-primary hover:bg-primary/30 flex items-center gap-1"><Calendar size={12} /> + Event-Liste</button>
               </div>
             </div>
 
             {/* Actions */}
             <div className="flex flex-wrap gap-3 pt-2">
-              <button onClick={() => saveNewsletter(false)} disabled={saving} className="flex items-center gap-2 px-5 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 font-display tracking-wider text-sm disabled:opacity-50">
-                {saving ? <Loader2 size={16} className="animate-spin" /> : null}
-                ALS ENTWURF SPEICHERN
+              <button onClick={saveNewsletter} disabled={saving} className="flex items-center gap-2 px-5 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 font-display tracking-wider text-sm disabled:opacity-50">
+                {saving ? <Loader2 size={16} className="animate-spin" /> : null} SPEICHERN
               </button>
               {editingId && (
-                <button onClick={() => sendNewsletter(editingId)} disabled={sending || activeCount === 0} className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-display tracking-wider text-sm disabled:opacity-50">
-                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                  AN {activeCount} SENDEN
+                <button onClick={() => openSendDialog(editingId)} disabled={sending || activeCount === 0} className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-display tracking-wider text-sm disabled:opacity-50">
+                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} SENDEN
                 </button>
               )}
               {!editingId && (
-                <button onClick={async () => { await saveNewsletter(false); }} disabled={saving} className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-display tracking-wider text-sm disabled:opacity-50">
-                  ERSTELLEN
-                </button>
+                <button onClick={saveNewsletter} disabled={saving} className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-display tracking-wider text-sm disabled:opacity-50">ERSTELLEN</button>
               )}
             </div>
           </div>
@@ -555,11 +641,152 @@ const AdminNewsletter = () => {
     );
   }
 
+  /* ─── CATEGORIES VIEW ─── */
+  if (view === "categories") {
+    return (
+      <div>
+        <button onClick={() => setView("campaigns")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <ChevronLeft size={16} /> Zurück
+        </button>
+        <h2 className="font-display text-xl tracking-wider text-foreground mb-4">KATEGORIEN</h2>
+
+        {/* Add category */}
+        <div className="glass-card p-4 mb-6 space-y-3">
+          <h3 className="text-sm font-medium text-foreground">Neue Kategorie</h3>
+          <div className="flex gap-3">
+            <input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="z.B. Black Music, Latin, Techno..." className="flex-1 px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+            <input value={newCatDesc} onChange={(e) => setNewCatDesc(e.target.value)} placeholder="Beschreibung (optional)" className="flex-1 px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+            <button onClick={handleAddCategory} className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-display tracking-wider text-sm hover:bg-primary/90">
+              <Plus size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Category list */}
+        {categories.length === 0 ? (
+          <p className="text-muted-foreground text-center py-12">Noch keine Kategorien erstellt.</p>
+        ) : (
+          <div className="space-y-2">
+            {categories.map((cat) => (
+              <div key={cat.id} className="glass-card p-4 flex items-center gap-3">
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${cat.color}`}>{cat.name}</span>
+                <span className="text-xs text-muted-foreground">{cat.description}</span>
+                <div className="flex-1" />
+                <span className="text-xs text-muted-foreground">{getCategorySubCount(cat.id)} Abonnenten</span>
+                <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ─── SEND DIALOG (overlay) ─── */
+  const sendDialog = showSendDialog && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowSendDialog(false)}>
+      <div className="glass-card p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg tracking-wider text-foreground">NEWSLETTER SENDEN</h3>
+          <button onClick={() => setShowSendDialog(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+        </div>
+
+        <div>
+          <label className="text-sm text-foreground mb-2 block">An welche Kategorien senden?</label>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+              <input type="checkbox" checked={sendCatIds.length === 0} onChange={() => setSendCatIds([])} className="rounded border-border" />
+              <span className="font-medium">Alle aktiven Abonnenten</span>
+              <span className="text-xs text-muted-foreground">({activeCount})</span>
+            </label>
+            {categories.map((cat) => {
+              const count = getCategorySubCount(cat.id);
+              return (
+                <label key={cat.id} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sendCatIds.includes(cat.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setSendCatIds([...sendCatIds, cat.id]);
+                      else setSendCatIds(sendCatIds.filter((c) => c !== cat.id));
+                    }}
+                    className="rounded border-border"
+                  />
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${cat.color}`}>{cat.name}</span>
+                  <span className="text-xs text-muted-foreground">({count})</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="glass-card p-3 text-center">
+          <p className="text-sm text-foreground">
+            <span className="font-display text-xl text-primary">{getRecipientCount()}</span> Empfänger
+          </p>
+        </div>
+
+        <button
+          onClick={sendNewsletter}
+          disabled={sending || getRecipientCount() === 0}
+          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-display tracking-wider text-sm disabled:opacity-50"
+        >
+          {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+          JETZT SENDEN
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ─── ADD SUBSCRIBER MODAL ─── */
+  const addSubModal = showAddSub && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowAddSub(false)}>
+      <div className="glass-card p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg tracking-wider text-foreground">ABONNENT HINZUFÜGEN</h3>
+          <button onClick={() => setShowAddSub(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+        </div>
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Name</label>
+          <input value={newSubName} onChange={(e) => setNewSubName(e.target.value)} placeholder="Max Mustermann" className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-sm text-foreground mb-1 block">E-Mail *</label>
+          <input value={newSubEmail} onChange={(e) => setNewSubEmail(e.target.value)} placeholder="max@example.com" type="email" className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+        {categories.length > 0 && (
+          <div>
+            <label className="text-sm text-foreground mb-2 block">Kategorien</label>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setNewSubCatIds((prev) => prev.includes(cat.id) ? prev.filter((c) => c !== cat.id) : [...prev, cat.id])}
+                  className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${newSubCatIds.includes(cat.id) ? cat.color + " ring-2 ring-primary/30" : "bg-muted text-muted-foreground"}`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <button onClick={handleAddSubscriber} className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-display tracking-wider text-sm hover:bg-primary/90">
+          HINZUFÜGEN
+        </button>
+      </div>
+    </div>
+  );
+
   /* ─── CAMPAIGNS / SUBSCRIBERS ─── */
   return (
     <div>
+      {sendDialog}
+      {addSubModal}
+
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="glass-card p-4 text-center">
           <Users size={20} className="mx-auto mb-1 text-primary" />
           <p className="font-display text-2xl text-foreground">{subscribers.length}</p>
@@ -571,24 +798,37 @@ const AdminNewsletter = () => {
           <p className="text-xs text-muted-foreground">Aktiv</p>
         </div>
         <div className="glass-card p-4 text-center">
+          <FolderOpen size={20} className="mx-auto mb-1 text-blue-400" />
+          <p className="font-display text-2xl text-foreground">{categories.length}</p>
+          <p className="text-xs text-muted-foreground">Kategorien</p>
+        </div>
+        <div className="glass-card p-4 text-center">
           <Send size={20} className="mx-auto mb-1 text-primary" />
           <p className="font-display text-2xl text-foreground">{newsletters.length}</p>
           <p className="text-xs text-muted-foreground">Newsletter</p>
         </div>
       </div>
 
-      {/* View toggle + New button */}
-      <div className="flex items-center gap-3 mb-4">
+      {/* View toggle + actions */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
         <button onClick={() => setView("campaigns")} className={`px-4 py-2 rounded-md font-display tracking-wider text-sm ${view === "campaigns" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
           NEWSLETTER
         </button>
         <button onClick={() => setView("subscribers")} className={`px-4 py-2 rounded-md font-display tracking-wider text-sm ${view === "subscribers" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
           ABONNENTEN
         </button>
+        <button onClick={() => setView("categories")} className="px-4 py-2 rounded-md font-display tracking-wider text-sm bg-muted text-muted-foreground hover:text-foreground">
+          KATEGORIEN
+        </button>
         <div className="flex-1" />
         {view === "campaigns" && (
           <button onClick={() => openEditor()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider text-sm rounded-md hover:bg-primary/90">
             <Plus size={16} /> NEUER NEWSLETTER
+          </button>
+        )}
+        {view === "subscribers" && (
+          <button onClick={() => setShowAddSub(true)} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider text-sm rounded-md hover:bg-primary/90">
+            <UserPlus size={16} /> HINZUFÜGEN
           </button>
         )}
       </div>
@@ -604,11 +844,7 @@ const AdminNewsletter = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-display text-sm tracking-wider text-foreground truncate">{nl.subject}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      nl.status === "sent" ? "bg-green-500/20 text-green-400"
-                        : nl.status === "sending" ? "bg-yellow-500/20 text-yellow-400"
-                        : "bg-muted text-muted-foreground"
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${nl.status === "sent" ? "bg-green-500/20 text-green-400" : nl.status === "sending" ? "bg-yellow-500/20 text-yellow-400" : "bg-muted text-muted-foreground"}`}>
                       {nl.status === "sent" ? "Versendet" : nl.status === "sending" ? "Wird gesendet..." : "Entwurf"}
                     </span>
                   </div>
@@ -621,20 +857,12 @@ const AdminNewsletter = () => {
                 <div className="flex gap-2 shrink-0">
                   {nl.status === "draft" && (
                     <>
-                      <button onClick={() => openEditor(nl)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Bearbeiten">
-                        <Pencil size={16} />
-                      </button>
-                      <button onClick={() => sendNewsletter(nl.id)} disabled={sending || activeCount === 0} className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary" title="Senden">
-                        <Send size={16} />
-                      </button>
+                      <button onClick={() => openEditor(nl)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Bearbeiten"><Pencil size={16} /></button>
+                      <button onClick={() => openSendDialog(nl.id)} disabled={sending || activeCount === 0} className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary" title="Senden"><Send size={16} /></button>
                     </>
                   )}
-                  {nl.status === "sent" && (
-                    <CheckCircle size={18} className="text-green-400" />
-                  )}
-                  <button onClick={() => deleteNewsletter(nl.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive" title="Löschen">
-                    <Trash2 size={16} />
-                  </button>
+                  {nl.status === "sent" && <CheckCircle size={18} className="text-green-400" />}
+                  <button onClick={() => deleteNewsletter(nl.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive" title="Löschen"><Trash2 size={16} /></button>
                 </div>
               </div>
             ))
@@ -645,30 +873,77 @@ const AdminNewsletter = () => {
       {/* ─── Subscribers list ─── */}
       {view === "subscribers" && (
         <>
-          <div className="relative mb-4">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="E-Mail suchen..." className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+          <div className="flex gap-3 mb-4">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name oder E-Mail suchen..." className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+            </div>
           </div>
+
+          {/* Category filter chips */}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                onClick={() => setSelectedCategoryIds([])}
+                className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${selectedCategoryIds.length === 0 ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+              >
+                Alle
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    setSelectedCategoryIds((prev) =>
+                      prev.includes(cat.id) ? prev.filter((c) => c !== cat.id) : [...prev, cat.id]
+                    );
+                  }}
+                  className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${selectedCategoryIds.includes(cat.id) ? cat.color + " ring-1 ring-primary/30" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+                >
+                  {cat.name} ({getCategorySubCount(cat.id)})
+                </button>
+              ))}
+            </div>
+          )}
+
           {filtered.length === 0 ? (
-            <p className="text-muted-foreground text-center py-12">{search ? "Keine Ergebnisse." : "Noch keine Abonnenten."}</p>
+            <p className="text-muted-foreground text-center py-12">{search || selectedCategoryIds.length > 0 ? "Keine Ergebnisse." : "Noch keine Abonnenten."}</p>
           ) : (
             <div className="space-y-2">
-              {filtered.map((sub) => (
-                <div key={sub.id} className="glass-card p-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-foreground text-sm truncate">{sub.name ? `${sub.name} · ${sub.email}` : sub.email}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {new Date(sub.subscribed_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}
-                    </p>
+              {filtered.map((sub) => {
+                const sCatIds = getSubCategoryIds(sub.id);
+                return (
+                  <div key={sub.id} className="glass-card p-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground text-sm truncate">{sub.name ? `${sub.name} · ${sub.email}` : sub.email}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {new Date(sub.subscribed_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                        </p>
+                      </div>
+                      <button onClick={() => toggleActive(sub)} className={`text-xs px-3 py-1 rounded-full font-medium transition-colors ${sub.is_active ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+                        {sub.is_active ? "Aktiv" : "Inaktiv"}
+                      </button>
+                      <button onClick={() => handleDeleteSub(sub.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    {/* Category chips */}
+                    {categories.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {categories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => toggleSubCategory(sub.id, cat.id)}
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-all ${sCatIds.includes(cat.id) ? cat.color : "bg-muted/50 text-muted-foreground/50 hover:bg-muted"}`}
+                          >
+                            {cat.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <button onClick={() => toggleActive(sub)} className={`text-xs px-3 py-1 rounded-full font-medium transition-colors ${sub.is_active ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-                    {sub.is_active ? "Aktiv" : "Inaktiv"}
-                  </button>
-                  <button onClick={() => handleDeleteSub(sub.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
