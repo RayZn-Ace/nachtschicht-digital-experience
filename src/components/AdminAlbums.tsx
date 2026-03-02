@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Eye, EyeOff, Upload, Image, GripVertical, Check } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Upload, Image, GripVertical, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -296,7 +296,24 @@ const AdminAlbums = () => {
                 <div className="absolute top-1 left-1 p-1 rounded bg-background/60 text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                   <GripVertical size={14} />
                 </div>
-                <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {selectedAlbum.cover_url === photo.image_url && (
+                  <div className="absolute top-1 left-8 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-display tracking-wider">
+                    COVER
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    onClick={async () => {
+                      await supabase.from("albums").update({ cover_url: photo.image_url }).eq("id", selectedAlbum.id);
+                      setSelectedAlbum({ ...selectedAlbum, cover_url: photo.image_url });
+                      toast.success("Cover aktualisiert!");
+                      fetchAlbums();
+                    }}
+                    className="p-2 bg-primary text-primary-foreground rounded-full"
+                    title="Als Vorschaubild setzen"
+                  >
+                    <Star size={16} />
+                  </button>
                   <button
                     onClick={() => deletePhoto(photo)}
                     className="p-2 bg-destructive text-destructive-foreground rounded-full"
