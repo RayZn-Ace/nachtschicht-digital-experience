@@ -1133,6 +1133,7 @@ export type Database = {
           parent_country: string
           parent_name: string
           parent_phone: string
+          parent_signature: string | null
           parent_zip: string | null
           supervisor_address: string | null
           supervisor_birthday: string | null
@@ -1141,6 +1142,7 @@ export type Database = {
           supervisor_email: string | null
           supervisor_name: string | null
           supervisor_phone: string | null
+          supervisor_signature: string | null
           supervisor_zip: string | null
         }
         Insert: {
@@ -1166,6 +1168,7 @@ export type Database = {
           parent_country?: string
           parent_name: string
           parent_phone: string
+          parent_signature?: string | null
           parent_zip?: string | null
           supervisor_address?: string | null
           supervisor_birthday?: string | null
@@ -1174,6 +1177,7 @@ export type Database = {
           supervisor_email?: string | null
           supervisor_name?: string | null
           supervisor_phone?: string | null
+          supervisor_signature?: string | null
           supervisor_zip?: string | null
         }
         Update: {
@@ -1199,6 +1203,7 @@ export type Database = {
           parent_country?: string
           parent_name?: string
           parent_phone?: string
+          parent_signature?: string | null
           parent_zip?: string | null
           supervisor_address?: string | null
           supervisor_birthday?: string | null
@@ -1207,6 +1212,7 @@ export type Database = {
           supervisor_email?: string | null
           supervisor_name?: string | null
           supervisor_phone?: string | null
+          supervisor_signature?: string | null
           supervisor_zip?: string | null
         }
         Relationships: [

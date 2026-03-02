@@ -221,6 +221,8 @@ const U18Page = () => {
       has_signature: !skipSignature && !!parentSignature,
       has_supervisor_signature: !skipSignature && !skipSupervisor && !!supervisorSignature,
       accept_newsletter: acceptNewsletter,
+      parent_signature: !skipSignature ? parentSignature : null,
+      supervisor_signature: !skipSignature && !skipSupervisor ? supervisorSignature : null,
     } as any).select("id").single();
 
     if (error) {
