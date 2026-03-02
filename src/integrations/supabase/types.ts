@@ -1290,6 +1290,10 @@ export type Database = {
           gtm_active: boolean
           gtm_container_id: string | null
           id: string
+          linkedin_access_token: string | null
+          linkedin_capi_active: boolean
+          linkedin_insight_active: boolean
+          linkedin_partner_id: string | null
           meta_access_token: string | null
           meta_advanced_matching: boolean
           meta_capi_active: boolean
@@ -1297,6 +1301,14 @@ export type Database = {
           meta_pixel_active: boolean
           meta_pixel_id: string | null
           meta_test_event_code: string | null
+          pinterest_access_token: string | null
+          pinterest_capi_active: boolean
+          pinterest_tag_active: boolean
+          pinterest_tag_id: string | null
+          snapchat_access_token: string | null
+          snapchat_capi_active: boolean
+          snapchat_pixel_active: boolean
+          snapchat_pixel_id: string | null
           tiktok_access_token: string | null
           tiktok_events_api_active: boolean
           tiktok_pixel_active: boolean
@@ -1319,6 +1331,10 @@ export type Database = {
           gtm_active?: boolean
           gtm_container_id?: string | null
           id?: string
+          linkedin_access_token?: string | null
+          linkedin_capi_active?: boolean
+          linkedin_insight_active?: boolean
+          linkedin_partner_id?: string | null
           meta_access_token?: string | null
           meta_advanced_matching?: boolean
           meta_capi_active?: boolean
@@ -1326,6 +1342,14 @@ export type Database = {
           meta_pixel_active?: boolean
           meta_pixel_id?: string | null
           meta_test_event_code?: string | null
+          pinterest_access_token?: string | null
+          pinterest_capi_active?: boolean
+          pinterest_tag_active?: boolean
+          pinterest_tag_id?: string | null
+          snapchat_access_token?: string | null
+          snapchat_capi_active?: boolean
+          snapchat_pixel_active?: boolean
+          snapchat_pixel_id?: string | null
           tiktok_access_token?: string | null
           tiktok_events_api_active?: boolean
           tiktok_pixel_active?: boolean
@@ -1348,6 +1372,10 @@ export type Database = {
           gtm_active?: boolean
           gtm_container_id?: string | null
           id?: string
+          linkedin_access_token?: string | null
+          linkedin_capi_active?: boolean
+          linkedin_insight_active?: boolean
+          linkedin_partner_id?: string | null
           meta_access_token?: string | null
           meta_advanced_matching?: boolean
           meta_capi_active?: boolean
@@ -1355,6 +1383,14 @@ export type Database = {
           meta_pixel_active?: boolean
           meta_pixel_id?: string | null
           meta_test_event_code?: string | null
+          pinterest_access_token?: string | null
+          pinterest_capi_active?: boolean
+          pinterest_tag_active?: boolean
+          pinterest_tag_id?: string | null
+          snapchat_access_token?: string | null
+          snapchat_capi_active?: boolean
+          snapchat_pixel_active?: boolean
+          snapchat_pixel_id?: string | null
           tiktok_access_token?: string | null
           tiktok_events_api_active?: boolean
           tiktok_pixel_active?: boolean
