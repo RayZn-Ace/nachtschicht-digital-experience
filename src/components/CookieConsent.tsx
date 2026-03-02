@@ -1,46 +1,183 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { grantConsent } from "@/hooks/useTracking";
+import { useI18n } from "@/hooks/useI18n";
+import { Settings, Shield } from "lucide-react";
+
+interface ConsentState {
+  essential: boolean;
+  analytics: boolean;
+  marketing: boolean;
+  timestamp: string;
+}
+
+const STORAGE_KEY = "cookie-consent-v2";
+
+const getStoredConsent = (): ConsentState | null => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
 const CookieConsent = () => {
+  const { lang } = useI18n();
+  const de = lang === "de";
   const [visible, setVisible] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [consent, setConsent] = useState<ConsentState>({
+    essential: true,
+    analytics: false,
+    marketing: false,
+    timestamp: "",
+  });
 
   useEffect(() => {
-    const consent = localStorage.getItem("cookie-consent");
-    if (!consent) setVisible(true);
-    else if (consent === "all") grantConsent();
+    const stored = getStoredConsent();
+    if (!stored) {
+      setVisible(true);
+    } else {
+      setConsent(stored);
+      if (stored.analytics || stored.marketing) grantConsent();
+    }
   }, []);
 
-  const accept = (type: string) => {
-    localStorage.setItem("cookie-consent", type);
-    if (type === "all") grantConsent();
+  const save = useCallback((state: ConsentState) => {
+    const withTime = { ...state, timestamp: new Date().toISOString() };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(withTime));
+    setConsent(withTime);
+    if (state.analytics || state.marketing) grantConsent();
     setVisible(false);
-  };
+  }, []);
+
+  const acceptAll = () => save({ essential: true, analytics: true, marketing: true, timestamp: "" });
+  const acceptEssential = () => save({ essential: true, analytics: false, marketing: false, timestamp: "" });
+  const saveCustom = () => save(consent);
 
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[100] bg-secondary/95 backdrop-blur-xl border-t border-border/50 p-4 md:p-6 animate-fade-in">
-      <div className="container mx-auto flex flex-col md:flex-row items-start md:items-center gap-4">
-        <div className="flex-1">
-          <p className="text-sm text-foreground font-medium mb-1">🍪 Cookie-Einstellungen</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Wir verwenden Cookies, um dir das beste Erlebnis auf unserer Website zu bieten. Einige sind notwendig, andere helfen uns, die Website zu verbessern.{" "}
-            <a href="/datenschutz" className="underline hover:text-primary transition-colors">Mehr erfahren</a>
-          </p>
+    <div
+      className="fixed bottom-0 left-0 right-0 z-[100] bg-card/95 backdrop-blur-xl border-t border-border p-4 md:p-6 animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-label={de ? "Cookie-Einstellungen" : "Cookie settings"}
+    >
+      <div className="container mx-auto max-w-4xl">
+        <div className="flex items-start gap-3 mb-4">
+          <Shield size={20} className="text-primary shrink-0 mt-0.5" />
+          <div>
+            <h2 className="text-foreground font-medium text-sm">
+              {de ? "Datenschutz & Cookie-Einstellungen" : "Privacy & Cookie Settings"}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              {de
+                ? "Wir respektieren deine Privatsphäre. Wähle, welche Cookies du zulassen möchtest. Nur notwendige Cookies sind vorausgewählt."
+                : "We respect your privacy. Choose which cookies you'd like to allow. Only essential cookies are pre-selected."}
+              {" "}
+              <a href="/datenschutz" className="underline hover:text-primary transition-colors">
+                {de ? "Datenschutzerklärung" : "Privacy Policy"}
+              </a>
+            </p>
+          </div>
         </div>
-        <div className="flex gap-3 shrink-0">
+
+        {/* Granular options */}
+        {showDetails && (
+          <div className="space-y-3 mb-4 p-4 bg-muted/50 rounded-lg" role="group" aria-label={de ? "Cookie-Kategorien" : "Cookie categories"}>
+            {/* Essential - always on */}
+            <label className="flex items-center gap-3 cursor-not-allowed opacity-70">
+              <input
+                type="checkbox"
+                checked={true}
+                disabled
+                className="accent-primary w-4 h-4"
+                aria-label={de ? "Notwendige Cookies (immer aktiv)" : "Essential cookies (always active)"}
+              />
+              <div>
+                <p className="text-sm text-foreground font-medium">
+                  {de ? "Notwendige Cookies" : "Essential Cookies"}
+                  <span className="ml-2 text-[10px] text-muted-foreground uppercase">{de ? "(immer aktiv)" : "(always active)"}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {de ? "Erforderlich für Grundfunktionen wie Login, Warenkorb und Sicherheit." : "Required for basic functionality like login, cart and security."}
+                </p>
+              </div>
+            </label>
+
+            {/* Analytics */}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent.analytics}
+                onChange={(e) => setConsent((c) => ({ ...c, analytics: e.target.checked }))}
+                className="accent-primary w-4 h-4"
+                aria-label={de ? "Analyse-Cookies" : "Analytics cookies"}
+              />
+              <div>
+                <p className="text-sm text-foreground font-medium">{de ? "Analyse & Statistiken" : "Analytics & Statistics"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {de ? "Helfen uns zu verstehen, wie Besucher unsere Website nutzen (z.B. Google Analytics)." : "Help us understand how visitors use our site (e.g. Google Analytics)."}
+                </p>
+              </div>
+            </label>
+
+            {/* Marketing */}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent.marketing}
+                onChange={(e) => setConsent((c) => ({ ...c, marketing: e.target.checked }))}
+                className="accent-primary w-4 h-4"
+                aria-label={de ? "Marketing-Cookies" : "Marketing cookies"}
+              />
+              <div>
+                <p className="text-sm text-foreground font-medium">{de ? "Marketing & Werbung" : "Marketing & Advertising"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {de ? "Ermöglichen personalisierte Werbung und Retargeting (z.B. Meta Pixel, TikTok)." : "Enable personalized ads and retargeting (e.g. Meta Pixel, TikTok)."}
+                </p>
+              </div>
+            </label>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <button
-            onClick={() => accept("essential")}
-            className="px-4 py-2 text-sm border border-border rounded-md text-foreground hover:bg-muted transition-colors"
+            onClick={() => setShowDetails(!showDetails)}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-xs border border-border rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-expanded={showDetails}
           >
-            Nur notwendige
+            <Settings size={14} />
+            {showDetails
+              ? (de ? "Weniger anzeigen" : "Show less")
+              : (de ? "Einstellungen anpassen" : "Customize settings")}
           </button>
-          <button
-            onClick={() => accept("all")}
-            className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-medium"
-          >
-            Alle akzeptieren
-          </button>
+
+          {showDetails && (
+            <button
+              onClick={saveCustom}
+              className="px-4 py-2.5 text-xs border border-primary text-primary rounded-md hover:bg-primary/10 transition-colors font-medium"
+            >
+              {de ? "Auswahl speichern" : "Save selection"}
+            </button>
+          )}
+
+          <div className="sm:ml-auto flex gap-2">
+            <button
+              onClick={acceptEssential}
+              className="px-4 py-2.5 text-xs border border-border rounded-md text-foreground hover:bg-muted transition-colors"
+            >
+              {de ? "Nur notwendige" : "Essential only"}
+            </button>
+            <button
+              onClick={acceptAll}
+              className="px-4 py-2.5 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-medium"
+            >
+              {de ? "Alle akzeptieren" : "Accept all"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
