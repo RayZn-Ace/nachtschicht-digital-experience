@@ -30,13 +30,16 @@ const NewsletterForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form onSubmit={handleSubmit} className="flex gap-2" role="form" aria-label="Newsletter-Anmeldung">
+      <label htmlFor="newsletter-email" className="sr-only">E-Mail-Adresse</label>
       <input
+        id="newsletter-email"
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Deine E-Mail"
         required
+        autoComplete="email"
         className="flex-1 px-4 py-2.5 bg-muted border border-border rounded-md text-foreground text-sm placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:outline-none"
       />
       <button
@@ -45,7 +48,7 @@ const NewsletterForm = () => {
         className="px-4 py-2.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0"
         aria-label="Newsletter abonnieren"
       >
-        <Send size={18} />
+        <Send size={18} aria-hidden="true" />
       </button>
     </form>
   );

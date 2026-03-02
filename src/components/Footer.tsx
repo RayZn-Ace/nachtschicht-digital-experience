@@ -7,7 +7,7 @@ const Footer = () => {
   const { t } = useI18n();
 
   return (
-    <footer className="bg-secondary border-t border-border/50">
+    <footer className="bg-secondary border-t border-border/50" role="contentinfo">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           <div>
