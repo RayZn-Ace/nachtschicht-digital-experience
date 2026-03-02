@@ -183,6 +183,24 @@ const DrinksPage = () => {
         )}
 
         <ScrollReveal delay={0.5}>
+          <div className="glass-card p-6 mt-8">
+            <h3 className="font-display text-lg tracking-wider text-foreground mb-3">
+              {lang === "de" ? "ZUSATZSTOFFE & ALLERGENE" : "ADDITIVES & ALLERGENS"}
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm text-muted-foreground">
+              <span>1 = {lang === "de" ? "koffeinhaltig" : "contains caffeine"}</span>
+              <span>2 = {lang === "de" ? "mit Süßungsmitteln" : "with sweeteners"}</span>
+              <span>3 = {lang === "de" ? "mit Taurin" : "with taurine"}</span>
+              <span>4 = {lang === "de" ? "chininhaltig" : "contains quinine"}</span>
+              <span>G = {lang === "de" ? "glutenhaltig" : "contains gluten"}</span>
+              <span>M = {lang === "de" ? "Milch / Laktose" : "milk / lactose"}</span>
+              <span>N = {lang === "de" ? "Schalenfrüchte" : "tree nuts"}</span>
+              <span>S = {lang === "de" ? "Sulfite" : "sulfites"}</span>
+            </div>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal delay={0.6}>
           <p className="text-center text-muted-foreground text-sm mt-8">
             {lang === "de"
               ? "🍹 Frag unsere Barkeeper nach den aktuellen Specials!"
