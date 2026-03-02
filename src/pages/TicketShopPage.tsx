@@ -138,7 +138,7 @@ const TicketShopPage = () => {
     }
 
     setBuying(true);
-    const qrCode = `TKT-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const qrCode = `TKT-${crypto.randomUUID()}`;
     const billingFields = {
       billing_name: billingName,
       billing_street: billingStreet,
@@ -176,7 +176,7 @@ const TicketShopPage = () => {
           total_price: tt.price * cart[tt.id] - (appliedDiscount ? discount * (tt.price * cart[tt.id] / rawTotal) : 0),
           buyer_email: email,
           buyer_name: name || null,
-          qr_code: `${qrCode}-${tt.id.substring(0, 4)}`,
+          qr_code: `TKT-${crypto.randomUUID()}`,
           discount_code_id: appliedDiscount?.id || null,
           ...billingFields,
         }));
