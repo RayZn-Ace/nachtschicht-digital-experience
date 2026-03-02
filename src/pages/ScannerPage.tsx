@@ -414,84 +414,75 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
 
   const percentage = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0;
 
-  // Full-screen result overlay
-  if (result) {
+  // Inline scan feedback (rendered inside camera frame)
+  const renderScanFeedback = () => {
+    if (!result) return null;
+
     const isSuccess = result.status === "success";
     const isAlready = result.status === "already_redeemed";
-    const isCancelled = result.status === "cancelled";
+
+    const bgColor = isSuccess
+      ? "bg-green-500/90"
+      : isAlready
+      ? "bg-yellow-500/90"
+      : "bg-red-500/90";
+
+    const borderColor = isSuccess
+      ? "ring-green-400"
+      : isAlready
+      ? "ring-yellow-400"
+      : "ring-red-400";
+
+    const icon = isSuccess ? (
+      <CheckCircle size={48} className="text-white drop-shadow-lg" />
+    ) : isAlready ? (
+      <AlertTriangle size={48} className="text-white drop-shadow-lg" />
+    ) : (
+      <XCircle size={48} className="text-white drop-shadow-lg" />
+    );
+
+    const label = isSuccess
+      ? "VALID ✓"
+      : isAlready
+      ? "BEREITS GESCANNT"
+      : result.status === "cancelled"
+      ? "STORNIERT"
+      : "UNGÜLTIG";
 
     return (
       <div
-        className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-6 transition-colors cursor-pointer select-none ${
-          isSuccess ? "bg-green-600" : isAlready ? "bg-yellow-600" : "bg-red-600"
-        }`}
+        className={`absolute inset-0 z-20 flex flex-col items-center justify-center rounded-lg ${bgColor} ring-4 ${borderColor} animate-fade-in cursor-pointer`}
         onClick={dismissResult}
         style={{ touchAction: "manipulation" }}
       >
-        <div className="text-white text-center space-y-4 max-w-md animate-fade-in">
-          {isSuccess ? (
-            <CheckCircle size={96} className="mx-auto drop-shadow-lg" />
-          ) : isAlready ? (
-            <AlertTriangle size={96} className="mx-auto drop-shadow-lg" />
-          ) : (
-            <XCircle size={96} className="mx-auto drop-shadow-lg" />
+        <div className="text-white text-center space-y-2 px-4">
+          {icon}
+          <h2 className="font-display text-2xl md:text-3xl tracking-wider drop-shadow-md">
+            {label}
+          </h2>
+          {result.ticket?.event_title && (
+            <p className="text-sm font-medium bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 inline-block">
+              {result.ticket.event_title}
+            </p>
           )}
-
-          <h1 className="font-display text-4xl md:text-5xl tracking-wider drop-shadow-md">
-            {isSuccess ? "VALID ✓" : isAlready ? "BEREITS GESCANNT" : isCancelled ? "STORNIERT" : "UNGÜLTIG"}
-          </h1>
-
-          <p className="text-xl opacity-90">{result.message}</p>
-
-          {result.ticket && (
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-left space-y-2">
-              {result.ticket.event_title && (
-                <div>
-                  <p className="text-xs opacity-70">Event</p>
-                  <p className="font-bold text-lg">{result.ticket.event_title}</p>
-                </div>
-              )}
-              {result.ticket.ticket_type && (
-                <div>
-                  <p className="text-xs opacity-70">Ticket-Typ</p>
-                  <p className="font-medium">{result.ticket.ticket_type}</p>
-                </div>
-              )}
-              {result.ticket.buyer_name && (
-                <div>
-                  <p className="text-xs opacity-70">Name</p>
-                  <p className="font-medium">{result.ticket.buyer_name}</p>
-                </div>
-              )}
-              <div className="flex gap-4">
-                <div>
-                  <p className="text-xs opacity-70">Anzahl</p>
-                  <p className="font-bold text-lg">{result.ticket.quantity}×</p>
-                </div>
-                {result.ticket.checked_in_at && isAlready && (
-                  <div>
-                    <p className="text-xs opacity-70">Eingecheckt um</p>
-                    <p className="font-medium">{new Date(result.ticket.checked_in_at).toLocaleTimeString("de-DE")}</p>
-                  </div>
-                )}
-              </div>
-            </div>
+          {result.ticket?.buyer_name && (
+            <p className="text-xs opacity-80">{result.ticket.buyer_name} · {result.ticket.quantity}×</p>
           )}
-
-          <button
-            onClick={dismissResult}
-            className="mt-6 px-8 py-4 bg-white/20 backdrop-blur-sm rounded-xl font-display tracking-wider text-lg hover:bg-white/30 active:bg-white/40 transition-colors min-h-[48px]"
-            style={{ touchAction: "manipulation" }}
-          >
-            <RotateCcw size={18} className="inline mr-2" />
-            NÄCHSTES TICKET
-          </button>
-
-          <p className="text-xs opacity-50 mt-2">Tippen zum Fortfahren • Auto-Reset in 3s</p>
+          {result.ticket?.ticket_type && (
+            <p className="text-xs opacity-70">{result.ticket.ticket_type}</p>
+          )}
+          {isAlready && result.ticket?.checked_in_at && (
+            <p className="text-xs opacity-70">
+              Eingecheckt: {new Date(result.ticket.checked_in_at).toLocaleTimeString("de-DE")}
+            </p>
+          )}
+          {!result.ticket && (
+            <p className="text-sm opacity-80">{result.message}</p>
+          )}
         </div>
       </div>
     );
-  }
+  };
 
   return (
     <section className="pb-6 pt-4 px-4 md:section-padding" ref={ref}>
@@ -614,6 +605,9 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
               }`}
               style={cameraActive ? { minHeight: "340px" } : undefined}
             />
+
+            {/* Inline scan result overlay */}
+            {renderScanFeedback()}
 
             {!cameraActive && !cameraError && (
               <button
