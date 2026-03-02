@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Du bist der freundliche KI-Assistent der Nachtschicht Kaiserslautern – einem der beliebtesten Clubs in Kaiserslautern.
+const STATIC_PROMPT = `Du bist der freundliche KI-Assistent der Nachtschicht Kaiserslautern – einem der beliebtesten Clubs in Kaiserslautern.
 
 **Über den Club:**
 - Adresse: Zollamtstraße 28, 67663 Kaiserslautern
@@ -50,6 +51,96 @@ const SYSTEM_PROMPT = `Du bist der freundliche KI-Assistent der Nachtschicht Kai
 
 Antworte immer auf Deutsch, freundlich, prägnant und hilfreich. Wenn du etwas nicht weißt, verweise höflich auf den Kontakt per E-Mail oder Telefon. Verwende Emojis sparsam und passend.`;
 
+async function buildDynamicContext(): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const sb = createClient(supabaseUrl, supabaseKey);
+
+  const sections: string[] = [];
+
+  // 1. Upcoming events
+  const today = new Date().toISOString().split("T")[0];
+  const { data: events } = await sb
+    .from("events")
+    .select("title, date, time, end_time, genre, subtitle, ticket_price, has_abendkasse, has_muttizettel, description, areas")
+    .eq("is_published", true)
+    .gte("date", today)
+    .order("date", { ascending: true })
+    .limit(20);
+
+  if (events?.length) {
+    const lines = events.map((e: any) => {
+      const parts = [`- **${e.title}**`];
+      if (e.subtitle) parts[0] += ` – ${e.subtitle}`;
+      parts.push(`  Datum: ${new Date(e.date).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}`);
+      if (e.time) parts.push(`  Einlass: ${e.time} Uhr`);
+      if (e.end_time) parts.push(`  Ende: ${e.end_time} Uhr`);
+      if (e.genre) parts.push(`  Musikrichtung: ${e.genre}`);
+      if (e.areas) parts.push(`  Bereiche: ${e.areas}`);
+      if (e.ticket_price != null) parts.push(`  Ticketpreis: ab ${e.ticket_price}€`);
+      if (e.has_abendkasse) parts.push(`  Abendkasse: ja`);
+      if (e.has_muttizettel) parts.push(`  Muttizettel erlaubt (U18): ja`);
+      if (e.description) parts.push(`  Info: ${e.description.slice(0, 150)}`);
+      return parts.join("\n");
+    });
+    sections.push(`**Aktuelle & kommende Events:**\n${lines.join("\n\n")}`);
+  }
+
+  // 2. Lounges
+  const { data: lounges } = await sb
+    .from("lounges")
+    .select("name, capacity, min_spend, price_per_person, description, area_id")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (lounges?.length) {
+    const lines = lounges.map((l: any) => {
+      const parts = [`- **${l.name}** (bis ${l.capacity} Pers.)`];
+      if (l.min_spend > 0) parts.push(`  Mindestverzehr: ${l.min_spend}€`);
+      if (l.price_per_person > 0) parts.push(`  Preis p.P.: ${l.price_per_person}€`);
+      if (l.description) parts.push(`  ${l.description.slice(0, 120)}`);
+      return parts.join("\n");
+    });
+    sections.push(`**Verfügbare Lounges:**\n${lines.join("\n")}`);
+  }
+
+  // 3. Drink categories + sample drinks
+  const { data: categories } = await sb
+    .from("drink_categories")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (categories?.length) {
+    const { data: drinks } = await sb
+      .from("drinks")
+      .select("name, price, size, category_id")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+
+    const lines = categories.map((cat: any) => {
+      const catDrinks = (drinks || []).filter((d: any) => d.category_id === cat.id).slice(0, 5);
+      const drinkList = catDrinks.map((d: any) => `${d.name}${d.size ? ` (${d.size})` : ""} – ${d.price.toFixed(2)}€`).join(", ");
+      return `- **${cat.name}**: ${drinkList || "–"}`;
+    });
+    sections.push(`**Getränkekarte (Auswahl):**\n${lines.join("\n")}`);
+  }
+
+  // 4. Holiday specials / opening hours
+  const { data: specials } = await sb
+    .from("holiday_specials")
+    .select("title, date_label, hours, note_de")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (specials?.length) {
+    const lines = specials.map((s: any) => `- ${s.title} (${s.date_label}): ${s.hours}${s.note_de ? ` – ${s.note_de}` : ""}`);
+    sections.push(`**Sonderöffnungszeiten:**\n${lines.join("\n")}`);
+  }
+
+  return sections.length ? "\n\n---\n**AKTUELLE DYNAMISCHE DATEN (aus der Datenbank):**\n\n" + sections.join("\n\n") : "";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -60,6 +151,16 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Build dynamic context from database
+    let dynamicContext = "";
+    try {
+      dynamicContext = await buildDynamicContext();
+    } catch (e) {
+      console.error("Failed to load dynamic context:", e);
+    }
+
+    const systemPrompt = STATIC_PROMPT + dynamicContext;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -69,7 +170,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           ...messages,
         ],
         stream: true,
