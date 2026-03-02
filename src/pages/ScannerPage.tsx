@@ -558,7 +558,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                     : result.status === "wrong_event"
                     ? "bg-yellow-500/95 ring-4 ring-yellow-400"
                     : result.status === "already_redeemed"
-                    ? "bg-orange-700/95 ring-4 ring-red-500"
+                    ? "bg-gradient-to-b from-red-600/95 to-orange-600/95 ring-4 ring-orange-500"
                     : "bg-red-600/95 ring-4 ring-red-500"
                 } animate-fade-in cursor-pointer`}
                 onClick={dismissResult}
