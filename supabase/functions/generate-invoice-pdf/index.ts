@@ -64,6 +64,25 @@ Deno.serve(async (req) => {
       .limit(1)
       .single();
 
+    // If buyer_address is empty, try to get billing address from linked ticket
+    let buyerAddress = invoice.buyer_address || "";
+    if (!buyerAddress && invoice.ticket_id) {
+      const { data: ticket } = await adminClient
+        .from("tickets")
+        .select("billing_name, billing_street, billing_zip, billing_city, billing_country")
+        .eq("id", invoice.ticket_id)
+        .single();
+      if (ticket) {
+        const parts = [
+          ticket.billing_name,
+          ticket.billing_street,
+          [ticket.billing_zip, ticket.billing_city].filter(Boolean).join(" "),
+          ticket.billing_country && ticket.billing_country !== "Deutschland" ? ticket.billing_country : null,
+        ].filter(Boolean);
+        buyerAddress = parts.join("\n");
+      }
+    }
+
     const items = lineItems || [];
 
     // Create PDF (A4)
@@ -114,7 +133,7 @@ Deno.serve(async (req) => {
     y -= 18;
     const buyerLines = [
       invoice.buyer_name,
-      ...(invoice.buyer_address ? invoice.buyer_address.split("\n") : []),
+      ...(buyerAddress ? buyerAddress.split("\n") : []),
     ];
     for (const line of buyerLines) {
       page.drawText(line, {
