@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useI18n } from "@/hooks/useI18n";
+import { useTranslate } from "@/hooks/useTranslate";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 
 const galleryImages = [
@@ -13,7 +14,8 @@ const galleryImages = [
 ];
 
 const Index = () => {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const tr = useTranslate(lang);
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
@@ -99,11 +101,11 @@ const Index = () => {
                     <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6">
                       <span className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded font-display text-xs tracking-wider mb-2">HIGHLIGHT</span>
                       <h2 className={`font-display tracking-wider text-foreground ${featuredEvents.length === 1 ? "text-2xl md:text-4xl" : "text-lg md:text-2xl"}`}>
-                        {event.title}
+                        {tr(event.title)}
                       </h2>
                       <p className="text-muted-foreground text-sm">
-                        {new Date(event.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })}
-                        {event.time ? ` · ${event.time} Uhr` : ""}
+                        {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" })}
+                        {event.time ? ` · ${event.time} ${lang === "de" ? "Uhr" : ""}` : ""}
                       </p>
                     </div>
                   </div>
@@ -133,12 +135,12 @@ const Index = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
                     <div className="absolute bottom-3 left-3 flex items-center gap-2 text-foreground/80 text-sm">
                       <Calendar size={14} />
-                      {new Date(event.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })}
+                      {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" })}
                     </div>
                   </div>
                   <div className="p-5">
-                    <h3 className="font-display text-2xl tracking-wider text-foreground mb-1">{event.title}</h3>
-                    <p className="text-muted-foreground text-sm">{event.genre}</p>
+                    <h3 className="font-display text-2xl tracking-wider text-foreground mb-1">{tr(event.title)}</h3>
+                    <p className="text-muted-foreground text-sm">{tr(event.genre)}</p>
                     {parseAreas(event.areas).length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {parseAreas(event.areas).map((aId) => {
