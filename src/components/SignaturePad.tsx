@@ -103,7 +103,7 @@ const SignaturePad = ({ label, onSignatureChange, value }: SignaturePadProps) =>
       <div className="relative border-2 border-dashed border-border rounded-lg bg-white overflow-hidden">
         <canvas
           ref={canvasRef}
-          className="w-full h-32 cursor-crosshair touch-none"
+          className="w-full h-40 cursor-crosshair touch-none"
           onMouseDown={startDraw}
           onMouseMove={draw}
           onMouseUp={endDraw}
