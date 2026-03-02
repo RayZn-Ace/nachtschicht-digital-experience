@@ -121,6 +121,28 @@ Deno.serve(async (req) => {
       }
     };
 
+    // Helper to embed a signature image from base64 data URL
+    const embedSignature = async (dataUrl: string, xPos: number, yPos: number, maxW: number, maxH: number) => {
+      try {
+        const base64Data = dataUrl.split(",")[1];
+        if (!base64Data) return;
+        const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+        const pngImage = await pdfDoc.embedPng(imageBytes);
+        const dims = pngImage.scaleToFit(maxW, maxH);
+        page.drawImage(pngImage, {
+          x: xPos,
+          y: yPos,
+          width: dims.width,
+          height: dims.height,
+        });
+      } catch (err) {
+        console.error("Failed to embed signature:", err);
+        page.drawText("[Unterschrift nicht lesbar]", {
+          x: xPos, y: yPos + 2, size: 8, font: fontRegular, color: accent,
+        });
+      }
+    };
+
     // Parent section
     drawSection("SORGEBERECHTIGTE PERSON", [
       { label: "Name", value: form.parent_name },
@@ -161,7 +183,6 @@ Deno.serve(async (req) => {
       page.drawText("Bitte hier handschriftlich eintragen:", {
         x: 40, y, size: 9, font: fontRegular, color: gray,
       });
-      // Draw empty lines for manual entry
       const emptyFields = ["Name", "Anschrift", "Telefon", "Geburtsdatum"];
       for (const label of emptyFields) {
         y -= 22;
@@ -224,14 +245,17 @@ Deno.serve(async (req) => {
       thickness: 0.5, color: black,
     });
 
-    if (form.has_signature) {
+    // Embed parent signature image if available
+    if (form.parent_signature) {
+      await embedSignature(form.parent_signature, 305, y + 2, 240, 40);
+    } else if (form.has_signature) {
       page.drawText("[Elektronisch unterschrieben]", {
         x: 310, y: y + 2, size: 8, font: fontRegular, color: accent,
       });
     }
 
     // Supervisor signature line
-    y -= 40;
+    y -= 50;
     page.drawText("Unterschrift Aufsichtsperson (18+)", {
       x: 40, y: y + 12, size: 8, font: fontRegular, color: gray,
     });
@@ -240,7 +264,10 @@ Deno.serve(async (req) => {
       thickness: 0.5, color: black,
     });
 
-    if (form.has_supervisor_signature) {
+    // Embed supervisor signature image if available
+    if (form.supervisor_signature) {
+      await embedSignature(form.supervisor_signature, 45, y + 2, 250, 40);
+    } else if (form.has_supervisor_signature) {
       page.drawText("[Elektronisch unterschrieben]", {
         x: 50, y: y + 2, size: 8, font: fontRegular, color: accent,
       });
