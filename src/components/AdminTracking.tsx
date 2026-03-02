@@ -70,7 +70,15 @@ const AdminTracking = () => {
 
   const fetchConfig = async () => {
     setLoading(true);
-    const { data } = await supabase.from("tracking_config").select("*").limit(1).maybeSingle();
+    let { data } = await supabase.from("tracking_config").select("*").limit(1).maybeSingle();
+    if (!data) {
+      const { data: inserted } = await supabase
+        .from("tracking_config")
+        .insert({})
+        .select()
+        .single();
+      data = inserted;
+    }
     if (data) setConfig(data as any);
     setLoading(false);
   };
