@@ -108,6 +108,7 @@ const PUBLIC_CATEGORIES: NavCategory[] = [
       { label: "nav.sub.faq", path: "/faq", icon: HelpCircle },
       { label: "nav.sub.jobs", path: "/jobs", icon: Briefcase },
       { label: "nav.sub.contact", path: "/kontakt", icon: MessageSquare },
+      { label: "nav.sub.lostfound", path: "/fundgrube", icon: Search },
     ],
   },
 ];

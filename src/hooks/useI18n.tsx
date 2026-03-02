@@ -102,6 +102,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "nav.sub.faq": { de: "FAQ", en: "FAQ" },
   "nav.sub.jobs": { de: "Jobs", en: "Jobs" },
   "nav.sub.contact": { de: "Kontakt", en: "Contact" },
+  "nav.sub.lostfound": { de: "Fundgrube", en: "Lost & Found" },
 
   // Lounges page
   "lounges.title": { de: "VIP", en: "VIP" },
