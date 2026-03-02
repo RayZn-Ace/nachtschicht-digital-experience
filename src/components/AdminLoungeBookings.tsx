@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, X, Trash2, Users, Calendar, Mail, Phone, MessageSquare, Clock, ShieldCheck, Shield, DollarSign } from "lucide-react";
+import { Check, X, Trash2, Users, Calendar, Mail, Phone, MessageSquare, Clock, ShieldCheck, Shield, DollarSign, FileText, Loader2 } from "lucide-react";
 
 interface LoungeBooking {
   id: string;
@@ -40,6 +40,7 @@ const AdminLoungeBookings = () => {
   const [lounges, setLounges] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
   const [loading, setLoading] = useState(true);
+  const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -90,10 +91,41 @@ const AdminLoungeBookings = () => {
         } catch (emailErr) {
           console.warn("E-Mail konnte nicht gesendet werden:", emailErr);
         }
+
+        // Auto-create invoice for guaranteed bookings on confirm
+        if (status === "confirmed" && booking.booking_type === "guaranteed" && booking.deposit_amount > 0) {
+          try {
+            const { data, error: invErr } = await supabase.functions.invoke("create-lounge-invoice", {
+              body: { booking_id: id },
+            });
+            if (invErr) throw invErr;
+            if (data?.error) throw new Error(data.error);
+            toast.success(`Rechnung ${data.invoice_number} automatisch erstellt`);
+          } catch (invErr: any) {
+            console.warn("Rechnung konnte nicht erstellt werden:", invErr);
+          }
+        }
       }
     }
 
     fetchData();
+  };
+
+  const createInvoiceManual = async (bookingId: string) => {
+    setCreatingInvoice(bookingId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-lounge-invoice", {
+        body: { booking_id: bookingId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Rechnung ${data.invoice_number} erstellt`);
+      fetchData();
+    } catch (err: any) {
+      toast.error("Rechnung fehlgeschlagen: " + (err.message || "Unbekannt"));
+    } finally {
+      setCreatingInvoice(null);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -208,6 +240,16 @@ const AdminLoungeBookings = () => {
                     {booking.status !== "rejected" && (
                       <button onClick={() => updateStatus(booking.id, "rejected")} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive" title="Ablehnen">
                         <X size={18} />
+                      </button>
+                    )}
+                    {booking.booking_type === "guaranteed" && booking.deposit_amount > 0 && !booking.deposit_paid && booking.status === "confirmed" && (
+                      <button
+                        onClick={() => createInvoiceManual(booking.id)}
+                        disabled={creatingInvoice === booking.id}
+                        className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary disabled:opacity-50"
+                        title="Rechnung erstellen"
+                      >
+                        {creatingInvoice === booking.id ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
                       </button>
                     )}
                     <button onClick={() => handleDelete(booking.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive" title="Löschen">
