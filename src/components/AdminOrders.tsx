@@ -46,6 +46,7 @@ const AdminOrders = () => {
   // Detail view
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
   const [relatedTickets, setRelatedTickets] = useState<OrderWithDetails[]>([]);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -252,8 +253,29 @@ const AdminOrders = () => {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 transition-colors text-sm opacity-60 cursor-not-allowed" disabled>
-            <FileText size={16} /> Rechnungs-PDF (bald)
+          <button
+            onClick={async () => {
+              const ticketIds = relatedTickets.map((t) => t.id);
+              if (ticketIds.length === 0) return;
+              setCreatingInvoice(true);
+              try {
+                const { data, error } = await supabase.functions.invoke("create-invoice", {
+                  body: { ticket_ids: ticketIds },
+                });
+                if (error) throw error;
+                if (data?.error) throw new Error(data.error);
+                toast.success(`Rechnung ${data.invoice_number} erstellt`);
+              } catch (err: any) {
+                console.error("Invoice creation failed:", err);
+                toast.error("Rechnung konnte nicht erstellt werden: " + (err.message || "Unbekannter Fehler"));
+              } finally {
+                setCreatingInvoice(false);
+              }
+            }}
+            disabled={creatingInvoice}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <FileText size={16} /> {creatingInvoice ? "Wird erstellt..." : "Rechnung erstellen"}
           </button>
           <button className="flex items-center gap-2 px-4 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 transition-colors text-sm opacity-60 cursor-not-allowed" disabled>
             <Mail size={16} /> E-Mail erneut senden (bald)
