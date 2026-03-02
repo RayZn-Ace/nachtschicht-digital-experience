@@ -47,6 +47,7 @@ const AdminPage = () => {
     title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19,
     has_muttizettel: false, has_abendkasse: false,
+    fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0,
   });
   const [selectedAreas, setSelectedAreas] = useState<string[]>(ALWAYS_OPEN_AREAS);
 
@@ -85,7 +86,7 @@ const AdminPage = () => {
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const resetForm = () => {
-    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false });
+    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0 });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
     setSelectedTagIds([]);
     setEditing(null);
@@ -104,6 +105,10 @@ const AdminPage = () => {
       vat_rate: (event as any).vat_rate ?? 19,
       has_muttizettel: (event as any).has_muttizettel ?? false,
       has_abendkasse: (event as any).has_abendkasse ?? false,
+      fee_enabled: (event as any).fee_enabled ?? false,
+      fee_type: (event as any).fee_type ?? "per_ticket",
+      fee_mode: (event as any).fee_mode ?? "fixed",
+      fee_amount: (event as any).fee_amount ?? 0,
     });
     // Load existing tag assignments for this event
     const { data } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
@@ -458,6 +463,69 @@ const AdminPage = () => {
                   <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })} className="accent-primary" />
                   <span className="text-sm text-foreground">Veröffentlicht</span>
                 </label>
+              </div>
+
+              {/* Ticketgebühren */}
+              <div className="md:col-span-2 border border-border rounded-lg p-4 bg-muted/30">
+                <label className="flex items-center gap-2 cursor-pointer mb-3">
+                  <input type="checkbox" checked={formData.fee_enabled} onChange={(e) => setFormData({ ...formData, fee_enabled: e.target.checked })} className="accent-primary" />
+                  <span className="text-sm font-medium text-foreground">Servicegebühr aktivieren</span>
+                </label>
+                {formData.fee_enabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Gebührenart</label>
+                      <select
+                        value={formData.fee_type}
+                        onChange={(e) => setFormData({ ...formData, fee_type: e.target.value })}
+                        className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                      >
+                        <option value="per_ticket">Pro Ticket</option>
+                        <option value="per_order">Pro Bestellung</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Berechnungsart</label>
+                      <select
+                        value={formData.fee_mode}
+                        onChange={(e) => setFormData({ ...formData, fee_mode: e.target.value })}
+                        className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                      >
+                        <option value="fixed">Fester Betrag (€)</option>
+                        <option value="percent">Prozentual (%)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        {formData.fee_mode === "percent" ? "Prozent (%)" : "Betrag (€)"}
+                      </label>
+                      <input
+                        type="number"
+                        step={formData.fee_mode === "percent" ? "0.1" : "0.01"}
+                        value={formData.fee_amount || ""}
+                        onChange={(e) => setFormData({ ...formData, fee_amount: Number(e.target.value) })}
+                        className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        placeholder={formData.fee_mode === "percent" ? "z.B. 10" : "z.B. 2.50"}
+                      />
+                    </div>
+                    {/* Preview */}
+                    {formData.fee_amount > 0 && formData.ticket_price > 0 && (
+                      <div className="md:col-span-3 p-3 bg-background/50 border border-border/50 rounded-md">
+                        <p className="text-xs text-muted-foreground">
+                          Vorschau: Ticketpreis {formData.ticket_price.toFixed(2)}€ + Servicegebühr{" "}
+                          {formData.fee_mode === "percent"
+                            ? `${formData.fee_amount}% = ${(formData.ticket_price * formData.fee_amount / 100).toFixed(2)}€`
+                            : `${formData.fee_amount.toFixed(2)}€`
+                          }
+                          {" "}= <span className="text-foreground font-medium">
+                            {(formData.ticket_price + (formData.fee_mode === "percent" ? formData.ticket_price * formData.fee_amount / 100 : formData.fee_amount)).toFixed(2)}€
+                          </span>
+                          {" "}({formData.fee_type === "per_ticket" ? "pro Ticket" : "pro Bestellung"})
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex gap-3 mt-4">

@@ -282,6 +282,10 @@ export type Database = {
           date: string
           description: string | null
           end_time: string | null
+          fee_amount: number
+          fee_enabled: boolean
+          fee_mode: string
+          fee_type: string
           genre: string | null
           has_abendkasse: boolean
           has_muttizettel: boolean
@@ -303,6 +307,10 @@ export type Database = {
           date: string
           description?: string | null
           end_time?: string | null
+          fee_amount?: number
+          fee_enabled?: boolean
+          fee_mode?: string
+          fee_type?: string
           genre?: string | null
           has_abendkasse?: boolean
           has_muttizettel?: boolean
@@ -324,6 +332,10 @@ export type Database = {
           date?: string
           description?: string | null
           end_time?: string | null
+          fee_amount?: number
+          fee_enabled?: boolean
+          fee_mode?: string
+          fee_type?: string
           genre?: string | null
           has_abendkasse?: boolean
           has_muttizettel?: boolean
@@ -952,6 +964,9 @@ export type Database = {
           created_at: string
           description: string | null
           event_id: string
+          fee_amount_override: number | null
+          fee_mode_override: string | null
+          fee_override_enabled: boolean
           id: string
           is_active: boolean
           name: string
@@ -966,6 +981,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           event_id: string
+          fee_amount_override?: number | null
+          fee_mode_override?: string | null
+          fee_override_enabled?: boolean
           id?: string
           is_active?: boolean
           name: string
@@ -980,6 +998,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           event_id?: string
+          fee_amount_override?: number | null
+          fee_mode_override?: string | null
+          fee_override_enabled?: boolean
           id?: string
           is_active?: boolean
           name?: string
@@ -1015,6 +1036,7 @@ export type Database = {
           created_at: string
           discount_code_id: string | null
           event_id: string
+          fee_amount: number
           id: string
           qr_code: string | null
           quantity: number
@@ -1037,6 +1059,7 @@ export type Database = {
           created_at?: string
           discount_code_id?: string | null
           event_id: string
+          fee_amount?: number
           id?: string
           qr_code?: string | null
           quantity?: number
@@ -1059,6 +1082,7 @@ export type Database = {
           created_at?: string
           discount_code_id?: string | null
           event_id?: string
+          fee_amount?: number
           id?: string
           qr_code?: string | null
           quantity?: number
