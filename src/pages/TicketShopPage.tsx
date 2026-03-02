@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
+import { useTranslate } from "@/hooks/useTranslate";
 import type { Event, TicketType, DiscountCode } from "@/types/database";
 import { toast } from "sonner";
 import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2, ShieldCheck, DoorOpen } from "lucide-react";
@@ -17,6 +18,7 @@ const TicketShopPage = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { t, lang } = useI18n();
+  const tr = useTranslate(lang);
 
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -266,11 +268,11 @@ const TicketShopPage = () => {
               </div>
             )}
             <div className="p-5">
-              <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-2">{event.title}</h1>
+              <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-2">{tr(event.title)}</h1>
               <div className="flex items-center gap-4 text-muted-foreground text-sm mb-2">
                 <span className="flex items-center gap-1">
                   <Calendar size={14} />
-                  {new Date(event.date).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })} – {event.time}
+                  {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })} – {event.time}
                 </span>
               </div>
               {eventAreas.length > 0 && (
@@ -281,7 +283,7 @@ const TicketShopPage = () => {
                   })}
                 </div>
               )}
-              {event.description && <p className="text-muted-foreground text-sm">{event.description}</p>}
+              {event.description && <p className="text-muted-foreground text-sm">{tr(event.description)}</p>}
 
               {/* Event info badges */}
               {(event.has_muttizettel || event.has_abendkasse) && (
@@ -506,8 +508,8 @@ const TicketShopPage = () => {
                     return (
                       <div key={tt.id} className={`flex items-center justify-between p-4 border border-border rounded-lg ${ttSoldOut ? 'opacity-50' : ''}`}>
                         <div className="flex-1">
-                          <p className="font-medium text-foreground">{tt.name}</p>
-                          {tt.description && <p className="text-xs text-muted-foreground">{tt.description}</p>}
+                          <p className="font-medium text-foreground">{tr(tt.name)}</p>
+                          {tt.description && <p className="text-xs text-muted-foreground">{tr(tt.description)}</p>}
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-primary font-bold text-lg">{tt.price}€</span>
                             {ttRemaining <= 10 && !ttSoldOut && (
@@ -658,7 +660,7 @@ const TicketShopPage = () => {
                 ) : (
                   ticketTypes.filter((tt) => (cart[tt.id] || 0) > 0).map((tt) => (
                     <div key={tt.id} className="flex justify-between text-sm text-foreground">
-                      <span>{cart[tt.id]}× {tt.name}</span>
+                      <span>{cart[tt.id]}× {tr(tt.name)}</span>
                       <span>{(cart[tt.id] * tt.price).toFixed(2)}€</span>
                     </div>
                   ))

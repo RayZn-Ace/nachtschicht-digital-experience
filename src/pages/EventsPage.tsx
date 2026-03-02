@@ -3,6 +3,7 @@ import { Calendar, Users, ShieldCheck, DoorOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
+import { useTranslate } from "@/hooks/useTranslate";
 import type { Event } from "@/types/database";
 import ScrollReveal from "@/components/ScrollReveal";
 import { EventSkeletonCard } from "@/components/SkeletonCard";
@@ -14,6 +15,7 @@ const EventsPage = () => {
   const [error, setError] = useState(false);
   const navigate = useNavigate();
   const { t, lang } = useI18n();
+  const tr = useTranslate(lang);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,7 +106,7 @@ const EventsPage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/15 to-transparent" />
                       {event.genre && (
                         <span className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
-                          {event.genre}
+                          {tr(event.genre)}
                         </span>
                       )}
                       {soldOut && (
@@ -114,14 +116,14 @@ const EventsPage = () => {
                       )}
                     </div>
                     <div className="p-5">
-                      <h2 className="font-display text-2xl tracking-wider text-foreground mb-1">{event.title}</h2>
+                      <h2 className="font-display text-2xl tracking-wider text-foreground mb-1">{tr(event.title)}</h2>
                       {(event as any).subtitle && (
-                        <p className="text-muted-foreground text-sm italic mb-2">{(event as any).subtitle}</p>
+                        <p className="text-muted-foreground text-sm italic mb-2">{tr((event as any).subtitle)}</p>
                       )}
                       <div className="flex items-center gap-4 text-muted-foreground text-sm mb-1">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
-                          {new Date(event.date).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })} – {event.time}{(event as any).end_time ? ` bis ${(event as any).end_time}` : ""}
+                          {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" })} – {event.time}{(event as any).end_time ? ` ${lang === "de" ? "bis" : "to"} ${(event as any).end_time}` : ""}
                         </span>
                       </div>
 
@@ -139,7 +141,7 @@ const EventsPage = () => {
                       )}
 
                       {event.description && (
-                        <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
+                        <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{tr(event.description)}</p>
                       )}
 
                       {/* Info badges */}
