@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag } from "lucide-react";
+import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,9 +27,14 @@ interface UnifiedCustomer {
 
 const AdminCustomers = () => {
   const [customers, setCustomers] = useState<UnifiedCustomer[]>([]);
+  const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "registered" | "subscribers_only">("all");
+  const [filterType, setFilterType] = useState<"all" | "registered" | "subscribers_only" | "guests">("all");
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [hasTickets, setHasTickets] = useState<"all" | "yes" | "no">("all");
+  const [sortBy, setSortBy] = useState<"revenue" | "name" | "tickets" | "date">("revenue");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [csvData, setCsvData] = useState<string[][]>([]);
@@ -66,6 +71,7 @@ const AdminCustomers = () => {
     const profiles = profilesRes.data || [];
     const tickets = ticketsRes.data || [];
     const allTags = tagsRes.data || [];
+    setAllTags(allTags.map((t: any) => ({ id: t.id, name: t.name })));
     const subCats = subCatsRes.data || [];
     const events = eventsRes.data || [];
 
@@ -171,16 +177,41 @@ const AdminCustomers = () => {
     setLoading(false);
   };
 
+  const toggleSort = (col: typeof sortBy) => {
+    if (sortBy === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortBy(col); setSortDir(col === "name" ? "asc" : "desc"); }
+  };
+
   const filtered = useMemo(() => {
     let list = customers;
     if (filterType === "registered") list = list.filter((c) => c.isRegistered);
     if (filterType === "subscribers_only") list = list.filter((c) => c.isSubscribed && !c.isRegistered);
+    if (filterType === "guests") list = list.filter((c) => !c.isRegistered && !c.isSubscribed);
+    if (hasTickets === "yes") list = list.filter((c) => c.ticketCount > 0);
+    if (hasTickets === "no") list = list.filter((c) => c.ticketCount === 0);
+    if (filterTags.length > 0) {
+      list = list.filter((c) => filterTags.every((tagId) => c.tags.some((t) => t.id === tagId)));
+    }
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((c) => c.email.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q));
     }
-    return list.sort((a, b) => b.totalSpent - a.totalSpent);
-  }, [customers, filterType, search]);
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...list].sort((a, b) => {
+      switch (sortBy) {
+        case "revenue": return (a.totalSpent - b.totalSpent) * dir;
+        case "tickets": return (a.ticketCount - b.ticketCount) * dir;
+        case "name": return ((a.name || "zzz").localeCompare(b.name || "zzz")) * dir;
+        case "date": {
+          const da = a.createdAt || a.subscribedAt || "";
+          const db = b.createdAt || b.subscribedAt || "";
+          return da.localeCompare(db) * dir;
+        }
+        default: return 0;
+      }
+    });
+  }, [customers, filterType, filterTags, hasTickets, search, sortBy, sortDir]);
 
   // CSV Import
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
