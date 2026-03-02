@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
     drawSection("SORGEBERECHTIGTE PERSON", [
       { label: "Name", value: form.parent_name },
       { label: "Anschrift", value: form.parent_address },
+      { label: "PLZ / Ort", value: [form.parent_zip, form.parent_city].filter(Boolean).join(" ") },
       { label: "Land", value: form.parent_country },
       { label: "Telefon", value: form.parent_phone },
       { label: "Geburtsdatum", value: form.parent_birthday ? new Date(form.parent_birthday).toLocaleDateString("de-DE") : "" },
@@ -134,6 +135,7 @@ Deno.serve(async (req) => {
     drawSection("MINDERJAEHRIGE PERSON", [
       { label: "Name", value: form.minor_name },
       { label: "Anschrift", value: form.minor_address },
+      { label: "PLZ / Ort", value: [form.minor_zip, form.minor_city].filter(Boolean).join(" ") },
       { label: "Land", value: form.minor_country },
       { label: "Telefon", value: form.minor_phone },
       { label: "Geburtsdatum", value: form.minor_birthday ? new Date(form.minor_birthday).toLocaleDateString("de-DE") : "" },
@@ -144,6 +146,7 @@ Deno.serve(async (req) => {
       drawSection("AUFSICHTSPERSON (18+)", [
         { label: "Name", value: form.supervisor_name },
         { label: "Anschrift", value: form.supervisor_address || "" },
+        { label: "PLZ / Ort", value: [form.supervisor_zip, form.supervisor_city].filter(Boolean).join(" ") },
         { label: "Land", value: form.supervisor_country || "" },
         { label: "E-Mail", value: form.supervisor_email || "" },
         { label: "Telefon", value: form.supervisor_phone || "" },
@@ -224,6 +227,22 @@ Deno.serve(async (req) => {
     if (form.has_signature) {
       page.drawText("[Elektronisch unterschrieben]", {
         x: 310, y: y + 2, size: 8, font: fontRegular, color: accent,
+      });
+    }
+
+    // Supervisor signature line
+    y -= 40;
+    page.drawText("Unterschrift Aufsichtsperson (18+)", {
+      x: 40, y: y + 12, size: 8, font: fontRegular, color: gray,
+    });
+    page.drawLine({
+      start: { x: 40, y }, end: { x: 300, y },
+      thickness: 0.5, color: black,
+    });
+
+    if (form.has_supervisor_signature) {
+      page.drawText("[Elektronisch unterschrieben]", {
+        x: 50, y: y + 2, size: 8, font: fontRegular, color: accent,
       });
     }
 
