@@ -69,6 +69,7 @@ const EventLoungeSection = ({ event }: Props) => {
   };
 
   return (
+    <div id="lounges">
     <ScrollReveal>
       <div className="glass-card p-5 mt-6">
         <h2 className="font-display text-2xl tracking-wider text-foreground mb-1 flex items-center gap-2">
@@ -170,6 +171,7 @@ const EventLoungeSection = ({ event }: Props) => {
         )}
       </div>
     </ScrollReveal>
+    </div>
   );
 };
 
