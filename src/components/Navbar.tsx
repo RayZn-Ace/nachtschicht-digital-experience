@@ -80,25 +80,25 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
 
 const PUBLIC_CATEGORIES: NavCategory[] = [
   {
-    labelKey: "nav.category.experience",
-    icon: PartyPopper,
+    labelKey: "nav.category.events",
+    icon: Calendar,
     items: [
       { label: "Events & Tickets", path: "/events", icon: Calendar },
-      { label: "Club", path: "/club", icon: Building2 },
-      { label: "Fotos & Videos", path: "/fotos", icon: Camera },
-    ],
-  },
-  {
-    labelKey: "nav.category.vip",
-    icon: Star,
-    items: [
-      { label: "Lounges", path: "/lounges", icon: Sofa },
-      { label: "Getränkekarte", path: "/getraenkekarte", icon: GlassWater },
       { label: "Muttizettel", path: "/u18", icon: FileText },
     ],
   },
   {
-    labelKey: "nav.category.more",
+    labelKey: "nav.category.club",
+    icon: Building2,
+    items: [
+      { label: "Club", path: "/club", icon: Building2 },
+      { label: "Lounges", path: "/lounges", icon: Sofa },
+      { label: "Fotos & Videos", path: "/fotos", icon: Camera },
+      { label: "Getränkekarte", path: "/getraenkekarte", icon: GlassWater },
+    ],
+  },
+  {
+    labelKey: "nav.category.info",
     icon: HelpCircle,
     items: [
       { label: "FAQ", path: "/faq", icon: HelpCircle },
