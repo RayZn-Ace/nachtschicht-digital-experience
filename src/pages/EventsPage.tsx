@@ -146,7 +146,7 @@ const EventsPage = () => {
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         {event.has_muttizettel && (
                           <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-accent/50 text-accent-foreground font-medium">
-                            <ShieldCheck size={10} /> {lang === "de" ? "Muttizettel" : "Parental Consent"}
+                            <ShieldCheck size={10} /> {lang === "de" ? "Muttizettel erlaubt" : "Parental Consent"}
                           </span>
                         )}
                         {event.has_abendkasse && (
