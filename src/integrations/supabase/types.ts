@@ -362,6 +362,222 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_config: {
+        Row: {
+          bank_bic: string | null
+          bank_iban: string | null
+          bank_name: string | null
+          company_address: string
+          company_city: string
+          company_country: string
+          company_name: string
+          company_zip: string
+          email: string | null
+          footer_text: string | null
+          id: string
+          invoice_prefix: string
+          logo_url: string | null
+          next_invoice_number: number
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+          vat_id: string | null
+          website: string | null
+        }
+        Insert: {
+          bank_bic?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          company_address?: string
+          company_city?: string
+          company_country?: string
+          company_name?: string
+          company_zip?: string
+          email?: string | null
+          footer_text?: string | null
+          id?: string
+          invoice_prefix?: string
+          logo_url?: string | null
+          next_invoice_number?: number
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          vat_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          bank_bic?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          company_address?: string
+          company_city?: string
+          company_country?: string
+          company_name?: string
+          company_zip?: string
+          email?: string | null
+          footer_text?: string | null
+          id?: string
+          invoice_prefix?: string
+          logo_url?: string | null
+          next_invoice_number?: number
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          vat_id?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      invoice_line_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number
+          quantity: number
+          sort_order: number
+          unit_price: number
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          line_total?: number
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          buyer_address: string | null
+          buyer_email: string
+          buyer_name: string
+          cancellation_invoice_id: string | null
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          event_id: string | null
+          id: string
+          invoice_number: string
+          issued_at: string | null
+          notes: string | null
+          paid_at: string | null
+          seller_address: string
+          seller_name: string
+          seller_tax_id: string | null
+          seller_vat_id: string | null
+          status: string
+          subtotal: number
+          ticket_id: string | null
+          total: number
+          updated_at: string
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          buyer_address?: string | null
+          buyer_email: string
+          buyer_name: string
+          cancellation_invoice_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          event_id?: string | null
+          id?: string
+          invoice_number: string
+          issued_at?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          seller_address: string
+          seller_name: string
+          seller_tax_id?: string | null
+          seller_vat_id?: string | null
+          status?: string
+          subtotal?: number
+          ticket_id?: string | null
+          total?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Update: {
+          buyer_address?: string | null
+          buyer_email?: string
+          buyer_name?: string
+          cancellation_invoice_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          event_id?: string | null
+          id?: string
+          invoice_number?: string
+          issued_at?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          seller_address?: string
+          seller_name?: string
+          seller_tax_id?: string | null
+          seller_vat_id?: string | null
+          status?: string
+          subtotal?: number
+          ticket_id?: string | null
+          total?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_cancellation_invoice_id_fkey"
+            columns: ["cancellation_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lounge_bookings: {
         Row: {
           agreed_terms: boolean
@@ -954,6 +1170,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_invoice_number: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
