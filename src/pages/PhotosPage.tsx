@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useI18n } from "@/hooks/useI18n";
-import { Image, ChevronLeft, ChevronRight, X, Download, CheckCircle2 } from "lucide-react";
+import { Image, ChevronLeft, ChevronRight, X, Download, CheckCircle2, Flag } from "lucide-react";
 import { AlbumSkeletonCard, PhotoSkeletonGrid } from "@/components/SkeletonCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
+import ReportPhotoModal from "@/components/ReportPhotoModal";
 
 interface Album {
   id: string;
@@ -30,6 +31,7 @@ const PhotosPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const [reportPhoto, setReportPhoto] = useState<{ id: string; url: string } | null>(null);
   useEffect(() => {
     const fetchAlbums = async () => {
       const { data } = await supabase
@@ -166,6 +168,13 @@ const PhotosPage = () => {
                     >
                       <Download size={16} />
                     </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setReportPhoto({ id: photo.id, url: photo.image_url }); }}
+                      className="absolute bottom-2 left-2 p-2 bg-background/70 rounded-full text-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                      aria-label={lang === "de" ? "Foto melden" : "Report photo"}
+                    >
+                      <Flag size={16} />
+                    </button>
                   </div>
                 </ScrollReveal>
               ))}
@@ -214,6 +223,17 @@ const PhotosPage = () => {
           )}
         </AnimatePresence>
 
+        {/* Report Modal */}
+        {reportPhoto && selectedAlbum && (
+          <ReportPhotoModal
+            open={!!reportPhoto}
+            onClose={() => setReportPhoto(null)}
+            photoId={reportPhoto.id}
+            albumId={selectedAlbum.id}
+            photoUrl={reportPhoto.url}
+          />
+        )}
+
         {/* Lightbox */}
         <AnimatePresence>
           {lightboxIndex !== null && photos[lightboxIndex] && (
@@ -257,6 +277,13 @@ const PhotosPage = () => {
                   aria-label="Download"
                 >
                   <Download size={18} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setReportPhoto({ id: photos[lightboxIndex!].id, url: photos[lightboxIndex!].image_url }); }}
+                  className="p-2 rounded-full bg-secondary/80 text-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  aria-label={lang === "de" ? "Foto melden" : "Report photo"}
+                >
+                  <Flag size={18} />
                 </button>
               </div>
             </motion.div>
