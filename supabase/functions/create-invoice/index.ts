@@ -102,17 +102,44 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join("\n");
 
-    // Generate invoice number
-    const { data: invoiceNumber, error: numErr } = await admin.rpc(
+    // Generate invoice number – try RPC first, fallback to manual increment
+    let invoiceNumber: string | null = null;
+    const { data: rpcResult, error: numErr } = await admin.rpc(
       "generate_invoice_number"
     );
-    if (numErr || !invoiceNumber) {
+    if (numErr) {
+      console.error("RPC generate_invoice_number failed:", numErr);
+      // Fallback: manual increment via update + select
+      const { data: cfgRow, error: cfgErr } = await admin
+        .from("invoice_config")
+        .select("id, invoice_prefix, next_invoice_number")
+        .limit(1)
+        .single();
+      if (cfgErr || !cfgRow) {
+        console.error("invoice_config read failed:", cfgErr);
+        return new Response(
+          JSON.stringify({ error: "Failed to generate invoice number", details: numErr?.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const prefix = cfgRow.invoice_prefix || "INV";
+      const num = cfgRow.next_invoice_number || 1;
+      const year = new Date().getFullYear();
+      invoiceNumber = `${prefix}-${year}-${String(num).padStart(5, "0")}`;
+      // Increment counter
+      const { error: updErr } = await admin
+        .from("invoice_config")
+        .update({ next_invoice_number: num + 1, updated_at: new Date().toISOString() })
+        .eq("id", cfgRow.id);
+      if (updErr) console.error("invoice_config increment failed:", updErr);
+    } else {
+      invoiceNumber = rpcResult;
+    }
+
+    if (!invoiceNumber) {
       return new Response(
         JSON.stringify({ error: "Failed to generate invoice number" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
