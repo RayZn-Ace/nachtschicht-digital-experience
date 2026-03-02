@@ -360,7 +360,7 @@ const AdminCustomers = () => {
         ))}
       </div>
 
-      {/* Toolbar */}
+      {/* Toolbar Row 1: Search + Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -371,15 +371,6 @@ const AdminCustomers = () => {
             className="pl-9"
           />
         </div>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value as any)}
-          className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm"
-        >
-          <option value="all">Alle Kunden</option>
-          <option value="registered">Nur registriert</option>
-          <option value="subscribers_only">Nur Newsletter</option>
-        </select>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
             <Upload size={14} className="mr-1" /> Import
@@ -391,16 +382,95 @@ const AdminCustomers = () => {
         <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
       </div>
 
+      {/* Toolbar Row 2: Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <Filter size={14} className="text-muted-foreground" />
+
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value as any)}
+          className="px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-xs"
+        >
+          <option value="all">Alle Kunden</option>
+          <option value="registered">Registriert</option>
+          <option value="subscribers_only">Nur Newsletter</option>
+          <option value="guests">Nur Gäste</option>
+        </select>
+
+        <select
+          value={hasTickets}
+          onChange={(e) => setHasTickets(e.target.value as any)}
+          className="px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-xs"
+        >
+          <option value="all">Tickets: Alle</option>
+          <option value="yes">Hat Tickets</option>
+          <option value="no">Keine Tickets</option>
+        </select>
+
+        {allTags.length > 0 && (
+          <>
+            <div className="h-4 w-px bg-border" />
+            <span className="text-xs text-muted-foreground">Tags:</span>
+            <div className="flex flex-wrap gap-1">
+              {allTags.map((tag) => {
+                const active = filterTags.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => setFilterTags((prev) => active ? prev.filter((id) => id !== tag.id) : [...prev, tag.id])}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all ${
+                      active
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {(filterTags.length > 0 || filterType !== "all" || hasTickets !== "all") && (
+          <button
+            onClick={() => { setFilterTags([]); setFilterType("all"); setHasTickets("all"); }}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 ml-1"
+          >
+            <X size={12} /> Zurücksetzen
+          </button>
+        )}
+
+        <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+          {filtered.length} Ergebnis{filtered.length !== 1 ? "se" : ""}
+        </div>
+      </div>
+
       {/* Table */}
       <div className="border border-border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Kunde</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("name")}>
+                <span className="flex items-center gap-1">
+                  Kunde
+                  {sortBy === "name" ? (sortDir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-30" />}
+                </span>
+              </TableHead>
               <TableHead className="hidden md:table-cell">Status</TableHead>
               <TableHead className="hidden md:table-cell">Tags</TableHead>
-              <TableHead className="text-right">Umsatz</TableHead>
-              <TableHead className="text-right hidden sm:table-cell">Tickets</TableHead>
+              <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("revenue")}>
+                <span className="flex items-center gap-1 justify-end">
+                  Umsatz
+                  {sortBy === "revenue" ? (sortDir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-30" />}
+                </span>
+              </TableHead>
+              <TableHead className="text-right hidden sm:table-cell cursor-pointer select-none" onClick={() => toggleSort("tickets")}>
+                <span className="flex items-center gap-1 justify-end">
+                  Tickets
+                  {sortBy === "tickets" ? (sortDir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-30" />}
+                </span>
+              </TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
