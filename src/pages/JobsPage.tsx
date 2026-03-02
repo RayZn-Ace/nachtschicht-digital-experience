@@ -1,12 +1,28 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const JOB_OPTIONS = [
+  { id: "theke", label: "🪩 Theke / Barkeeper / Cocktailkeeper" },
+  { id: "lager", label: "📦 Lagermitarbeiter" },
+  { id: "kasse", label: "💼 Kasse / Infobüro" },
+  { id: "garderobe", label: "🧦 Garderobe" },
+  { id: "lightjockey", label: "💡 Lightjockey" },
+  { id: "runner", label: "💰 Runner" },
+  { id: "fotograf", label: "💬 Fotograf / Videograf" },
+];
 
 const JobsPage = () => {
   const [agreed, setAgreed] = useState(false);
+  const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (selectedJobs.length === 0) {
+      toast.error("Bitte wähle mindestens einen Job aus.");
+      return;
+    }
     if (!agreed) {
       toast.error("Bitte stimme der Datenschutzerklärung zu.");
       return;
@@ -47,17 +63,22 @@ const JobsPage = () => {
                 <input type="number" min={18} required className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
               </div>
               <div>
-                <label className="text-sm text-foreground mb-1 block">Welcher Job interessiert dich? *</label>
-                <select required className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none">
-                  <option value="">Bitte wählen</option>
-                  <option value="theke">🪩 Theke / Barkeeper / Cocktailkeeper</option>
-                  <option value="lager">📦 Lagermitarbeiter</option>
-                  <option value="kasse">💼 Kasse / Infobüro</option>
-                  <option value="garderobe">🧦 Garderobe</option>
-                  <option value="lightjockey">💡 Lightjockey</option>
-                  <option value="runner">💰 Runner</option>
-                  <option value="fotograf">💬 Fotograf / Videograf</option>
-                </select>
+                <label className="text-sm text-foreground mb-2 block">Welcher Job interessiert dich? *</label>
+                <div className="space-y-2">
+                  {JOB_OPTIONS.map((job) => (
+                    <label key={job.id} className="flex items-center gap-2.5 cursor-pointer group">
+                      <Checkbox
+                        checked={selectedJobs.includes(job.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedJobs((prev) =>
+                            checked ? [...prev, job.id] : prev.filter((j) => j !== job.id)
+                          );
+                        }}
+                      />
+                      <span className="text-sm text-foreground group-hover:text-primary transition-colors">{job.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
             <div>
