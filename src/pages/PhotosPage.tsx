@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useI18n } from "@/hooks/useI18n";
 import { Image, ChevronLeft, ChevronRight, X, Download, CheckCircle2 } from "lucide-react";
+import { AlbumSkeletonCard } from "@/components/SkeletonCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 
@@ -273,9 +274,11 @@ const PhotosPage = () => {
         </ScrollReveal>
 
         {loading ? (
-          <p className="text-center text-muted-foreground py-16">
-            {lang === "de" ? "Alben werden geladen..." : "Loading albums..."}
-          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <AlbumSkeletonCard key={i} />
+            ))}
+          </div>
         ) : albums.length === 0 ? (
           <p className="text-center text-muted-foreground py-16">
             {lang === "de" ? "Noch keine Fotoalben verfügbar." : "No photo albums available yet."}

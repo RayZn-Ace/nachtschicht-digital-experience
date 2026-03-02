@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import type { Event } from "@/types/database";
 import ScrollReveal from "@/components/ScrollReveal";
+import { EventSkeletonCard } from "@/components/SkeletonCard";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 
 const EventsPage = () => {
@@ -64,7 +65,11 @@ const EventsPage = () => {
         </ScrollReveal>
 
         {loading ? (
-          <div className="text-center text-muted-foreground py-16">{t("events.loading")}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <EventSkeletonCard key={i} />
+            ))}
+          </div>
         ) : error && events.length === 0 ? (
           <div className="text-center py-16 space-y-4">
             <p className="text-muted-foreground">{lang === "de" ? "Events konnten nicht geladen werden." : "Could not load events."}</p>
