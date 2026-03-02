@@ -343,27 +343,35 @@ const AdminTicketCenter = () => {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-3">
-          {/* Cancel ticket */}
+          {/* Cancel ticket with refund invoice */}
           {selectedOrder.status === "confirmed" && (
             <button
               onClick={async () => {
-                if (!confirm("Ticket wirklich stornieren? Dies kann nicht rückgängig gemacht werden.")) return;
-                const ticketIds = relatedTickets.map((t) => t.id);
-                const { error } = await supabase
-                  .from("tickets")
-                  .update({ status: "canceled" })
-                  .in("id", ticketIds);
-                if (error) {
-                  toast.error("Stornierung fehlgeschlagen: " + error.message);
-                } else {
-                  toast.success("Ticket(s) storniert");
+                if (!confirm("Ticket wirklich stornieren?\n\nStatus wird auf storniert gesetzt.\nKontingent wird wiederhergestellt.\nStornorechnung wird automatisch erstellt (sofern Rechnung vorhanden).\n\nDies kann nicht rueckgaengig gemacht werden.")) return;
+                const ticketIds = relatedTickets.filter(t => t.status === "confirmed").map((t) => t.id);
+                if (ticketIds.length === 0) { toast.error("Keine bestätigten Tickets zum Stornieren."); return; }
+                try {
+                  const { data, error } = await supabase.functions.invoke("cancel-ticket", {
+                    body: { ticket_ids: ticketIds },
+                  });
+                  if (error) throw error;
+                  if (data?.error) throw new Error(data.error);
+                  let msg = `${data.cancelled_count} Ticket(s) storniert – ${data.restored_quantity} Plätze wiederhergestellt`;
+                  if (data.cancellation_invoice_number) {
+                    msg += ` – Stornorechnung ${data.cancellation_invoice_number} erstellt`;
+                  } else if (data.had_invoice === false) {
+                    msg += " (keine Rechnung vorhanden, keine Stornorechnung erstellt)";
+                  }
+                  toast.success(msg);
                   setSelectedOrder(null);
                   fetchData();
+                } catch (err: any) {
+                  toast.error("Stornierung fehlgeschlagen: " + (err.message || "Unbekannt"));
                 }
               }}
               className="flex items-center gap-2 px-4 py-2 bg-destructive text-primary-foreground rounded-md hover:bg-destructive/90 transition-colors text-sm"
             >
-              <Ban size={16} /> Stornieren
+              <Ban size={16} /> Stornieren & Erstattung
             </button>
           )}
 
