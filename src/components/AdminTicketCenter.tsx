@@ -6,7 +6,7 @@ import {
   Search, Filter, Download, ChevronDown, ChevronUp,
   Eye, Calendar, CheckCircle, XCircle, Clock,
   Package, ArrowLeft, TrendingUp, Ticket as TicketIcon,
-  Plus, Trash2, Pencil, BarChart3
+  Plus, Trash2, Pencil, BarChart3, Ban, Mail, FileText, Loader2
 } from "lucide-react";
 
 interface OrderWithDetails extends Ticket {
@@ -339,6 +339,89 @@ const AdminTicketCenter = () => {
               <span>{relatedTickets.reduce((s, t) => s + t.total_price, 0).toFixed(2)}€</span>
             </div>
           </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-3">
+          {/* Cancel ticket */}
+          {selectedOrder.status === "confirmed" && (
+            <button
+              onClick={async () => {
+                if (!confirm("Ticket wirklich stornieren? Dies kann nicht rückgängig gemacht werden.")) return;
+                const ticketIds = relatedTickets.map((t) => t.id);
+                const { error } = await supabase
+                  .from("tickets")
+                  .update({ status: "canceled" })
+                  .in("id", ticketIds);
+                if (error) {
+                  toast.error("Stornierung fehlgeschlagen: " + error.message);
+                } else {
+                  toast.success("Ticket(s) storniert");
+                  setSelectedOrder(null);
+                  fetchData();
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-destructive text-primary-foreground rounded-md hover:bg-destructive/90 transition-colors text-sm"
+            >
+              <Ban size={16} /> Stornieren
+            </button>
+          )}
+
+          {/* Download ticket PDF */}
+          <button
+            onClick={async () => {
+              try {
+                const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
+                  body: { ticket_id: selectedOrder.id },
+                });
+                if (error) throw error;
+                const blob = new Blob([data], { type: "application/pdf" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `ticket-${selectedOrder.id.slice(0, 8)}.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch (err: any) {
+                toast.error("PDF-Download fehlgeschlagen: " + (err.message || "Unbekannt"));
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 transition-colors text-sm"
+          >
+            <Download size={16} /> Ticket-PDF
+          </button>
+
+          {/* Create invoice */}
+          <button
+            onClick={async () => {
+              const ticketIds = relatedTickets.map((t) => t.id);
+              try {
+                const { data, error } = await supabase.functions.invoke("create-invoice", {
+                  body: { ticket_ids: ticketIds },
+                });
+                if (error) throw error;
+                if (data?.error) throw new Error(data.error);
+                toast.success(`Rechnung ${data.invoice_number} erstellt`);
+              } catch (err: any) {
+                toast.error("Rechnung fehlgeschlagen: " + (err.message || "Unbekannt"));
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 transition-colors text-sm"
+          >
+            <FileText size={16} /> Rechnung erstellen
+          </button>
+
+          {/* Resend email placeholder */}
+          <button
+            onClick={() => {
+              const mailto = `mailto:${selectedOrder.buyer_email}?subject=Dein Ticket für ${selectedOrder.event?.title || "Event"}&body=Hallo ${selectedOrder.buyer_name || ""},%0A%0AAnbei dein Ticket. QR-Code: ${selectedOrder.qr_code || "—"}%0A%0AViele Grüße,%0ANachtschicht Kaiserslautern`;
+              window.open(mailto, "_blank");
+              toast.success("E-Mail-Programm geöffnet");
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 transition-colors text-sm"
+          >
+            <Mail size={16} /> E-Mail senden
+          </button>
         </div>
       </div>
     );
