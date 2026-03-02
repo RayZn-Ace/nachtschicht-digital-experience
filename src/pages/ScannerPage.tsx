@@ -259,43 +259,81 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
       const scanner = new Html5Qrcode("qr-reader", { verbose: false });
       scannerRef.current = scanner;
 
-      // Determine optimal qrbox based on container size
       const containerEl = document.getElementById("qr-reader");
-      const containerWidth = containerEl ? containerEl.clientWidth : Math.min(window.innerWidth - 48, 400);
-      const qrSize = Math.max(Math.floor(containerWidth * 0.7), 180);
+      const containerWidth = containerEl ? containerEl.clientWidth : Math.min(window.innerWidth - 48, 420);
+      const qrSize = Math.max(Math.floor(containerWidth * 0.72), 200);
 
-      await scanner.start(
-        { facingMode: "environment" },
-        {
-          fps: 12,
-          qrbox: { width: qrSize, height: qrSize },
-          disableFlip: false,
-        },
-        (decodedText: string) => {
-          handleCheckInRef.current?.(decodedText);
-        },
-        () => {}
-      );
+      const onScanSuccess = (decodedText: string) => {
+        handleCheckInRef.current?.(decodedText);
+      };
 
-      // Force video element to fill the container properly
-      requestAnimationFrame(() => {
-        const videoEl = containerEl?.querySelector("video");
-        if (videoEl) {
-          videoEl.style.width = "100%";
-          videoEl.style.height = "100%";
-          videoEl.style.objectFit = "cover";
-          videoEl.style.borderRadius = "0.5rem";
+      const onScanError = () => {};
+
+      const scanConfig = {
+        fps: 12,
+        qrbox: { width: qrSize, height: qrSize },
+        disableFlip: false,
+      };
+
+      let started = false;
+
+      // 1) Try preferred rear camera by deviceId (best mobile compatibility)
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        const preferredCamera =
+          cameras.find((c: any) => /back|rear|environment|hinten|rück/i.test(c.label || "")) || cameras[0];
+
+        if (preferredCamera?.id) {
+          await scanner.start(preferredCamera.id, scanConfig, onScanSuccess, onScanError);
+          started = true;
         }
-        // Hide the extra branding/info elements injected by html5-qrcode
+      } catch {
+        // fallback below
+      }
+
+      // 2) Fallback: facingMode constraint
+      if (!started) {
+        await scanner.start({ facingMode: { ideal: "environment" } }, scanConfig, onScanSuccess, onScanError);
+        started = true;
+      }
+
+      // Ensure iOS Safari renders camera inline (prevents black fullscreen-like preview)
+      let attempts = 0;
+      const forceInlineVideo = () => {
+        const videoEl = containerEl?.querySelector("video") as HTMLVideoElement | null;
+        if (!videoEl) return false;
+
+        videoEl.setAttribute("playsinline", "true");
+        videoEl.setAttribute("webkit-playsinline", "true");
+        videoEl.setAttribute("autoplay", "true");
+        videoEl.setAttribute("muted", "true");
+
+        videoEl.style.width = "100%";
+        videoEl.style.height = "100%";
+        videoEl.style.objectFit = "cover";
+        videoEl.style.borderRadius = "0.5rem";
+
+        void videoEl.play().catch(() => {});
+
         const extraDivs = containerEl?.querySelectorAll("img[alt='Info icon'], a[href]");
-        extraDivs?.forEach((el) => (el as HTMLElement).style.display = "none");
-      });
+        extraDivs?.forEach((el) => ((el as HTMLElement).style.display = "none"));
+
+        return true;
+      };
+
+      const inlineTimer = window.setInterval(() => {
+        attempts += 1;
+        const ok = forceInlineVideo();
+        if (ok || attempts > 25) window.clearInterval(inlineTimer);
+      }, 120);
+
+      setTimeout(() => window.clearInterval(inlineTimer), 4000);
 
       setCameraActive(true);
     } catch (err: any) {
       console.error("Camera error:", err);
       const msg = typeof err === "string" ? err : err?.message || "Unbekannter Fehler";
-      
+
       if (msg.includes("NotAllowedError") || msg.includes("Permission")) {
         setCameraError("Kamera-Zugriff verweigert. Bitte erlaube den Kamerazugriff in den Browser-Einstellungen.");
       } else if (msg.includes("NotFoundError") || msg.includes("Requested device not found")) {
@@ -305,10 +343,9 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
       } else {
         setCameraError(`Kamera-Fehler: ${msg}`);
       }
-      
+
       setCameraActive(false);
       scannerRef.current = null;
-      // Auto-open manual input as fallback
       setShowManual(true);
     }
   }, []);
@@ -574,7 +611,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
             className={`w-full rounded-lg overflow-hidden bg-black/50 transition-all duration-300 ${
               cameraActive ? "aspect-square" : "h-32 flex items-center justify-center"
             }`}
-            style={cameraActive ? { minHeight: "300px", maxHeight: "80vw" } : undefined}
+            style={cameraActive ? { minHeight: "340px" } : undefined}
           >
             {!cameraActive && !cameraError && (
               <button
