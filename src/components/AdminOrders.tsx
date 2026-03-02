@@ -192,6 +192,7 @@ const AdminOrders = () => {
               <p className="text-xs text-muted-foreground mb-1">Käufer</p>
               <p className="text-foreground font-medium">{selectedOrder.buyer_name || "—"}</p>
               <p className="text-sm text-muted-foreground">{selectedOrder.buyer_email}</p>
+              {selectedOrder.buyer_phone && <p className="text-sm text-muted-foreground">📱 {selectedOrder.buyer_phone}</p>}
             </div>
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-xs text-muted-foreground mb-1">Event</p>
@@ -414,8 +415,9 @@ const AdminOrders = () => {
                   </span>
                   {order.checked_in && <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">✓ check-in</span>}
                 </div>
-                <p className="text-sm text-foreground truncate">
+              <p className="text-sm text-foreground truncate">
                   {order.buyer_name || order.buyer_email} — {ev?.title || "Event gelöscht"}
+                  {order.buyer_phone && <span className="ml-2 text-muted-foreground">📱 {order.buyer_phone}</span>}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(order.created_at).toLocaleString("de-DE")} · {order.quantity}× · {order.ticket_type?.name || "Standard"}

@@ -31,6 +31,7 @@ export interface Ticket {
   status: string;
   buyer_name: string | null;
   buyer_email: string;
+  buyer_phone: string | null;
   qr_code: string | null;
   checked_in: boolean;
   checked_in_at: string | null;
