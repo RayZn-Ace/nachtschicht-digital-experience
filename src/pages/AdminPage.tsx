@@ -438,15 +438,17 @@ const AdminPage = () => {
                 />
               </div>
               <div>
-                <label className="text-sm text-foreground mb-1 block">MwSt.</label>
-                <select
+                <label className="text-sm text-foreground mb-1 block">MwSt. (%)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
                   value={formData.vat_rate}
                   onChange={(e) => setFormData({ ...formData, vat_rate: Number(e.target.value) })}
+                  placeholder="z.B. 19"
                   className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                >
-                  <option value={19}>19% MwSt.</option>
-                  <option value={7}>7% MwSt.</option>
-                </select>
+                />
               </div>
               <div>
                 <label className="text-sm text-foreground mb-1 block">Ticketkontingent</label>
