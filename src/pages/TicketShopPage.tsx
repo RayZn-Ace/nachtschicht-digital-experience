@@ -31,6 +31,13 @@ const TicketShopPage = () => {
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
 
+  // Billing address
+  const [billingName, setBillingName] = useState("");
+  const [billingStreet, setBillingStreet] = useState("");
+  const [billingZip, setBillingZip] = useState("");
+  const [billingCity, setBillingCity] = useState("");
+  const [billingCountry, setBillingCountry] = useState("Deutschland");
+
   // Step: 1 = select, 2 = checkout
   const [step, setStep] = useState(1);
 
@@ -122,9 +129,20 @@ const TicketShopPage = () => {
       toast.error(lang === "de" ? "Bitte E-Mail eingeben" : "Please enter email");
       return;
     }
+    if (!billingName || !billingStreet || !billingZip || !billingCity) {
+      toast.error(lang === "de" ? "Bitte Rechnungsadresse vollständig ausfüllen" : "Please complete billing address");
+      return;
+    }
 
     setBuying(true);
     const qrCode = `TKT-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const billingFields = {
+      billing_name: billingName,
+      billing_street: billingStreet,
+      billing_zip: billingZip,
+      billing_city: billingCity,
+      billing_country: billingCountry,
+    };
 
     if (useGlobalPrice) {
       // Single ticket with global price
@@ -137,7 +155,8 @@ const TicketShopPage = () => {
         buyer_name: name || null,
         qr_code: qrCode,
         discount_code_id: appliedDiscount?.id || null,
-      });
+        ...billingFields,
+      } as any);
       if (error) { toast.error(error.message); setBuying(false); return; }
     } else {
       // One ticket per type
@@ -153,8 +172,9 @@ const TicketShopPage = () => {
           buyer_name: name || null,
           qr_code: `${qrCode}-${tt.id.substring(0, 4)}`,
           discount_code_id: appliedDiscount?.id || null,
+          ...billingFields,
         }));
-      const { error } = await supabase.from("tickets").insert(inserts);
+      const { error } = await supabase.from("tickets").insert(inserts as any);
       if (error) { toast.error(error.message); setBuying(false); return; }
     }
 
@@ -414,6 +434,60 @@ const TicketShopPage = () => {
                   {lang === "de" ? "Eingeloggt als" : "Logged in as"}: <strong>{user.email}</strong>
                 </div>
               )}
+
+              {/* Billing address */}
+              <div className="space-y-3">
+                <h3 className="font-display text-sm tracking-wider text-muted-foreground">
+                  {lang === "de" ? "RECHNUNGSADRESSE" : "BILLING ADDRESS"}
+                </h3>
+                <div>
+                  <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Vollständiger Name *" : "Full name *"}</label>
+                  <input
+                    value={billingName}
+                    onChange={(e) => setBillingName(e.target.value)}
+                    className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                    placeholder="Max Mustermann"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Straße & Hausnr. *" : "Street & number *"}</label>
+                  <input
+                    value={billingStreet}
+                    onChange={(e) => setBillingStreet(e.target.value)}
+                    className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                    placeholder="Musterstraße 1"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "PLZ *" : "ZIP *"}</label>
+                    <input
+                      value={billingZip}
+                      onChange={(e) => setBillingZip(e.target.value)}
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                      placeholder="67663"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Ort *" : "City *"}</label>
+                    <input
+                      value={billingCity}
+                      onChange={(e) => setBillingCity(e.target.value)}
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                      placeholder="Kaiserslautern"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Land" : "Country"}</label>
+                  <input
+                    value={billingCountry}
+                    onChange={(e) => setBillingCountry(e.target.value)}
+                    className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                    placeholder="Deutschland"
+                  />
+                </div>
+              </div>
 
               {/* Order summary */}
               <div className="border border-border rounded-lg p-4 space-y-2">

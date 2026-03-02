@@ -861,6 +861,11 @@ export type Database = {
       }
       tickets: {
         Row: {
+          billing_city: string | null
+          billing_country: string | null
+          billing_name: string | null
+          billing_street: string | null
+          billing_zip: string | null
           buyer_email: string
           buyer_name: string | null
           checked_in: boolean
@@ -877,6 +882,11 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_name?: string | null
+          billing_street?: string | null
+          billing_zip?: string | null
           buyer_email: string
           buyer_name?: string | null
           checked_in?: boolean
@@ -893,6 +903,11 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_name?: string | null
+          billing_street?: string | null
+          billing_zip?: string | null
           buyer_email?: string
           buyer_name?: string | null
           checked_in?: boolean
