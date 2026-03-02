@@ -877,7 +877,7 @@ export type Database = {
             foreignKeyName: "newsletter_subscriber_categories_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "newsletter_categories"
+            referencedRelation: "event_tags"
             referencedColumns: ["id"]
           },
           {

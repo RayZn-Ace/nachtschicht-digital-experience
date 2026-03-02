@@ -191,9 +191,7 @@ const AdminNewsletter = () => {
   const [newSubEmail, setNewSubEmail] = useState("");
   const [newSubCatIds, setNewSubCatIds] = useState<string[]>([]);
 
-  // Category management
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatDesc, setNewCatDesc] = useState("");
+  // Category management (now read-only from event_tags)
 
   // Send dialog
   const [showSendDialog, setShowSendDialog] = useState(false);
@@ -218,10 +216,10 @@ const AdminNewsletter = () => {
 
   const fetchCategories = useCallback(async () => {
     const { data } = await supabase
-      .from("newsletter_categories")
+      .from("event_tags")
       .select("*")
       .order("name");
-    if (data) setCategories(data as any);
+    if (data) setCategories(data.map((t: any) => ({ id: t.id, name: t.name, color: t.color, description: null })));
   }, []);
 
   const fetchSubCats = useCallback(async () => {
@@ -309,32 +307,9 @@ const AdminNewsletter = () => {
     fetchSubCats();
   };
 
-  /* ─── Category actions ─── */
-  const handleAddCategory = async () => {
-    if (!newCatName.trim()) { toast.error("Name ist erforderlich"); return; }
-    const color = CAT_COLORS[categories.length % CAT_COLORS.length];
-    const { error } = await supabase.from("newsletter_categories").insert({
-      name: newCatName.trim(),
-      color,
-      description: newCatDesc.trim() || null,
-    } as any);
-    if (error) {
-      if (error.code === "23505") toast.error("Kategorie existiert bereits");
-      else toast.error("Fehler: " + error.message);
-      return;
-    }
-    toast.success("Kategorie erstellt");
-    setNewCatName("");
-    setNewCatDesc("");
-    fetchCategories();
-  };
-
-  const handleDeleteCategory = async (id: string) => {
-    if (!confirm("Kategorie wirklich löschen?")) return;
-    await supabase.from("newsletter_categories").delete().eq("id", id);
-    toast.success("Gelöscht");
-    fetchCategories();
-    fetchSubCats();
+  /* ─── Category actions (now managed via Event-Tags) ─── */
+  const handleDeleteCategory = async (_id: string) => {
+    toast.info("Kategorien werden über Event-Tags verwaltet");
   };
 
   /* ─── Editor actions ─── */
@@ -648,34 +623,25 @@ const AdminNewsletter = () => {
         <button onClick={() => setView("campaigns")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
           <ChevronLeft size={16} /> Zurück
         </button>
-        <h2 className="font-display text-xl tracking-wider text-foreground mb-4">KATEGORIEN</h2>
+        <h2 className="font-display text-xl tracking-wider text-foreground mb-4">KATEGORIEN (EVENT-TAGS)</h2>
 
-        {/* Add category */}
-        <div className="glass-card p-4 mb-6 space-y-3">
-          <h3 className="text-sm font-medium text-foreground">Neue Kategorie</h3>
-          <div className="flex gap-3">
-            <input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="z.B. Black Music, Latin, Techno..." className="flex-1 px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
-            <input value={newCatDesc} onChange={(e) => setNewCatDesc(e.target.value)} placeholder="Beschreibung (optional)" className="flex-1 px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
-            <button onClick={handleAddCategory} className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-display tracking-wider text-sm hover:bg-primary/90">
-              <Plus size={16} />
-            </button>
-          </div>
+        <div className="glass-card p-4 mb-6">
+          <p className="text-sm text-muted-foreground">
+            Kategorien werden automatisch aus den <span className="text-primary font-medium">Event-Tags</span> übernommen. 
+            Wenn ein Kunde ein Ticket für ein Event mit dem Tag „Black Music" kauft, wird er automatisch in diese Kategorie eingetragen.
+            Verwalte Tags im Bereich <span className="text-primary font-medium">Tags</span>.
+          </p>
         </div>
 
-        {/* Category list */}
         {categories.length === 0 ? (
-          <p className="text-muted-foreground text-center py-12">Noch keine Kategorien erstellt.</p>
+          <p className="text-muted-foreground text-center py-12">Noch keine Event-Tags erstellt. Erstelle Tags im Tags-Bereich.</p>
         ) : (
           <div className="space-y-2">
             {categories.map((cat) => (
               <div key={cat.id} className="glass-card p-4 flex items-center gap-3">
                 <span className={`text-xs px-3 py-1 rounded-full font-medium ${cat.color}`}>{cat.name}</span>
-                <span className="text-xs text-muted-foreground">{cat.description}</span>
                 <div className="flex-1" />
                 <span className="text-xs text-muted-foreground">{getCategorySubCount(cat.id)} Abonnenten</span>
-                <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive">
-                  <Trash2 size={16} />
-                </button>
               </div>
             ))}
           </div>
