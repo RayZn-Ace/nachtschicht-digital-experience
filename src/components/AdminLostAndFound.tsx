@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Trash2, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Trash2, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp, Loader2, PackageCheck, PackageX } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
@@ -20,10 +20,9 @@ interface LostItem {
 }
 
 const STATUS_OPTIONS = [
-  { value: "open", label: "Offen", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
-  { value: "in_progress", label: "In Bearbeitung", color: "bg-blue-500/20 text-blue-400", icon: Search },
-  { value: "found", label: "Gefunden", color: "bg-green-500/20 text-green-400", icon: CheckCircle },
-  { value: "closed", label: "Abgeschlossen", color: "bg-muted text-muted-foreground", icon: XCircle },
+  { value: "open", label: "Offen", color: "bg-yellow-500/20 text-yellow-400" },
+  { value: "found", label: "Gefunden", color: "bg-green-500/20 text-green-400" },
+  { value: "not_found", label: "Nicht gefunden", color: "bg-destructive/20 text-destructive" },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -39,6 +38,7 @@ const AdminLostAndFound = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -57,17 +57,43 @@ const AdminLostAndFound = () => {
 
   useEffect(() => { fetchItems(); }, []);
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    const { error } = await supabase
+  const handleAction = async (item: LostItem, newStatus: "found" | "not_found") => {
+    setSendingEmail(item.id + newStatus);
+
+    // 1. Update status
+    const { error: updateError } = await supabase
       .from("lost_and_found")
       .update({ status: newStatus } as any)
-      .eq("id", id);
-    if (error) {
+      .eq("id", item.id);
+
+    if (updateError) {
       toast.error("Status konnte nicht geändert werden.");
-    } else {
-      toast.success("Status aktualisiert.");
-      setItems((prev) => prev.map((i) => i.id === id ? { ...i, status: newStatus } : i));
+      setSendingEmail(null);
+      return;
     }
+
+    // 2. Send email
+    const { error: emailError } = await supabase.functions.invoke("send-lostfound-email", {
+      body: {
+        email: item.email,
+        firstName: item.first_name,
+        category: item.category,
+        status: newStatus,
+      },
+    });
+
+    if (emailError) {
+      toast.error("Status aktualisiert, aber E-Mail konnte nicht gesendet werden.");
+    } else {
+      toast.success(
+        newStatus === "found"
+          ? `✅ ${item.first_name} wurde benachrichtigt – Gegenstand gefunden!`
+          : `📧 ${item.first_name} wurde benachrichtigt – leider nicht gefunden.`
+      );
+    }
+
+    setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, status: newStatus } : i));
+    setSendingEmail(null);
   };
 
   const handleSaveNotes = async (id: string) => {
@@ -141,6 +167,7 @@ const AdminLostAndFound = () => {
           {filtered.map((item) => {
             const statusInfo = getStatusInfo(item.status);
             const isExpanded = expandedId === item.id;
+            const isOpen = item.status === "open";
             return (
               <div key={item.id} className="border border-border rounded-lg bg-card overflow-hidden">
                 {/* Summary row */}
@@ -216,18 +243,32 @@ const AdminLostAndFound = () => {
                       </div>
                     </div>
 
-                    {/* Status + Delete */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-muted-foreground">Status:</span>
-                      {STATUS_OPTIONS.map((s) => (
-                        <button
-                          key={s.value}
-                          onClick={() => handleStatusChange(item.id, s.value)}
-                          className={`text-xs px-2.5 py-1 rounded-full transition-colors ${item.status === s.value ? "ring-2 ring-primary " : ""}${s.color}`}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
+                    {/* Action buttons + Delete */}
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      {isOpen ? (
+                        <>
+                          <button
+                            onClick={() => handleAction(item, "found")}
+                            disabled={sendingEmail !== null}
+                            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                          >
+                            {sendingEmail === item.id + "found" ? <Loader2 size={14} className="animate-spin" /> : <PackageCheck size={14} />}
+                            Gefunden
+                          </button>
+                          <button
+                            onClick={() => handleAction(item, "not_found")}
+                            disabled={sendingEmail !== null}
+                            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 disabled:opacity-50 transition-colors"
+                          >
+                            {sendingEmail === item.id + "not_found" ? <Loader2 size={14} className="animate-spin" /> : <PackageX size={14} />}
+                            Nicht gefunden
+                          </button>
+                        </>
+                      ) : (
+                        <span className={`text-sm px-3 py-1.5 rounded-full ${statusInfo.color}`}>
+                          {statusInfo.label} – Kunde wurde benachrichtigt
+                        </span>
+                      )}
                       <button
                         onClick={() => handleDelete(item.id)}
                         className="ml-auto text-destructive hover:text-destructive/80 p-1.5 rounded hover:bg-destructive/10"
