@@ -9,7 +9,6 @@ const corsHeaders = {
 const RATE_LIMIT_MS = 550;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Replace placeholders like {{NAME}}, {{EMAIL}} with subscriber data */
 const replacePlaceholders = (html: string, sub: { email: string; name?: string | null }): string => {
   const name = sub.name || sub.email.split("@")[0];
   return html
@@ -71,7 +70,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { newsletter_id } = await req.json();
+    const { newsletter_id, category_ids } = await req.json();
     if (!newsletter_id) {
       return new Response(JSON.stringify({ error: "newsletter_id required" }), {
         status: 400,
@@ -99,16 +98,53 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: subscribers } = await adminClient
-      .from("newsletter_subscribers")
-      .select("email, name")
-      .eq("is_active", true);
+    // Get subscribers – filtered by categories if provided
+    let subscriberEmails: Set<string> | null = null;
 
-    if (!subscribers || subscribers.length === 0) {
-      return new Response(JSON.stringify({ error: "Keine aktiven Abonnenten" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (category_ids && Array.isArray(category_ids) && category_ids.length > 0) {
+      // Get subscriber IDs for selected categories
+      const { data: subCatRows } = await adminClient
+        .from("newsletter_subscriber_categories")
+        .select("subscriber_id")
+        .in("category_id", category_ids);
+
+      if (subCatRows && subCatRows.length > 0) {
+        const subIds = [...new Set(subCatRows.map((r: any) => r.subscriber_id))];
+        const { data: catSubs } = await adminClient
+          .from("newsletter_subscribers")
+          .select("email, name")
+          .in("id", subIds)
+          .eq("is_active", true);
+        
+        if (!catSubs || catSubs.length === 0) {
+          return new Response(JSON.stringify({ error: "Keine aktiven Abonnenten in den gewählten Kategorien" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Use these subscribers
+        var subscribers = catSubs;
+      } else {
+        return new Response(JSON.stringify({ error: "Keine Abonnenten in den gewählten Kategorien" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      // All active subscribers
+      const { data: allSubs } = await adminClient
+        .from("newsletter_subscribers")
+        .select("email, name")
+        .eq("is_active", true);
+
+      if (!allSubs || allSubs.length === 0) {
+        return new Response(JSON.stringify({ error: "Keine aktiven Abonnenten" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      var subscribers = allSubs;
     }
 
     await adminClient
