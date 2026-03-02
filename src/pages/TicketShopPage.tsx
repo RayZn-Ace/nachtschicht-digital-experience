@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
 import type { Event, TicketType, DiscountCode } from "@/types/database";
 import { toast } from "sonner";
-import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users } from "lucide-react";
+import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download } from "lucide-react";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import ScrollReveal from "@/components/ScrollReveal";
 import EventLoungeSection from "@/components/EventLoungeSection";
@@ -37,6 +37,7 @@ const TicketShopPage = () => {
   const [billingZip, setBillingZip] = useState("");
   const [billingCity, setBillingCity] = useState("");
   const [billingCountry, setBillingCountry] = useState("Deutschland");
+  const [purchasedQrCode, setPurchasedQrCode] = useState<string>("");
 
   // Step: 1 = select, 2 = checkout
   const [step, setStep] = useState(1);
@@ -184,6 +185,7 @@ const TicketShopPage = () => {
     }
 
     toast.success(lang === "de" ? "Ticket erfolgreich gebucht! 🎉" : "Ticket booked successfully! 🎉");
+    setPurchasedQrCode(qrCode);
     setStep(3); // success
     setBuying(false);
   };
@@ -252,24 +254,95 @@ const TicketShopPage = () => {
             <p className="text-2xl font-display text-destructive tracking-wider">{lang === "de" ? "AUSVERKAUFT" : "SOLD OUT"}</p>
           </div>
         ) : step === 3 ? (
-          /* Success */
-          <div className="glass-card p-8 text-center animate-fade-in">
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="font-display text-3xl tracking-wider text-foreground mb-2">
-              {lang === "de" ? "TICKET GEBUCHT!" : "TICKET BOOKED!"}
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              {lang === "de"
-                ? "Dein QR-Code Ticket wurde an deine E-Mail gesendet."
-                : "Your QR code ticket has been sent to your email."}
-            </p>
-            <button
-              onClick={() => navigate("/events")}
-              className="px-6 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90"
-            >
-              {lang === "de" ? "WEITERE EVENTS" : "MORE EVENTS"}
-            </button>
-          </div>
+          /* Success – Confirmation with QR Code */
+          <ScrollReveal>
+            <div className="glass-card p-6 md:p-10 animate-fade-in space-y-6">
+              {/* Header */}
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-4">
+                  <CheckCircle2 size={36} className="text-green-400" />
+                </div>
+                <h2 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-1">
+                  {lang === "de" ? "TICKET GEBUCHT!" : "TICKET BOOKED!"}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  {lang === "de"
+                    ? "Zeige diesen QR-Code am Eingang vor."
+                    : "Show this QR code at the entrance."}
+                </p>
+              </div>
+
+              {/* QR Code */}
+              <div className="flex flex-col items-center gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-lg">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(purchasedQrCode)}&bgcolor=FFFFFF&color=000000`}
+                    alt="Ticket QR Code"
+                    className="w-[220px] h-[220px]"
+                  />
+                </div>
+                <span className="font-mono text-xs text-muted-foreground tracking-widest select-all">
+                  {purchasedQrCode}
+                </span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(purchasedQrCode);
+                    toast.success(lang === "de" ? "Code kopiert!" : "Code copied!");
+                  }}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Copy size={12} /> {lang === "de" ? "Code kopieren" : "Copy code"}
+                </button>
+              </div>
+
+              {/* Ticket Details */}
+              <div className="border border-border rounded-lg p-4 space-y-2">
+                <h3 className="font-display text-lg tracking-wider text-foreground">
+                  {event.title}
+                </h3>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar size={14} />
+                  {new Date(event.date).toLocaleDateString("de-DE", {
+                    weekday: "long", day: "2-digit", month: "long", year: "numeric"
+                  })} – {event.time}
+                </div>
+                <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
+                  <span className="text-muted-foreground">
+                    {totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}
+                  </span>
+                  <span className="text-foreground font-bold">{finalTotal.toFixed(2)}€</span>
+                </div>
+              </div>
+
+              {/* Info */}
+              <p className="text-xs text-muted-foreground text-center">
+                {lang === "de"
+                  ? "Eine Bestätigung wurde an deine E-Mail gesendet. Speichere diesen QR-Code als Screenshot."
+                  : "A confirmation has been sent to your email. Save this QR code as a screenshot."}
+              </p>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(purchasedQrCode)}&bgcolor=FFFFFF&color=000000`;
+                    link.download = `ticket-${purchasedQrCode}.png`;
+                    link.click();
+                  }}
+                  className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm"
+                >
+                  <Download size={16} /> {lang === "de" ? "QR-CODE SPEICHERN" : "SAVE QR CODE"}
+                </button>
+                <button
+                  onClick={() => navigate("/events")}
+                  className="px-5 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 text-sm"
+                >
+                  {lang === "de" ? "WEITERE EVENTS" : "MORE EVENTS"}
+                </button>
+              </div>
+            </div>
+          </ScrollReveal>
         ) : step === 1 ? (
           /* Step 1: Select tickets */
           <ScrollReveal>
