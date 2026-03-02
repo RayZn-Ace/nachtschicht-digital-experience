@@ -193,15 +193,7 @@ const AdminEventTickets = ({ event, onClose }: Props) => {
       try {
         await supabase.functions.invoke("send-ticket-email", {
           body: {
-            ticket_id: ticket.id,
-            buyer_email: email,
-            buyer_name: name,
-            event_title: event.title,
-            event_date: event.date,
-            event_time: event.time,
-            qr_code: qrCode,
-            quantity: sendQuantity,
-            total_price: sendingFor.price * sendQuantity,
+            ticket_ids: [ticket.id],
           },
         });
         toast.success(`Ticket an ${email} versendet!`);
