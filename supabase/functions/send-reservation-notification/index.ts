@@ -92,7 +92,7 @@ serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: `${config?.company_name || "Nachtschicht"} <noreply@resend.dev>`,
+        from: `${config?.company_name || "Nachtschicht"} <noreply@smeanet.de>`,
         to: [adminEmail],
         subject,
         html,
@@ -132,7 +132,7 @@ serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: `${clubName} <noreply@resend.dev>`,
+        from: `${clubName} <noreply@smeanet.de>`,
         to: [body.email],
         subject: guestSubject,
         html: guestHtml,

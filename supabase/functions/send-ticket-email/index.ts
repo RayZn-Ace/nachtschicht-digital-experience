@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Nachtschicht <tickets@nachtschicht-kaiserslautern.de>",
+        from: "Nachtschicht <tickets@smeanet.de>",
         to: [buyerEmail],
         subject: `Dein Ticket für ${eventTitle}`,
         html: `
