@@ -652,7 +652,10 @@ const AdminTicketCenter = () => {
                 <div
                   key={order.id}
                   onClick={() => openDetail(order)}
-                  className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 transition-colors"
+                  className={`glass-card p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 transition-colors ${
+                    order.status === "canceled" ? "opacity-60 border-destructive/40 bg-destructive/5" :
+                    order.status === "refunded" ? "opacity-60 border-yellow-500/40 bg-yellow-500/5" : ""
+                  }`}
                   role="button"
                   tabIndex={0}
                 >
@@ -673,7 +676,7 @@ const AdminTicketCenter = () => {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-lg font-bold text-foreground">{order.total_price.toFixed(2)}€</p>
+                    <p className={`text-lg font-bold ${order.status === "canceled" || order.status === "refunded" ? "line-through text-muted-foreground" : "text-foreground"}`}>{order.total_price.toFixed(2)}€</p>
                   </div>
                   <Eye size={16} className="text-muted-foreground shrink-0" />
                 </div>
