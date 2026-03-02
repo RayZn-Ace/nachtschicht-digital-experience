@@ -6,10 +6,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Resend rate limit: max 2 emails/second → 500ms between sends
 const RATE_LIMIT_MS = 550;
-
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Replace placeholders like {{NAME}}, {{EMAIL}} with subscriber data */
+const replacePlaceholders = (html: string, sub: { email: string; name?: string | null }): string => {
+  const name = sub.name || sub.email.split("@")[0];
+  return html
+    .replace(/\{\{NAME\}\}/gi, name)
+    .replace(/\{\{EMAIL\}\}/gi, sub.email)
+    .replace(/\{\{VORNAME\}\}/gi, name);
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -72,7 +79,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get newsletter
     const { data: newsletter, error: nlErr } = await adminClient
       .from("newsletters")
       .select("*")
@@ -93,10 +99,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get active subscribers
     const { data: subscribers } = await adminClient
       .from("newsletter_subscribers")
-      .select("email")
+      .select("email, name")
       .eq("is_active", true);
 
     if (!subscribers || subscribers.length === 0) {
@@ -106,13 +111,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update newsletter status to sending
     await adminClient
       .from("newsletters")
       .update({ status: "sending", total_recipients: subscribers.length })
       .eq("id", newsletter_id);
 
-    // Get sender config from invoice_config
     const { data: config } = await adminClient
       .from("invoice_config")
       .select("company_name, email")
@@ -124,10 +127,11 @@ Deno.serve(async (req) => {
 
     let totalSent = 0;
     let totalFailed = 0;
+    const baseHtml = newsletter.body_html;
 
-    // Send emails with rate limiting (2/sec max)
     for (let i = 0; i < subscribers.length; i++) {
       const sub = subscribers[i];
+      const personalizedHtml = replacePlaceholders(baseHtml, sub);
 
       try {
         const res = await fetch("https://api.resend.com/emails", {
@@ -139,8 +143,8 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: `${senderName} <${senderEmail}>`,
             to: [sub.email],
-            subject: newsletter.subject,
-            html: newsletter.body_html,
+            subject: replacePlaceholders(newsletter.subject, sub),
+            html: personalizedHtml,
           }),
         });
 
@@ -173,12 +177,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Rate limit: wait between sends (skip after last one)
-      if (i < subscribers.length - 1) {
-        await sleep(RATE_LIMIT_MS);
-      }
+      if (i < subscribers.length - 1) await sleep(RATE_LIMIT_MS);
 
-      // Update progress every 10 emails
       if ((i + 1) % 10 === 0 || i === subscribers.length - 1) {
         await adminClient
           .from("newsletters")
@@ -187,7 +187,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Final update
     await adminClient
       .from("newsletters")
       .update({
