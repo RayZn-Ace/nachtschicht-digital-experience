@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useI18n } from "@/hooks/useI18n";
 import { Image, ChevronLeft, ChevronRight, X, Download, CheckCircle2 } from "lucide-react";
-import { AlbumSkeletonCard } from "@/components/SkeletonCard";
+import { AlbumSkeletonCard, PhotoSkeletonGrid } from "@/components/SkeletonCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 
@@ -28,6 +28,7 @@ const PhotosPage = () => {
   const [photos, setPhotos] = useState<AlbumPhoto[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   useEffect(() => {
     const fetchAlbums = async () => {
@@ -44,12 +45,15 @@ const PhotosPage = () => {
 
   const openAlbum = async (album: Album) => {
     setSelectedAlbum(album);
+    setLoadingPhotos(true);
+    setPhotos([]);
     const { data } = await supabase
       .from("album_photos")
       .select("*")
       .eq("album_id", album.id)
       .order("sort_order", { ascending: true });
     if (data) setPhotos(data as AlbumPhoto[]);
+    setLoadingPhotos(false);
   };
 
   const closeAlbum = () => {
@@ -126,7 +130,9 @@ const PhotosPage = () => {
             </div>
           </ScrollReveal>
 
-          {photos.length === 0 ? (
+          {loadingPhotos ? (
+            <PhotoSkeletonGrid />
+          ) : photos.length === 0 ? (
             <p className="text-muted-foreground text-center py-16">
               {lang === "de" ? "Keine Fotos in diesem Album." : "No photos in this album."}
             </p>
