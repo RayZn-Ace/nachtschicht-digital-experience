@@ -266,7 +266,7 @@ const TicketShopPage = () => {
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-primary/15 text-primary font-medium hover:bg-primary/25 transition-colors"
                     >
                       <ShieldCheck size={13} />
-                      {lang === "de" ? "Muttizettel verfügbar" : "Parental consent available"}
+                      {lang === "de" ? "Muttizettel erlaubt" : "Parental consent allowed"}
                     </a>
                   )}
                 </div>
@@ -667,7 +667,7 @@ const TicketShopPage = () => {
                   </h3>
                   <p className="text-muted-foreground text-sm mb-3">
                     {lang === "de"
-                      ? "Für dieses Event ist ein Muttizettel verfügbar. Minderjährige können mit einer unterschriebenen Einverständniserklärung teilnehmen."
+                      ? "Für dieses Event ist ein Muttizettel erlaubt. Minderjährige können mit einer unterschriebenen Einverständniserklärung teilnehmen."
                       : "A parental consent form is available for this event. Minors can attend with a signed consent form."}
                   </p>
                   <a
