@@ -38,16 +38,16 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: `This is an event flyer/poster image. I need you to create a wide horizontal newsletter banner version of this image (aspect ratio roughly 3.3:1, like 600x180).
+                text: `Transform this event flyer into a wide horizontal email newsletter banner (aspect ratio 3.3:1, like 600x180 pixels).
 
-IMPORTANT RULES:
-1. Keep ALL important content visible: event name, artist names, dates, times, logos, faces of people
-2. Do NOT crop out any text or faces
-3. If the original image is taller than wide, zoom out and use generative fill to extend the sides seamlessly
-4. If content would be cut off at top/bottom, extend the image vertically first then crop to the wide format, filling empty areas with matching background
-5. The result should look natural and professional, matching the style and colors of the original
-6. Maintain the mood, lighting, and aesthetic of the original flyer
-7. The generated banner should be high quality and suitable for an email newsletter`
+CRITICAL RULES — follow these exactly:
+1. The ENTIRE original image content MUST remain fully visible in the result. Do NOT crop, cut, or remove ANY part of the original image — no text, no faces, no logos, no decorative elements.
+2. Scale/shrink the FULL original image so it fits completely within the banner height (180px equivalent).
+3. This will leave empty space on the LEFT and RIGHT sides. Fill these empty side areas using generative fill that seamlessly extends the background, colors, textures, and mood of the original image.
+4. The original image should appear as the CENTER of the banner, fully intact and uncropped.
+5. Think of it like: take the full poster, place it in the center of a wider canvas, then paint the sides to match.
+6. The result must look natural, professional, and cohesive — the extended sides should blend seamlessly.
+7. NEVER cut off any text (event titles, dates, artist names) or faces/people. Everything from the original must be visible.`
               },
               {
                 type: "image_url",
