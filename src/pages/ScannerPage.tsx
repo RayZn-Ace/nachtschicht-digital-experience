@@ -605,18 +605,20 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
             </div>
           )}
 
-          <div
-            id="qr-reader"
-            ref={videoRef}
-            className={`w-full rounded-lg overflow-hidden bg-black/50 transition-all duration-300 ${
-              cameraActive ? "aspect-square" : "h-32 flex items-center justify-center"
-            }`}
-            style={cameraActive ? { minHeight: "340px" } : undefined}
-          >
+          <div className="relative w-full">
+            <div
+              id="qr-reader"
+              ref={videoRef}
+              className={`w-full rounded-lg overflow-hidden bg-black/50 transition-all duration-300 ${
+                cameraActive ? "aspect-square" : "h-32"
+              }`}
+              style={cameraActive ? { minHeight: "340px" } : undefined}
+            />
+
             {!cameraActive && !cameraError && (
               <button
                 onClick={startCamera}
-                className="text-muted-foreground text-sm text-center flex flex-col items-center gap-2 p-4"
+                className="absolute inset-0 text-muted-foreground text-sm text-center flex flex-col items-center justify-center gap-2 p-4"
                 style={{ touchAction: "manipulation" }}
               >
                 <Camera size={36} className="opacity-50" />
