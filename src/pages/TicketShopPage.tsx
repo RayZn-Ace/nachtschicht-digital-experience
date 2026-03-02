@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users } from "lucide-react";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import ScrollReveal from "@/components/ScrollReveal";
+import EventLoungeSection from "@/components/EventLoungeSection";
 
 const TicketShopPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -461,6 +462,11 @@ const TicketShopPage = () => {
               </div>
             </div>
           </ScrollReveal>
+        )}
+
+        {/* Lounge Section */}
+        {event && !soldOut && step !== 3 && (
+          <EventLoungeSection event={event} />
         )}
       </div>
     </section>
