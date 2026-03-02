@@ -257,38 +257,59 @@ export type Database = {
       }
       lounge_bookings: {
         Row: {
+          agreed_terms: boolean
+          arrival_time: string | null
+          booking_type: string
           created_at: string
+          deposit_amount: number
+          deposit_paid: boolean
           event_id: string
           guest_count: number
           id: string
           lounge_id: string
           message: string | null
+          notes: string | null
           status: string
           user_email: string
+          user_id: string | null
           user_name: string
           user_phone: string | null
         }
         Insert: {
+          agreed_terms?: boolean
+          arrival_time?: string | null
+          booking_type?: string
           created_at?: string
+          deposit_amount?: number
+          deposit_paid?: boolean
           event_id: string
           guest_count?: number
           id?: string
           lounge_id: string
           message?: string | null
+          notes?: string | null
           status?: string
           user_email: string
+          user_id?: string | null
           user_name: string
           user_phone?: string | null
         }
         Update: {
+          agreed_terms?: boolean
+          arrival_time?: string | null
+          booking_type?: string
           created_at?: string
+          deposit_amount?: number
+          deposit_paid?: boolean
           event_id?: string
           guest_count?: number
           id?: string
           lounge_id?: string
           message?: string | null
+          notes?: string | null
           status?: string
           user_email?: string
+          user_id?: string | null
           user_name?: string
           user_phone?: string | null
         }
