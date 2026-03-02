@@ -166,10 +166,18 @@ const EventsPage = () => {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <span className="text-primary font-bold text-xl">{lang === "de" ? "ab" : "from"} {event.ticket_price}€</span>
-                        <span className="px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md text-sm">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md text-sm"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/tickets/${event.id}`); }}
+                        >
                           {soldOut ? (lang === "de" ? "AUSVERKAUFT" : "SOLD OUT") : (lang === "de" ? "TICKETS" : "TICKETS")}
+                        </span>
+                        <span
+                          className="px-4 py-2 bg-muted text-foreground font-display tracking-wider rounded-md text-sm hover:bg-muted/80 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); navigate("/lounges"); }}
+                        >
+                          LOUNGES
                         </span>
                       </div>
                     </div>
