@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import CookieConsent from "./CookieConsent";
+import ChatBot from "./ChatBot";
 import { useTracking } from "@/hooks/useTracking";
 
 const Layout = ({ children }: { children: ReactNode }) => {
@@ -18,6 +19,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
       </main>
       <Footer />
       <CookieConsent />
+      <ChatBot />
     </div>
   );
 };
