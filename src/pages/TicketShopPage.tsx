@@ -31,12 +31,8 @@ const TicketShopPage = () => {
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
 
-  // Billing address
-  const [billingName, setBillingName] = useState("");
-  const [billingStreet, setBillingStreet] = useState("");
-  const [billingZip, setBillingZip] = useState("");
-  const [billingCity, setBillingCity] = useState("");
-  const [billingCountry, setBillingCountry] = useState("Deutschland");
+  // Contact info
+  const [guestPhone, setGuestPhone] = useState("");
   const [purchasedQrCode, setPurchasedQrCode] = useState<string>("");
   const [purchasedTicketIds, setPurchasedTicketIds] = useState<string[]>([]);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
@@ -132,20 +128,8 @@ const TicketShopPage = () => {
       toast.error(lang === "de" ? "Bitte E-Mail eingeben" : "Please enter email");
       return;
     }
-    if (!billingName || !billingStreet || !billingZip || !billingCity) {
-      toast.error(lang === "de" ? "Bitte Rechnungsadresse vollständig ausfüllen" : "Please complete billing address");
-      return;
-    }
-
     setBuying(true);
     const qrCode = `TKT-${crypto.randomUUID()}`;
-    const billingFields = {
-      billing_name: billingName,
-      billing_street: billingStreet,
-      billing_zip: billingZip,
-      billing_city: billingCity,
-      billing_country: billingCountry,
-    };
 
     let ticketIds: string[] = [];
 
@@ -160,7 +144,6 @@ const TicketShopPage = () => {
         buyer_name: name || null,
         qr_code: qrCode,
         discount_code_id: appliedDiscount?.id || null,
-        ...billingFields,
       } as any).select("id");
       if (error) { toast.error(error.message); setBuying(false); return; }
       if (data) ticketIds = data.map((t: any) => t.id);
@@ -178,7 +161,6 @@ const TicketShopPage = () => {
           buyer_name: name || null,
           qr_code: `TKT-${crypto.randomUUID()}`,
           discount_code_id: appliedDiscount?.id || null,
-          ...billingFields,
         }));
       const { data, error } = await supabase.from("tickets").insert(inserts as any).select("id");
       if (error) { toast.error(error.message); setBuying(false); return; }
@@ -561,28 +543,17 @@ const TicketShopPage = () => {
               </h2>
 
               {!user && (
-                <>
-                  <div>
-                    <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Dein Name" : "Your name"}</label>
-                    <input
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                      placeholder="Max Mustermann"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-foreground mb-1 block">E-Mail *</label>
-                    <input
-                      type="email"
-                      required
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                      placeholder="deine@email.de"
-                    />
-                  </div>
-                </>
+                <div>
+                  <label className="text-sm text-foreground mb-1 block">E-Mail *</label>
+                  <input
+                    type="email"
+                    required
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                    placeholder="deine@email.de"
+                  />
+                </div>
               )}
 
               {user && (
@@ -591,58 +562,15 @@ const TicketShopPage = () => {
                 </div>
               )}
 
-              {/* Billing address */}
-              <div className="space-y-3">
-                <h3 className="font-display text-sm tracking-wider text-muted-foreground">
-                  {lang === "de" ? "RECHNUNGSADRESSE" : "BILLING ADDRESS"}
-                </h3>
-                <div>
-                  <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Vollständiger Name *" : "Full name *"}</label>
-                  <input
-                    value={billingName}
-                    onChange={(e) => setBillingName(e.target.value)}
-                    className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                    placeholder="Max Mustermann"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Straße & Hausnr. *" : "Street & number *"}</label>
-                  <input
-                    value={billingStreet}
-                    onChange={(e) => setBillingStreet(e.target.value)}
-                    className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                    placeholder="Musterstraße 1"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "PLZ *" : "ZIP *"}</label>
-                    <input
-                      value={billingZip}
-                      onChange={(e) => setBillingZip(e.target.value)}
-                      className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                      placeholder="67663"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Ort *" : "City *"}</label>
-                    <input
-                      value={billingCity}
-                      onChange={(e) => setBillingCity(e.target.value)}
-                      className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                      placeholder="Kaiserslautern"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Land" : "Country"}</label>
-                  <input
-                    value={billingCountry}
-                    onChange={(e) => setBillingCountry(e.target.value)}
-                    className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                    placeholder="Deutschland"
-                  />
-                </div>
+              <div>
+                <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Handynummer *" : "Phone number *"}</label>
+                <input
+                  type="tel"
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                  placeholder="+49 170 1234567"
+                />
               </div>
 
               {/* Order summary */}
