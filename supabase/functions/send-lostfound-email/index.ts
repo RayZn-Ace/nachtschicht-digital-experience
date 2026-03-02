@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Nachtschicht <noreply@nachtschicht-kaiserslautern.de>",
+        from: "Nachtschicht <noreply@smeanet.de>",
         to: [email],
         subject,
         html: bodyHtml,
