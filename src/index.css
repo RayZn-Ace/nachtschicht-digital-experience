@@ -152,3 +152,36 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(0 85% 50% / 0.7);
 }
+
+/* html5-qrcode scanner overrides */
+#qr-reader {
+  border: none !important;
+  background: hsl(var(--muted)) !important;
+  position: relative;
+}
+#qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 0.5rem;
+}
+#qr-reader__scan_region {
+  min-height: 100% !important;
+}
+#qr-reader__scan_region video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+#qr-reader__scan_region img {
+  display: none !important;
+}
+#qr-reader__dashboard {
+  display: none !important;
+}
+#qr-reader__header_message {
+  display: none !important;
+}
+#qr-reader a[href] {
+  display: none !important;
+}

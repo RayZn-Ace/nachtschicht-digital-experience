@@ -259,24 +259,38 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
       const scanner = new Html5Qrcode("qr-reader", { verbose: false });
       scannerRef.current = scanner;
 
-      // Determine optimal qrbox based on screen size
-      const screenWidth = Math.min(window.innerWidth - 48, 400);
-      const qrSize = Math.min(screenWidth, 280);
+      // Determine optimal qrbox based on container size
+      const containerEl = document.getElementById("qr-reader");
+      const containerWidth = containerEl ? containerEl.clientWidth : Math.min(window.innerWidth - 48, 400);
+      const qrSize = Math.max(Math.floor(containerWidth * 0.7), 180);
 
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10,
+          fps: 12,
           qrbox: { width: qrSize, height: qrSize },
-          aspectRatio: 1,
           disableFlip: false,
         },
         (decodedText: string) => {
-          // Use ref to always call the latest handleCheckIn
           handleCheckInRef.current?.(decodedText);
         },
-        () => {} // ignore failures
+        () => {}
       );
+
+      // Force video element to fill the container properly
+      requestAnimationFrame(() => {
+        const videoEl = containerEl?.querySelector("video");
+        if (videoEl) {
+          videoEl.style.width = "100%";
+          videoEl.style.height = "100%";
+          videoEl.style.objectFit = "cover";
+          videoEl.style.borderRadius = "0.5rem";
+        }
+        // Hide the extra branding/info elements injected by html5-qrcode
+        const extraDivs = containerEl?.querySelectorAll("img[alt='Info icon'], a[href]");
+        extraDivs?.forEach((el) => (el as HTMLElement).style.display = "none");
+      });
+
       setCameraActive(true);
     } catch (err: any) {
       console.error("Camera error:", err);
@@ -557,9 +571,10 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
           <div
             id="qr-reader"
             ref={videoRef}
-            className={`w-full rounded-lg overflow-hidden bg-black/50 ${
-              cameraActive ? "min-h-[280px] sm:min-h-[320px]" : "h-28 flex items-center justify-center"
+            className={`w-full rounded-lg overflow-hidden bg-black/50 transition-all duration-300 ${
+              cameraActive ? "aspect-square" : "h-32 flex items-center justify-center"
             }`}
+            style={cameraActive ? { minHeight: "300px", maxHeight: "80vw" } : undefined}
           >
             {!cameraActive && !cameraError && (
               <button
@@ -567,7 +582,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                 className="text-muted-foreground text-sm text-center flex flex-col items-center gap-2 p-4"
                 style={{ touchAction: "manipulation" }}
               >
-                <Camera size={32} className="opacity-50" />
+                <Camera size={36} className="opacity-50" />
                 <span>Tippen zum Starten</span>
               </button>
             )}
