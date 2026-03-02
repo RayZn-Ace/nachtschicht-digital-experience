@@ -130,7 +130,7 @@ const ChatBot = () => {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-105"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)] flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110 active:scale-95"
           aria-label="Chat öffnen"
         >
           <MessageCircle size={24} />
@@ -139,31 +139,38 @@ const ChatBot = () => {
 
       {/* Chat window */}
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 w-[360px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-6rem)] flex flex-col rounded-2xl border border-border bg-background shadow-2xl overflow-hidden animate-fade-in">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground shrink-0">
-            <div className="flex items-center gap-2">
-              <MessageCircle size={18} />
-              <span className="font-display text-sm tracking-wider">NACHTSCHICHT CHAT</span>
+        <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-6rem)] flex flex-col rounded-2xl border border-white/10 bg-background/80 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_30px_hsl(var(--primary)/0.15)] overflow-hidden animate-fade-in">
+          {/* Header with logo */}
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/90 to-primary/70 backdrop-blur-md text-primary-foreground shrink-0 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <img
+                src="/images/logo-light.png"
+                alt="Nachtschicht"
+                className="h-7 w-auto"
+              />
+              <div className="flex flex-col">
+                <span className="font-display text-xs tracking-[0.2em] leading-none">NACHTSCHICHT</span>
+                <span className="text-[10px] text-primary-foreground/70 tracking-wider">AI ASSISTENT</span>
+              </div>
             </div>
-            <button onClick={() => setOpen(false)} className="p-1 hover:bg-primary-foreground/20 rounded-md transition-colors">
-              <X size={18} />
+            <button onClick={() => setOpen(false)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+              <X size={16} />
             </button>
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
+                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
                     msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-sm"
-                      : "bg-muted text-foreground rounded-bl-sm"
+                      ? "bg-primary text-primary-foreground rounded-br-md shadow-[0_2px_10px_hsl(var(--primary)/0.3)]"
+                      : "bg-white/5 backdrop-blur-sm border border-white/5 text-foreground rounded-bl-md"
                   }`}
                 >
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm prose-invert max-w-none [&>p]:m-0 [&>ul]:mt-1 [&>ol]:mt-1">
+                    <div className="prose prose-sm prose-invert max-w-none [&>p]:m-0 [&>ul]:mt-1 [&>ol]:mt-1 [&_a]:text-primary [&_strong]:text-foreground">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
                   ) : (
@@ -174,8 +181,12 @@ const ChatBot = () => {
             ))}
             {loading && messages[messages.length - 1]?.role === "user" && (
               <div className="flex justify-start">
-                <div className="bg-muted text-muted-foreground rounded-xl px-3 py-2 text-sm rounded-bl-sm">
-                  <Loader2 size={14} className="animate-spin" />
+                <div className="bg-white/5 backdrop-blur-sm border border-white/5 text-muted-foreground rounded-2xl rounded-bl-md px-4 py-3 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse [animation-delay:0.2s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse [animation-delay:0.4s]" />
+                  </div>
                 </div>
               </div>
             )}
@@ -184,7 +195,7 @@ const ChatBot = () => {
           {/* Input */}
           <form
             onSubmit={(e) => { e.preventDefault(); send(); }}
-            className="flex items-center gap-2 px-3 py-2 border-t border-border shrink-0"
+            className="flex items-center gap-2 px-3 py-2.5 border-t border-white/10 bg-white/5 backdrop-blur-md shrink-0"
           >
             <input
               ref={inputRef}
@@ -197,9 +208,9 @@ const ChatBot = () => {
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors"
+              className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-30 hover:bg-primary/90 transition-all hover:shadow-[0_0_12px_hsl(var(--primary)/0.4)] active:scale-95"
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </form>
         </div>
