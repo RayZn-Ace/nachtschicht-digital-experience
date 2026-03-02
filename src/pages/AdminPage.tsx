@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import type { Event } from "@/types/database";
+import type { Event, EventTag } from "@/types/database";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
@@ -34,6 +34,9 @@ const AdminPage = () => {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [newGenre, setNewGenre] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [allTags, setAllTags] = useState<EventTag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [eventTagsMap, setEventTagsMap] = useState<Record<string, EventTag[]>>({});
   const [formData, setFormData] = useState({
     title: "", description: "", date: "", time: "22:00", genre: "", areas: "" as string,
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19,
@@ -50,7 +53,26 @@ const AdminPage = () => {
     if (data) setGenres(data as Genre[]);
   };
 
-  useEffect(() => { fetchEvents(); fetchGenres(); }, []);
+  const fetchAllTags = async () => {
+    const { data } = await supabase.from("event_tags").select("*").order("name");
+    if (data) setAllTags(data as unknown as EventTag[]);
+  };
+
+  const fetchEventTagsMap = async () => {
+    const { data } = await supabase.from("event_tag_assignments").select("event_id, tag_id");
+    if (!data) return;
+    // Build map: event_id -> tag objects
+    const map: Record<string, EventTag[]> = {};
+    data.forEach((a: any) => {
+      if (!map[a.event_id]) map[a.event_id] = [];
+      const tag = allTags.find((t) => t.id === a.tag_id);
+      if (tag) map[a.event_id].push(tag);
+    });
+    setEventTagsMap(map);
+  };
+
+  useEffect(() => { fetchEvents(); fetchGenres(); fetchAllTags(); }, []);
+  useEffect(() => { if (allTags.length > 0) fetchEventTagsMap(); }, [allTags]);
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
@@ -58,11 +80,12 @@ const AdminPage = () => {
   const resetForm = () => {
     setFormData({ title: "", description: "", date: "", time: "22:00", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19 });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
+    setSelectedTagIds([]);
     setEditing(null);
     setShowForm(false);
   };
 
-  const handleEdit = (event: Event) => {
+  const handleEdit = async (event: Event) => {
     setEditing(event);
     const areas = parseAreas(event.areas);
     setSelectedAreas([...new Set([...areas, ...ALWAYS_OPEN_AREAS])]);
@@ -73,15 +96,19 @@ const AdminPage = () => {
       ticket_quantity: event.ticket_quantity, is_published: event.is_published,
       vat_rate: (event as any).vat_rate ?? 19,
     });
+    // Load existing tag assignments for this event
+    const { data } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
+    setSelectedTagIds(data ? data.map((d: any) => d.tag_id) : []);
     setShowForm(true);
   };
 
   const toggleArea = (areaId: string) => {
-    if (ALWAYS_OPEN_AREAS.includes(areaId)) return; // Can't toggle always-open areas
-    setSelectedAreas((prev) => {
-      const next = prev.includes(areaId) ? prev.filter((a) => a !== areaId) : [...prev, areaId];
-      return next;
-    });
+    if (ALWAYS_OPEN_AREAS.includes(areaId)) return;
+    setSelectedAreas((prev) => prev.includes(areaId) ? prev.filter((a) => a !== areaId) : [...prev, areaId]);
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) => prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]);
   };
 
   const uploadEventImage = async (file: File) => {
@@ -105,6 +132,16 @@ const AdminPage = () => {
     fetchGenres();
   };
 
+  const saveTagAssignments = async (eventId: string) => {
+    // Delete existing assignments
+    await supabase.from("event_tag_assignments").delete().eq("event_id", eventId);
+    // Insert new ones
+    if (selectedTagIds.length > 0) {
+      const rows = selectedTagIds.map((tag_id) => ({ event_id: eventId, tag_id }));
+      await supabase.from("event_tag_assignments").insert(rows);
+    }
+  };
+
   const handleSave = async () => {
     const payload = {
       ...formData,
@@ -118,21 +155,26 @@ const AdminPage = () => {
     if (editing) {
       const { error } = await supabase.from("events").update(payload as any).eq("id", editing.id);
       if (error) { toast.error("Fehler: " + error.message); return; }
+      await saveTagAssignments(editing.id);
       toast.success("Event aktualisiert!");
     } else {
-      const { error } = await supabase.from("events").insert(payload as any);
+      const { data, error } = await supabase.from("events").insert(payload as any).select("id").single();
       if (error) { toast.error("Fehler: " + error.message); return; }
+      if (data) await saveTagAssignments((data as any).id);
       toast.success("Event erstellt!");
     }
     resetForm();
     fetchEvents();
+    fetchEventTagsMap();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Event wirklich löschen?")) return;
+    await supabase.from("event_tag_assignments").delete().eq("event_id", id);
     await supabase.from("events").delete().eq("id", id);
     toast.success("Event gelöscht");
     fetchEvents();
+    fetchEventTagsMap();
   };
 
   const togglePublish = async (event: Event) => {
@@ -276,6 +318,29 @@ const AdminPage = () => {
                 </div>
               </div>
 
+              {/* Tags multi-select */}
+              {allTags.length > 0 && (
+                <div className="md:col-span-2">
+                  <label className="text-sm text-foreground mb-2 block">Tags</label>
+                  <div className="flex flex-wrap gap-2">
+                    {allTags.map((tag) => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                          selectedTagIds.includes(tag.id)
+                            ? `${tag.color} border-current`
+                            : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                        }`}
+                      >
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Titelbild Upload */}
               <div className="md:col-span-2">
                 <label className="text-sm text-foreground mb-1 block">Titelbild</label>
@@ -366,6 +431,7 @@ const AdminPage = () => {
           {events.length === 0 && <p className="text-muted-foreground text-center py-12">Noch keine Events erstellt.</p>}
           {events.map((event) => {
             const eventAreas = parseAreas(event.areas);
+            const eventTags = eventTagsMap[event.id] || [];
             return (
               <div key={event.id} className="glass-card p-4 flex items-center gap-4">
                 {event.image_url && (
@@ -379,6 +445,9 @@ const AdminPage = () => {
                     ) : (
                       <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Entwurf</span>
                     )}
+                    {eventTags.map((tag) => (
+                      <span key={tag.id} className={`text-xs px-2 py-0.5 rounded-full ${tag.color}`}>{tag.name}</span>
+                    ))}
                   </div>
                   <p className="text-muted-foreground text-sm">
                     {new Date(event.date).toLocaleDateString("de-DE")} – {event.time} | {event.genre} | {event.ticket_price}€ | {event.tickets_sold}/{event.ticket_quantity} Tickets
