@@ -35,6 +35,7 @@ const TicketShopPage = () => {
   const [guestPhone, setGuestPhone] = useState("");
   const [purchasedQrCode, setPurchasedQrCode] = useState<string>("");
   const [purchasedTicketIds, setPurchasedTicketIds] = useState<string[]>([]);
+  const [ticketPdfLoading, setTicketPdfLoading] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   // Step: 1 = select, 2 = checkout
@@ -350,15 +351,32 @@ const TicketShopPage = () => {
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={() => {
-                    const link = document.createElement("a");
-                    link.href = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(purchasedQrCode)}&bgcolor=FFFFFF&color=000000`;
-                    link.download = `ticket-${purchasedQrCode}.png`;
-                    link.click();
+                  disabled={ticketPdfLoading}
+                  onClick={async () => {
+                    if (purchasedTicketIds.length === 0) return;
+                    setTicketPdfLoading(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
+                        body: { ticket_id: purchasedTicketIds[0] },
+                      });
+                      if (error) throw error;
+                      const blob = new Blob([data], { type: "application/pdf" });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = `ticket-${purchasedQrCode}.pdf`;
+                      link.click();
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      console.error(err);
+                      toast.error(lang === "de" ? "Ticket-PDF Download fehlgeschlagen" : "Ticket PDF download failed");
+                    }
+                    setTicketPdfLoading(false);
                   }}
-                  className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm"
+                  className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm disabled:opacity-50"
                 >
-                  <Download size={16} /> {lang === "de" ? "QR-CODE SPEICHERN" : "SAVE QR CODE"}
+                  {ticketPdfLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                  {lang === "de" ? "TICKET PDF HERUNTERLADEN" : "DOWNLOAD TICKET PDF"}
                 </button>
                 <button
                   disabled={invoiceLoading}
