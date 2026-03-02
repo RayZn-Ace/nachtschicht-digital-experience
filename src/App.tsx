@@ -22,6 +22,9 @@ import AgbPage from "./pages/AgbPage";
 import DatenschutzPage from "./pages/DatenschutzPage";
 import ImpressumPage from "./pages/ImpressumPage";
 import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminPage from "./pages/AdminPage";
 import DashboardPage from "./pages/DashboardPage";
 import MyTicketsPage from "./pages/MyTicketsPage";
@@ -57,6 +60,9 @@ const App = () => (
                   <Route path="/datenschutz" element={<DatenschutzPage />} />
                   <Route path="/impressum" element={<ImpressumPage />} />
                   <Route path="/login" element={<LoginPage />} />
+                  <Route path="/registrieren" element={<RegisterPage />} />
+                  <Route path="/passwort-vergessen" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/meine-tickets" element={<MyTicketsPage />} />

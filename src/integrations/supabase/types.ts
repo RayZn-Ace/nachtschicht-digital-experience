@@ -350,24 +350,45 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          birthday: string | null
           created_at: string
           display_name: string | null
           email: string | null
+          first_name: string | null
+          gdpr_agb_consent_at: string | null
+          gdpr_consent_at: string | null
           id: string
+          last_name: string | null
+          salutation: string | null
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
+          first_name?: string | null
+          gdpr_agb_consent_at?: string | null
+          gdpr_consent_at?: string | null
           id?: string
+          last_name?: string | null
+          salutation?: string | null
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
+          first_name?: string | null
+          gdpr_agb_consent_at?: string | null
+          gdpr_consent_at?: string | null
           id?: string
+          last_name?: string | null
+          salutation?: string | null
           user_id?: string
         }
         Relationships: []
