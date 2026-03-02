@@ -686,6 +686,51 @@ export type Database = {
         }
         Relationships: []
       }
+      lost_and_found: {
+        Row: {
+          admin_notes: string | null
+          category: string
+          created_at: string
+          description: string | null
+          email: string
+          event_date: string
+          first_name: string
+          id: string
+          last_name: string
+          phone: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          category: string
+          created_at?: string
+          description?: string | null
+          email: string
+          event_date: string
+          first_name: string
+          id?: string
+          last_name: string
+          phone: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          email?: string
+          event_date?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lounge_bookings: {
         Row: {
           agreed_terms: boolean

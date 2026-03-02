@@ -4,7 +4,7 @@ import {
   Menu, X, Sun, Moon, Globe, LayoutDashboard, Calendar, Ticket, Image, Mail,
   FileText, Tags, ShoppingCart, Sofa, Wine, Sparkles, Receipt, TrendingUp,
   Flag, Users, QrCode, ArrowLeft, Settings, BarChart3, ChevronDown,
-  PartyPopper, Star, HelpCircle, Briefcase, MessageSquare, Camera, Building2, GlassWater,
+  PartyPopper, Star, HelpCircle, Briefcase, MessageSquare, Camera, Building2, GlassWater, Search,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useI18n } from "@/hooks/useI18n";
@@ -66,6 +66,7 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
       { label: "Getränke", tab: "drinks", icon: Wine },
       { label: "Feiertage", tab: "holidays", icon: Sparkles },
       { label: "Bewerber", tab: "applicants", icon: Users },
+      { label: "Fundgrube", tab: "lostfound", icon: Search },
     ],
   },
   {
