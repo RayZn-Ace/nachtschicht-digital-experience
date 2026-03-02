@@ -41,15 +41,23 @@ const LoungesPage = () => {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [loungeRes, eventRes, bookingRes] = await Promise.all([
-        supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
-        supabase.from("events").select("*").eq("is_published", true).gte("date", new Date().toISOString()).order("date", { ascending: true }),
-        supabase.from("lounge_bookings").select("lounge_id, event_id").neq("status", "cancelled"),
-      ]);
-      if (loungeRes.data) setLounges(loungeRes.data as any);
-      if (eventRes.data) setEvents(eventRes.data as unknown as Event[]);
-      if (bookingRes.data) setBookings(bookingRes.data as any);
-      setLoading(false);
+      try {
+        const [loungeRes, eventRes, bookingRes] = await Promise.all([
+          supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
+          supabase.from("events").select("*").eq("is_published", true).gte("date", new Date().toISOString()).order("date", { ascending: true }),
+          supabase.from("lounge_bookings").select("lounge_id, event_id").neq("status", "cancelled"),
+        ]);
+        if (loungeRes.error) console.error("Lounges fetch error:", loungeRes.error);
+        if (eventRes.error) console.error("Events fetch error:", eventRes.error);
+        if (bookingRes.error) console.error("Bookings fetch error:", bookingRes.error);
+        if (loungeRes.data) setLounges(loungeRes.data as any);
+        if (eventRes.data) setEvents(eventRes.data as unknown as Event[]);
+        if (bookingRes.data) setBookings(bookingRes.data as any);
+      } catch (err) {
+        console.error("LoungesPage fetchAll error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchAll();
   }, []);
