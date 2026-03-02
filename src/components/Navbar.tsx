@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Menu, X, Sun, Moon, Globe, LayoutDashboard, Calendar, Ticket, Image, Mail,
@@ -9,6 +9,7 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_PATHS = ["/dashboard", "/admin", "/scanner"];
 
@@ -208,12 +209,24 @@ const PublicDropdown = ({ category }: { category: NavCategory }) => {
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [drinksActive, setDrinksActive] = useState(true);
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang, t } = useI18n();
   const { user, isAdmin } = useAuth();
 
+  useEffect(() => {
+    supabase.from("site_settings" as any).select("value").eq("key", "drinks_page_active").maybeSingle().then(({ data }) => {
+      if (data) setDrinksActive((data as any).value === true);
+    });
+  }, []);
+
   const isAdminArea = isAdmin && ADMIN_PATHS.some((p) => location.pathname.startsWith(p));
+
+  const filteredPublicCategories = PUBLIC_CATEGORIES.map(cat => ({
+    ...cat,
+    items: cat.items.filter(item => drinksActive || item.path !== "/getraenkekarte"),
+  }));
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50" role="navigation" aria-label="Hauptnavigation">
@@ -268,7 +281,7 @@ const Navbar = () => {
               >
                 {t("nav.home")}
               </Link>
-              {PUBLIC_CATEGORIES.map((cat) => (
+              {filteredPublicCategories.map((cat) => (
                 <PublicDropdown key={cat.labelKey} category={cat} />
               ))}
             </>
@@ -407,7 +420,7 @@ const Navbar = () => {
                   {t("nav.home")}
                 </Link>
 
-                {PUBLIC_CATEGORIES.map((cat) => {
+                {filteredPublicCategories.map((cat) => {
                   const CatIcon = cat.icon;
                   return (
                     <div key={cat.labelKey} className="mt-2">
