@@ -4,12 +4,25 @@ import {
   Menu, X, Sun, Moon, Globe, LayoutDashboard, Calendar, Ticket, Image, Mail,
   FileText, Tags, ShoppingCart, Sofa, Wine, Sparkles, Receipt, TrendingUp,
   Flag, Users, QrCode, ArrowLeft, Settings, BarChart3, ChevronDown,
+  PartyPopper, Star, HelpCircle, Briefcase, MessageSquare, Camera, Building2, GlassWater,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
 
 const ADMIN_PATHS = ["/dashboard", "/admin", "/scanner"];
+
+interface NavSubItem {
+  label: string;
+  path: string;
+  icon: any;
+}
+
+interface NavCategory {
+  labelKey: string;
+  icon: any;
+  items: NavSubItem[];
+}
 
 interface AdminSubItem {
   label: string;
@@ -65,23 +78,53 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
   },
 ];
 
-/* ─── Hover Dropdown ─── */
-const AdminDropdown = ({ category }: { category: AdminCategory }) => {
+const PUBLIC_CATEGORIES: NavCategory[] = [
+  {
+    labelKey: "nav.category.experience",
+    icon: PartyPopper,
+    items: [
+      { label: "Events & Tickets", path: "/events", icon: Calendar },
+      { label: "Club", path: "/club", icon: Building2 },
+      { label: "Fotos & Videos", path: "/fotos", icon: Camera },
+    ],
+  },
+  {
+    labelKey: "nav.category.vip",
+    icon: Star,
+    items: [
+      { label: "Lounges", path: "/lounges", icon: Sofa },
+      { label: "Getränkekarte", path: "/getraenkekarte", icon: GlassWater },
+      { label: "Muttizettel", path: "/u18", icon: FileText },
+    ],
+  },
+  {
+    labelKey: "nav.category.more",
+    icon: HelpCircle,
+    items: [
+      { label: "FAQ", path: "/faq", icon: HelpCircle },
+      { label: "Jobs", path: "/jobs", icon: Briefcase },
+      { label: "Kontakt", path: "/kontakt", icon: MessageSquare },
+    ],
+  },
+];
+
+/* ─── Generic Hover Dropdown ─── */
+const HoverDropdown = ({
+  label,
+  icon: Icon,
+  isActive,
+  children,
+}: {
+  label: string;
+  icon: any;
+  isActive: boolean;
+  children: React.ReactNode;
+}) => {
   const [open, setOpen] = useState(false);
   const timeout = useRef<ReturnType<typeof setTimeout>>();
-  const location = useLocation();
-  const currentTab = new URLSearchParams(location.search).get("tab");
 
-  const enter = () => {
-    clearTimeout(timeout.current);
-    setOpen(true);
-  };
-  const leave = () => {
-    timeout.current = setTimeout(() => setOpen(false), 150);
-  };
-
-  const Icon = category.icon;
-  const isActive = location.pathname === "/admin" && category.items.some((i) => i.tab === currentTab);
+  const enter = () => { clearTimeout(timeout.current); setOpen(true); };
+  const leave = () => { timeout.current = setTimeout(() => setOpen(false), 150); };
 
   return (
     <div className="relative" onMouseEnter={enter} onMouseLeave={leave}>
@@ -91,34 +134,74 @@ const AdminDropdown = ({ category }: { category: AdminCategory }) => {
         }`}
       >
         <Icon size={15} />
-        {category.label}
+        {label}
         <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
         <div className="absolute top-full left-0 pt-2 z-50">
           <div className="bg-popover border border-border rounded-lg shadow-lg py-1.5 min-w-[200px] animate-fade-in">
-            {category.items.map((item) => {
-              const SubIcon = item.icon;
-              const active = location.pathname === "/admin" && currentTab === item.tab;
-              return (
-                <Link
-                  key={item.tab}
-                  to={`/admin?tab=${item.tab}`}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-muted ${
-                    active ? "text-primary bg-muted/50" : "text-foreground/80"
-                  }`}
-                >
-                  <SubIcon size={15} className="shrink-0" />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {children}
           </div>
         </div>
       )}
     </div>
+  );
+};
+
+/* ─── Admin Dropdown ─── */
+const AdminDropdown = ({ category }: { category: AdminCategory }) => {
+  const location = useLocation();
+  const currentTab = new URLSearchParams(location.search).get("tab");
+  const isActive = location.pathname === "/admin" && category.items.some((i) => i.tab === currentTab);
+
+  return (
+    <HoverDropdown label={category.label} icon={category.icon} isActive={isActive}>
+      {category.items.map((item) => {
+        const SubIcon = item.icon;
+        const active = location.pathname === "/admin" && currentTab === item.tab;
+        return (
+          <Link
+            key={item.tab}
+            to={`/admin?tab=${item.tab}`}
+            className={`flex items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-muted ${
+              active ? "text-primary bg-muted/50" : "text-foreground/80"
+            }`}
+          >
+            <SubIcon size={15} className="shrink-0" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </HoverDropdown>
+  );
+};
+
+/* ─── Public Dropdown ─── */
+const PublicDropdown = ({ category }: { category: NavCategory }) => {
+  const location = useLocation();
+  const { t } = useI18n();
+  const isActive = category.items.some((i) => location.pathname === i.path);
+
+  return (
+    <HoverDropdown label={t(category.labelKey)} icon={category.icon} isActive={isActive}>
+      {category.items.map((item) => {
+        const SubIcon = item.icon;
+        const active = location.pathname === item.path;
+        return (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`flex items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-muted ${
+              active ? "text-primary bg-muted/50" : "text-foreground/80"
+            }`}
+          >
+            <SubIcon size={15} className="shrink-0" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </HoverDropdown>
   );
 };
 
@@ -130,19 +213,6 @@ const Navbar = () => {
   const { user, isAdmin } = useAuth();
 
   const isAdminArea = isAdmin && ADMIN_PATHS.some((p) => location.pathname.startsWith(p));
-
-  const publicNavItems = [
-    { label: t("nav.home"), path: "/" },
-    { label: t("nav.events"), path: "/events" },
-    { label: t("nav.club"), path: "/club" },
-    { label: t("nav.photos"), path: "/fotos" },
-    { label: t("nav.lounges"), path: "/lounges" },
-    { label: t("nav.drinks"), path: "/getraenkekarte" },
-    { label: t("nav.muttizettel"), path: "/u18" },
-    { label: t("nav.faq"), path: "/faq" },
-    { label: t("nav.jobs"), path: "/jobs" },
-    { label: t("nav.contact"), path: "/kontakt" },
-  ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50" role="navigation" aria-label="Hauptnavigation">
@@ -189,16 +259,16 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              {publicNavItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`text-sm font-medium tracking-wide transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm ${
-                    location.pathname === item.path ? "text-primary" : "text-foreground/80"
-                  }`}
-                >
-                  {item.label}
-                </Link>
+              <Link
+                to="/"
+                className={`text-sm font-medium tracking-wide transition-colors hover:text-primary ${
+                  location.pathname === "/" ? "text-primary" : "text-foreground/80"
+                }`}
+              >
+                {t("nav.home")}
+              </Link>
+              {PUBLIC_CATEGORIES.map((cat) => (
+                <PublicDropdown key={cat.labelKey} category={cat} />
               ))}
             </>
           )}
@@ -326,18 +396,46 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                {publicNavItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setOpen(false)}
-                    className={`text-lg font-display tracking-wider transition-colors ${
-                      location.pathname === item.path ? "text-primary" : "text-foreground/80"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                <Link
+                  to="/"
+                  onClick={() => setOpen(false)}
+                  className={`text-lg font-display tracking-wider transition-colors ${
+                    location.pathname === "/" ? "text-primary" : "text-foreground/80"
+                  }`}
+                >
+                  {t("nav.home")}
+                </Link>
+
+                {PUBLIC_CATEGORIES.map((cat) => {
+                  const CatIcon = cat.icon;
+                  return (
+                    <div key={cat.labelKey} className="mt-2">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1.5 px-1">
+                        <CatIcon size={13} />
+                        {t(cat.labelKey)}
+                      </div>
+                      <div className="flex flex-col gap-0.5 pl-1">
+                        {cat.items.map((item) => {
+                          const SubIcon = item.icon;
+                          const active = location.pathname === item.path;
+                          return (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              onClick={() => setOpen(false)}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
+                                active ? "text-primary bg-muted/50" : "text-foreground/80 hover:bg-muted"
+                              }`}
+                            >
+                              <SubIcon size={15} />
+                              {item.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
                 {user && isAdmin && (
                   <Link
                     to="/dashboard"

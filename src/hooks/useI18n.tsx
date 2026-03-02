@@ -23,6 +23,9 @@ const translations: Record<string, Record<Lang, string>> = {
   "nav.hours": { de: "Öffnungszeiten", en: "Opening Hours" },
   "nav.tickets": { de: "TICKETS", en: "TICKETS" },
   "nav.getTickets": { de: "TICKETS SICHERN", en: "GET TICKETS" },
+  "nav.category.experience": { de: "Erleben", en: "Experience" },
+  "nav.category.vip": { de: "VIP & Service", en: "VIP & Service" },
+  "nav.category.more": { de: "Mehr", en: "More" },
 
   // Hero
   "hero.subtitle": { de: "Kaiserslauterns #1 Club Experience", en: "Kaiserslautern's #1 Club Experience" },
