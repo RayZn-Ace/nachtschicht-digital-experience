@@ -4,7 +4,7 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event, EventTag } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X, Wine, Sparkles, Receipt, TrendingUp, Flag, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X, Wine, Sparkles, Receipt, TrendingUp, Flag, Users, Copy } from "lucide-react";
 import AdminEventTickets from "@/components/AdminEventTickets";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
@@ -231,6 +231,65 @@ const AdminPage = () => {
   const togglePublish = async (event: Event) => {
     await supabase.from("events").update({ is_published: !event.is_published }).eq("id", event.id);
     fetchEvents();
+  };
+
+  const handleDuplicate = async (event: Event) => {
+    const payload = {
+      title: event.title + " (Kopie)",
+      subtitle: (event as any).subtitle || null,
+      description: event.description || null,
+      date: event.date,
+      time: event.time,
+      end_time: (event as any).end_time || null,
+      genre: event.genre || null,
+      areas: event.areas || null,
+      image_url: event.image_url || null,
+      ticket_price: event.ticket_price,
+      ticket_quantity: event.ticket_quantity,
+      tickets_sold: 0,
+      is_published: false,
+      is_featured: (event as any).is_featured ?? false,
+      vat_rate: (event as any).vat_rate ?? 19,
+      has_muttizettel: (event as any).has_muttizettel ?? false,
+      has_abendkasse: (event as any).has_abendkasse ?? false,
+      fee_enabled: (event as any).fee_enabled ?? false,
+      fee_type: (event as any).fee_type ?? "per_ticket",
+      fee_mode: (event as any).fee_mode ?? "fixed",
+      fee_amount: (event as any).fee_amount ?? 0,
+    };
+    const { data, error } = await supabase.from("events").insert(payload as any).select("id").single();
+    if (error) { toast.error("Fehler beim Duplizieren: " + error.message); return; }
+    // Copy tag assignments
+    if (data) {
+      const newId = (data as any).id;
+      const { data: tags } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
+      if (tags && tags.length > 0) {
+        await supabase.from("event_tag_assignments").insert(tags.map((t: any) => ({ event_id: newId, tag_id: t.tag_id })));
+      }
+      // Copy ticket types
+      const { data: ttypes } = await supabase.from("ticket_types").select("*").eq("event_id", event.id);
+      if (ttypes && ttypes.length > 0) {
+        const newTypes = ttypes.map((tt: any) => ({
+          event_id: newId,
+          name: tt.name,
+          description: tt.description,
+          price: tt.price,
+          quantity: tt.quantity,
+          sold: 0,
+          sort_order: tt.sort_order,
+          is_active: tt.is_active,
+          sale_start: tt.sale_start,
+          sale_end: tt.sale_end,
+          fee_override_enabled: tt.fee_override_enabled,
+          fee_amount_override: tt.fee_amount_override,
+          fee_mode_override: tt.fee_mode_override,
+        }));
+        await supabase.from("ticket_types").insert(newTypes);
+      }
+    }
+    toast.success("Event dupliziert!");
+    fetchEvents();
+    fetchEventTagsMap();
   };
 
   return (
@@ -636,6 +695,9 @@ const AdminPage = () => {
                   </button>
                   <button onClick={() => togglePublish(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title={event.is_published ? "Verstecken" : "Veröffentlichen"}>
                     {event.is_published ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                  <button onClick={() => handleDuplicate(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Duplizieren">
+                    <Copy size={18} />
                   </button>
                   <button onClick={() => handleEdit(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Bearbeiten">
                     <Pencil size={18} />
