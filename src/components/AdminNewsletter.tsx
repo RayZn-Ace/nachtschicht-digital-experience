@@ -99,7 +99,7 @@ const buildEventCardHtml = (ev: EventRow, design: DesignConfig, baseUrl: string)
   const focusX = ev.image_focus_x ?? 50;
   const focusY = ev.image_focus_y ?? 50;
   const imgStyle = bannerImg
-    ? "width:100%;height:180px;object-fit:cover;display:block;"
+    ? "width:100%;height:auto;display:block;"
     : `width:100%;height:180px;object-fit:cover;object-position:${focusX}% ${focusY}%;display:block;`;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;border:1px solid ${design.primary}33;border-radius:12px;overflow:hidden;">
     <tr><td><img src="${escHtml(imgSrc)}" alt="${escHtml(ev.title)}" style="${imgStyle}"/></td></tr>
