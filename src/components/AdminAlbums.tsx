@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Eye, EyeOff, Upload, Image, GripVertical } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Upload, Image, GripVertical, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -32,6 +32,8 @@ const AdminAlbums = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const fetchAlbums = async () => {
     const { data } = await supabase
@@ -135,12 +137,46 @@ const AdminAlbums = () => {
 
   const deletePhoto = async (photo: AlbumPhoto) => {
     await supabase.from("album_photos").delete().eq("id", photo.id);
-    // Try to delete from storage too
     const storagePath = photo.image_url.split("/storage/v1/object/public/albums/")[1];
     if (storagePath) await supabase.storage.from("albums").remove([storagePath]);
     toast.success("Foto gelöscht");
     if (selectedAlbum) fetchPhotos(selectedAlbum.id);
     fetchAlbums();
+  };
+
+  const deleteSelectedPhotos = async () => {
+    if (selectedPhotos.size === 0) return;
+    if (!confirm(`${selectedPhotos.size} Foto(s) wirklich löschen?`)) return;
+    setDeleting(true);
+    const toDelete = photos.filter((p) => selectedPhotos.has(p.id));
+    const storagePaths = toDelete
+      .map((p) => p.image_url.split("/storage/v1/object/public/albums/")[1])
+      .filter(Boolean) as string[];
+
+    await Promise.all(toDelete.map((p) => supabase.from("album_photos").delete().eq("id", p.id)));
+    if (storagePaths.length) await supabase.storage.from("albums").remove(storagePaths);
+
+    toast.success(`${toDelete.length} Foto(s) gelöscht`);
+    setSelectedPhotos(new Set());
+    setDeleting(false);
+    if (selectedAlbum) fetchPhotos(selectedAlbum.id);
+    fetchAlbums();
+  };
+
+  const togglePhotoSelection = (id: string) => {
+    setSelectedPhotos((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedPhotos.size === photos.length) {
+      setSelectedPhotos(new Set());
+    } else {
+      setSelectedPhotos(new Set(photos.map((p) => p.id)));
+    }
   };
 
   // Drag & drop state
@@ -183,26 +219,48 @@ const AdminAlbums = () => {
   if (selectedAlbum) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => { setSelectedAlbum(null); setPhotos([]); }} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <button onClick={() => { setSelectedAlbum(null); setPhotos([]); setSelectedPhotos(new Set()); }} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
               ← Zurück
             </button>
             <h3 className="font-display text-2xl tracking-wider text-foreground">{selectedAlbum.title}</h3>
           </div>
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => e.target.files && uploadPhotos(e.target.files)}
-            />
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-sm">
-              <Upload size={16} />
-              {uploading ? "WIRD HOCHGELADEN..." : "FOTOS HOCHLADEN"}
-            </span>
-          </label>
+          <div className="flex items-center gap-2 flex-wrap">
+            {photos.length > 0 && (
+              <>
+                <button
+                  onClick={toggleSelectAll}
+                  className="px-3 py-2 text-xs border border-border text-foreground rounded-md hover:bg-muted transition-colors"
+                >
+                  {selectedPhotos.size === photos.length ? "ALLE ABWÄHLEN" : "ALLE AUSWÄHLEN"}
+                </button>
+                {selectedPhotos.size > 0 && (
+                  <button
+                    onClick={deleteSelectedPhotos}
+                    disabled={deleting}
+                    className="px-3 py-2 text-xs bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <Trash2 size={14} />
+                    {deleting ? "LÖSCHEN..." : `${selectedPhotos.size} LÖSCHEN`}
+                  </button>
+                )}
+              </>
+            )}
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files && uploadPhotos(e.target.files)}
+              />
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-sm">
+                <Upload size={16} />
+                {uploading ? "WIRD HOCHGELADEN..." : "FOTOS HOCHLADEN"}
+              </span>
+            </label>
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground">Fotos per Drag & Drop sortieren – einfach ziehen und loslassen.</p>
@@ -221,9 +279,20 @@ const AdminAlbums = () => {
                 onDragOver={(e) => e.preventDefault()}
                 className={`relative group rounded-lg overflow-hidden bg-muted aspect-square cursor-grab active:cursor-grabbing transition-all ${
                   dragIdx === idx ? "opacity-40 scale-95 ring-2 ring-primary" : ""
-                }`}
+                } ${selectedPhotos.has(photo.id) ? "ring-2 ring-primary" : ""}`}
               >
                 <img src={photo.image_url} alt={photo.title || ""} className="w-full h-full object-cover pointer-events-none" loading="lazy" />
+                {/* Selection checkbox */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); togglePhotoSelection(photo.id); }}
+                  className={`absolute top-1 right-1 w-6 h-6 rounded border-2 flex items-center justify-center transition-all z-10 ${
+                    selectedPhotos.has(photo.id)
+                      ? "bg-primary border-primary text-primary-foreground"
+                      : "border-foreground/50 bg-background/60 opacity-0 group-hover:opacity-100"
+                  }`}
+                >
+                  {selectedPhotos.has(photo.id) && <Check size={14} />}
+                </button>
                 <div className="absolute top-1 left-1 p-1 rounded bg-background/60 text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                   <GripVertical size={14} />
                 </div>
