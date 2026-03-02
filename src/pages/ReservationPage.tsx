@@ -65,6 +65,20 @@ const ReservationPage = () => {
       toast.success("Reservierung gesendet!", {
         description: "Wir melden uns in Kürze bei dir.",
       });
+
+      // Notify admins (fire-and-forget)
+      supabase.functions.invoke("send-reservation-notification", {
+        body: {
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          date: data.date,
+          guest_count: data.guest_count,
+          lounge_type: data.lounge_type,
+          message: data.message,
+        },
+      }).catch(() => {});
+
       form.reset();
     } catch {
       toast.error("Fehler beim Senden. Bitte versuche es erneut.");
