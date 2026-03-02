@@ -471,6 +471,47 @@ const AdminNewsletter = () => {
     }
   };
 
+  const handleSendDirect = async () => {
+    if (!editingId) return;
+    setSendTargetId(editingId);
+    const recipientCount = getRecipientCount();
+    if (recipientCount === 0) { toast.error("Keine Empfänger"); return; }
+    if (!confirm(`Newsletter an ${recipientCount} Empfänger senden?`)) return;
+
+    setSending(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) { toast.error("Nicht angemeldet"); return; }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-newsletter`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({
+            newsletter_id: editingId,
+            category_ids: sendCatIds.length > 0 ? sendCatIds : null,
+            extra_recipients: extraRecipients.length > 0 ? extraRecipients : null,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(`${data.total_sent}/${data.total_recipients} E-Mails versendet!`);
+        setView("campaigns");
+      }
+    } catch {
+      toast.error("Versand fehlgeschlagen");
+    } finally {
+      setSending(false);
+      fetchNewsletters();
+    }
+  };
+
   const deleteNewsletter = async (id: string) => {
     if (!confirm("Newsletter wirklich löschen?")) return;
     await supabase.from("newsletters").delete().eq("id", id);
@@ -605,14 +646,88 @@ const AdminNewsletter = () => {
               </div>
             </div>
 
+            {/* ─── Empfänger-Auswahl ─── */}
+            <div className="glass-card p-4 space-y-3">
+              <h3 className="text-sm font-medium text-foreground flex items-center gap-1.5"><Users size={14} className="text-primary" /> Empfänger</h3>
+
+              {/* Category / Tag selection */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <input type="checkbox" checked={sendCatIds.length === 0} onChange={() => setSendCatIds([])} className="rounded border-border" />
+                  <span className="font-medium">Alle aktiven Abonnenten</span>
+                  <span className="text-xs text-muted-foreground">({activeCount})</span>
+                </label>
+                {categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 ml-6">
+                    {categories.map((cat) => {
+                      const count = getCategorySubCount(cat.id);
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            if (sendCatIds.includes(cat.id)) setSendCatIds(sendCatIds.filter((c) => c !== cat.id));
+                            else setSendCatIds([...sendCatIds, cat.id]);
+                          }}
+                          className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${sendCatIds.includes(cat.id) ? cat.color + " ring-1 ring-primary/30" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+                        >
+                          {cat.name} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Manual extra recipients */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Zusätzliche Empfänger</label>
+                <div className="flex gap-2">
+                  <input
+                    value={extraName}
+                    onChange={(e) => setExtraName(e.target.value)}
+                    placeholder="Name"
+                    className="flex-1 px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                  />
+                  <input
+                    value={extraEmail}
+                    onChange={(e) => setExtraEmail(e.target.value)}
+                    placeholder="E-Mail"
+                    type="email"
+                    className="flex-1 px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                    onKeyDown={(e) => e.key === "Enter" && addExtraRecipient()}
+                  />
+                  <button onClick={addExtraRecipient} className="px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm hover:bg-muted/80">
+                    <Plus size={16} />
+                  </button>
+                </div>
+                {extraRecipients.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {extraRecipients.map((r, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-primary/15 text-primary">
+                        {r.name ? `${r.name} (${r.email})` : r.email}
+                        <button onClick={() => setExtraRecipients((prev) => prev.filter((_, idx) => idx !== i))} className="hover:text-destructive">
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Recipient count */}
+              <div className="text-xs text-muted-foreground">
+                Gesamt: <span className="text-primary font-display text-sm">{getRecipientCount()}</span> Empfänger
+              </div>
+            </div>
+
             {/* Actions */}
             <div className="flex flex-wrap gap-3 pt-2">
               <button onClick={saveNewsletter} disabled={saving} className="flex items-center gap-2 px-5 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 font-display tracking-wider text-sm disabled:opacity-50">
                 {saving ? <Loader2 size={16} className="animate-spin" /> : null} SPEICHERN
               </button>
               {editingId && (
-                <button onClick={() => openSendDialog(editingId)} disabled={sending || activeCount === 0} className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-display tracking-wider text-sm disabled:opacity-50">
-                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} SENDEN
+                <button onClick={handleSendDirect} disabled={sending || getRecipientCount() === 0} className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-display tracking-wider text-sm disabled:opacity-50">
+                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} SENDEN ({getRecipientCount()})
                 </button>
               )}
               {!editingId && (
