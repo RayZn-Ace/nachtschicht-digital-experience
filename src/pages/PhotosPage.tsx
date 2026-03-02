@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useI18n } from "@/hooks/useI18n";
-import { Image, ChevronLeft, ChevronRight, X, Download } from "lucide-react";
+import { Image, ChevronLeft, ChevronRight, X, Download, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 
@@ -27,7 +27,7 @@ const PhotosPage = () => {
   const [photos, setPhotos] = useState<AlbumPhoto[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   useEffect(() => {
     const fetchAlbums = async () => {
       const { data } = await supabase
@@ -54,6 +54,25 @@ const PhotosPage = () => {
   const closeAlbum = () => {
     setSelectedAlbum(null);
     setPhotos([]);
+    setSelectedPhotos(new Set());
+  };
+
+  const togglePhotoSelection = (photoId: string) => {
+    setSelectedPhotos((prev) => {
+      const next = new Set(prev);
+      if (next.has(photoId)) next.delete(photoId);
+      else next.add(photoId);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedPhotos(new Set());
+
+  const downloadSelectedPhotos = async () => {
+    const selected = photos.filter((p) => selectedPhotos.has(p.id));
+    for (const photo of selected) {
+      await downloadImage(photo.image_url, photo.title);
+    }
   };
 
   const closeLightbox = () => setLightboxIndex(null);
@@ -115,7 +134,7 @@ const PhotosPage = () => {
               {photos.map((photo, i) => (
                 <ScrollReveal key={photo.id} delay={i * 0.05}>
                   <div
-                    className="break-inside-avoid overflow-hidden rounded-lg group cursor-pointer relative"
+                    className={`break-inside-avoid overflow-hidden rounded-lg group cursor-pointer relative ${selectedPhotos.has(photo.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
                     onClick={() => setLightboxIndex(i)}
                   >
                     <img
@@ -125,6 +144,14 @@ const PhotosPage = () => {
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-colors" />
+                    {/* Selection checkbox */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); togglePhotoSelection(photo.id); }}
+                      className={`absolute top-2 left-2 p-1 rounded-full transition-all z-10 ${selectedPhotos.has(photo.id) ? 'bg-primary text-primary-foreground opacity-100 scale-100' : 'bg-background/70 text-foreground opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100'}`}
+                      aria-label={lang === "de" ? "Foto auswählen" : "Select photo"}
+                    >
+                      <CheckCircle2 size={20} />
+                    </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); downloadImage(photo.image_url, photo.title); }}
                       className="absolute bottom-2 right-2 p-2 bg-background/70 rounded-full text-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-primary-foreground"
@@ -138,6 +165,47 @@ const PhotosPage = () => {
             </div>
           )}
         </div>
+
+        {/* Selection Banner */}
+        <AnimatePresence>
+          {selectedPhotos.size > 0 && (
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border shadow-lg"
+            >
+              <div className="container mx-auto flex items-center justify-between py-3 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                    {selectedPhotos.size}
+                  </div>
+                  <span className="text-foreground text-sm font-medium">
+                    {lang === "de"
+                      ? `${selectedPhotos.size} Foto${selectedPhotos.size !== 1 ? "s" : ""} ausgewählt`
+                      : `${selectedPhotos.size} photo${selectedPhotos.size !== 1 ? "s" : ""} selected`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={clearSelection}
+                    className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {lang === "de" ? "Abwählen" : "Clear"}
+                  </button>
+                  <button
+                    onClick={downloadSelectedPhotos}
+                    className="flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-display tracking-wider hover:bg-primary/90 transition-colors"
+                  >
+                    <Download size={14} />
+                    {lang === "de" ? "ALLE HERUNTERLADEN" : "DOWNLOAD ALL"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Lightbox */}
         <AnimatePresence>
