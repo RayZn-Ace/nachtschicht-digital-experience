@@ -752,6 +752,63 @@ export type Database = {
         }
         Relationships: []
       }
+      photo_reports: {
+        Row: {
+          admin_notes: string | null
+          album_id: string
+          created_at: string
+          detail_text: string | null
+          id: string
+          photo_id: string
+          reason: string
+          status: string
+          updated_at: string
+          user_id: string | null
+          verification_photo_url: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          album_id: string
+          created_at?: string
+          detail_text?: string | null
+          id?: string
+          photo_id: string
+          reason: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verification_photo_url?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          album_id?: string
+          created_at?: string
+          detail_text?: string | null
+          id?: string
+          photo_id?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verification_photo_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_reports_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_reports_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "album_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
