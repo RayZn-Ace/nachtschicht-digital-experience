@@ -257,7 +257,7 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {open && (
-        <div className="lg:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 animate-fade-in">
+        <div className="lg:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 animate-fade-in overflow-y-auto" style={{ maxHeight: "calc(100dvh - 4rem)" }}>
           <div className="container mx-auto px-4 py-6 flex flex-col gap-3">
             {isAdminArea ? (
               <>
