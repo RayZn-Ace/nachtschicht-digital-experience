@@ -5,8 +5,8 @@ import { useI18n } from "@/hooks/useI18n";
 import { Navigate, Link } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
 import {
-  ShoppingBag, Calendar, Ticket, ChevronDown, Filter,
-  ArrowLeft, FileText, Loader2, Download,
+  ShoppingBag, Calendar, ChevronDown, Filter,
+  ArrowLeft, FileText, Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { de as deLocale } from "date-fns/locale";
@@ -20,7 +20,6 @@ interface OrderWithEvent {
   created_at: string;
   buyer_name: string | null;
   buyer_email: string;
-  qr_code: string | null;
   event_id: string;
   event: {
     title: string;
@@ -84,16 +83,16 @@ const MeineBestellungenPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
+    const fetchOrders = async () => {
       const { data } = await supabase
         .from("tickets")
-        .select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, qr_code, event_id, event:events(title, date, time, image_url)")
+        .select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, event_id, event:events(title, date, time, image_url)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (data) setOrders(data as unknown as OrderWithEvent[]);
       setLoading(false);
     };
-    fetch();
+    fetchOrders();
   }, [user]);
 
   const filtered = useMemo(() => {
@@ -101,6 +100,8 @@ const MeineBestellungenPage = () => {
     if (statusFilter !== "all") result = result.filter((o) => o.status === statusFilter);
     return sortDesc ? result : [...result].reverse();
   }, [orders, statusFilter, sortDesc]);
+
+  const totalSpent = useMemo(() => orders.reduce((sum, o) => sum + o.total_price, 0), [orders]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;
@@ -120,8 +121,26 @@ const MeineBestellungenPage = () => {
           <div className="w-20 h-1 bg-primary mt-2 mb-6 rounded-full" />
         </ScrollReveal>
 
-        {/* Filters */}
+        {/* Summary stats */}
         <ScrollReveal delay={0.05}>
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="glass-card p-4 text-center">
+              <p className="font-display text-2xl text-foreground">{orders.length}</p>
+              <p className="text-xs text-muted-foreground">{de ? "Bestellungen" : "Orders"}</p>
+            </div>
+            <div className="glass-card p-4 text-center">
+              <p className="font-display text-2xl text-foreground">{orders.reduce((s, o) => s + o.quantity, 0)}</p>
+              <p className="text-xs text-muted-foreground">{de ? "Tickets gesamt" : "Total tickets"}</p>
+            </div>
+            <div className="glass-card p-4 text-center">
+              <p className="font-display text-2xl text-foreground">{fmtCurrency(totalSpent)}</p>
+              <p className="text-xs text-muted-foreground">{de ? "Ausgegeben" : "Total spent"}</p>
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* Filters */}
+        <ScrollReveal delay={0.1}>
           <div className="glass-card p-3 mb-6 flex flex-wrap gap-2 items-center">
             <Filter size={14} className="text-muted-foreground" />
             <select
@@ -210,12 +229,6 @@ const MeineBestellungenPage = () => {
                     </div>
 
                     <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
-                      <Link
-                        to="/meine-tickets"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs rounded-md hover:bg-primary/20 transition-colors"
-                      >
-                        <Ticket size={12} /> {de ? "Tickets anzeigen" : "View tickets"}
-                      </Link>
                       <button
                         onClick={() => downloadInvoice(order.id)}
                         disabled={downloadingId === order.id}
@@ -226,7 +239,7 @@ const MeineBestellungenPage = () => {
                         ) : (
                           <FileText size={12} />
                         )}
-                        {de ? "Rechnung" : "Invoice"}
+                        {de ? "Rechnung herunterladen" : "Download invoice"}
                       </button>
                     </div>
                   </div>
