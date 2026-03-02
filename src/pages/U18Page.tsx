@@ -45,6 +45,8 @@ const U18Page = () => {
   // Step 2 – Parent
   const [parentName, setParentName] = useState("");
   const [parentAddress, setParentAddress] = useState("");
+  const [parentZip, setParentZip] = useState("");
+  const [parentCity, setParentCity] = useState("");
   const [parentCountry, setParentCountry] = useState("Deutschland");
   const [parentPhone, setParentPhone] = useState("");
   const [parentBirthday, setParentBirthday] = useState("");
@@ -52,6 +54,8 @@ const U18Page = () => {
   // Step 3 – Minor
   const [minorName, setMinorName] = useState("");
   const [minorAddress, setMinorAddress] = useState("");
+  const [minorZip, setMinorZip] = useState("");
+  const [minorCity, setMinorCity] = useState("");
   const [minorCountry, setMinorCountry] = useState("Deutschland");
   const [minorPhone, setMinorPhone] = useState("");
   const [minorBirthday, setMinorBirthday] = useState("");
@@ -61,6 +65,8 @@ const U18Page = () => {
   const [skipSupervisor, setSkipSupervisor] = useState(false);
   const [supervisorName, setSupervisorName] = useState("");
   const [supervisorAddress, setSupervisorAddress] = useState("");
+  const [supervisorZip, setSupervisorZip] = useState("");
+  const [supervisorCity, setSupervisorCity] = useState("");
   const [supervisorCountry, setSupervisorCountry] = useState("Deutschland");
   const [supervisorEmail, setSupervisorEmail] = useState("");
   const [supervisorPhone, setSupervisorPhone] = useState("");
@@ -69,6 +75,7 @@ const U18Page = () => {
 
   // Step 5 – Signatures
   const [parentSignature, setParentSignature] = useState<string | null>(null);
+  const [supervisorSignature, setSupervisorSignature] = useState<string | null>(null);
   const [skipSignature, setSkipSignature] = useState(false);
 
   // Step 6 – Submit
@@ -93,16 +100,20 @@ const U18Page = () => {
   useEffect(() => {
     if (copyParentAddress) {
       setMinorAddress(parentAddress);
+      setMinorZip(parentZip);
+      setMinorCity(parentCity);
       setMinorCountry(parentCountry);
     }
-  }, [copyParentAddress, parentAddress, parentCountry]);
+  }, [copyParentAddress, parentAddress, parentZip, parentCity, parentCountry]);
 
   useEffect(() => {
     if (copySupervisorAddress) {
       setSupervisorAddress(parentAddress);
+      setSupervisorZip(parentZip);
+      setSupervisorCity(parentCity);
       setSupervisorCountry(parentCountry);
     }
-  }, [copySupervisorAddress, parentAddress, parentCountry]);
+  }, [copySupervisorAddress, parentAddress, parentZip, parentCity, parentCountry]);
 
   const selectedEventLabel = useMemo(() => {
     const ev = events.find((e) => e.id === selectedEvent);
@@ -180,22 +191,29 @@ const U18Page = () => {
       event_date: selectedEv?.date || null,
       parent_name: parentName.trim(),
       parent_address: parentAddress.trim(),
+      parent_zip: parentZip.trim(),
+      parent_city: parentCity.trim(),
       parent_country: parentCountry,
       parent_phone: parentPhone.trim(),
       parent_birthday: parentBirthday,
       minor_name: minorName.trim(),
       minor_address: minorAddress.trim(),
+      minor_zip: minorZip.trim(),
+      minor_city: minorCity.trim(),
       minor_country: minorCountry,
       minor_phone: minorPhone.trim(),
       minor_birthday: minorBirthday,
       supervisor_name: skipSupervisor ? null : supervisorName.trim() || null,
       supervisor_address: skipSupervisor ? null : supervisorAddress.trim() || null,
+      supervisor_zip: skipSupervisor ? null : supervisorZip.trim() || null,
+      supervisor_city: skipSupervisor ? null : supervisorCity.trim() || null,
       supervisor_country: skipSupervisor ? null : supervisorCountry || null,
       supervisor_email: skipSupervisor ? null : supervisorEmail.trim() || null,
       supervisor_phone: skipSupervisor ? null : supervisorPhone.trim() || null,
       supervisor_birthday: skipSupervisor ? null : supervisorBirthday || null,
       email: email.trim(),
       has_signature: !skipSignature && !!parentSignature,
+      has_supervisor_signature: !skipSignature && !skipSupervisor && !!supervisorSignature,
       accept_newsletter: acceptNewsletter,
     } as any).select("id").single();
 
@@ -311,11 +329,11 @@ const U18Page = () => {
                     setSubmittedFormId(null);
                     setStep(1);
                     setSelectedEvent("");
-                    setParentName(""); setParentAddress(""); setParentPhone(""); setParentBirthday("");
-                    setMinorName(""); setMinorAddress(""); setMinorPhone(""); setMinorBirthday("");
-                    setSupervisorName(""); setSupervisorAddress(""); setSupervisorEmail(""); setSupervisorPhone(""); setSupervisorBirthday("");
+                    setParentName(""); setParentAddress(""); setParentZip(""); setParentCity(""); setParentPhone(""); setParentBirthday("");
+                    setMinorName(""); setMinorAddress(""); setMinorZip(""); setMinorCity(""); setMinorPhone(""); setMinorBirthday("");
+                    setSupervisorName(""); setSupervisorAddress(""); setSupervisorZip(""); setSupervisorCity(""); setSupervisorEmail(""); setSupervisorPhone(""); setSupervisorBirthday("");
                     setEmail(""); setAcceptPrivacy(false); setAcceptNewsletter(false);
-                    setParentSignature(null); setSkipSignature(false); setSkipSupervisor(false);
+                    setParentSignature(null); setSupervisorSignature(null); setSkipSignature(false); setSkipSupervisor(false);
                   }}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
@@ -375,8 +393,18 @@ const U18Page = () => {
                     <Input value={parentName} onChange={(e) => setParentName(e.target.value)} className="bg-secondary border-border" />
                   </div>
                   <div>
-                    <Label>🏡 Anschrift Elternteil *</Label>
-                    <Input value={parentAddress} onChange={(e) => setParentAddress(e.target.value)} className="bg-secondary border-border" />
+                    <Label>🏡 Straße + Hausnr. Elternteil *</Label>
+                    <Input value={parentAddress} onChange={(e) => setParentAddress(e.target.value)} className="bg-secondary border-border" placeholder="Musterstraße 1" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label>PLZ *</Label>
+                      <Input value={parentZip} onChange={(e) => setParentZip(e.target.value)} className="bg-secondary border-border" placeholder="67663" />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Ort *</Label>
+                      <Input value={parentCity} onChange={(e) => setParentCity(e.target.value)} className="bg-secondary border-border" placeholder="Kaiserslautern" />
+                    </div>
                   </div>
                   <CountrySelect value={parentCountry} onChange={setParentCountry} />
                   <div>
@@ -405,7 +433,7 @@ const U18Page = () => {
                   </div>
                   <div>
                     <Label className="flex items-center justify-between">
-                      <span>🏡 Anschrift unter 18 *</span>
+                      <span>🏡 Straße + Hausnr. unter 18 *</span>
                       <button
                         type="button"
                         onClick={() => setCopyParentAddress(!copyParentAddress)}
@@ -414,7 +442,17 @@ const U18Page = () => {
                         ADRESSE VOM ELTERNTEIL ÜBERNEHMEN
                       </button>
                     </Label>
-                    <Input value={minorAddress} onChange={(e) => { setMinorAddress(e.target.value); setCopyParentAddress(false); }} className="bg-secondary border-border" />
+                    <Input value={minorAddress} onChange={(e) => { setMinorAddress(e.target.value); setCopyParentAddress(false); }} className="bg-secondary border-border" placeholder="Musterstraße 1" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label>PLZ *</Label>
+                      <Input value={minorZip} onChange={(e) => { setMinorZip(e.target.value); setCopyParentAddress(false); }} className="bg-secondary border-border" placeholder="67663" />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Ort *</Label>
+                      <Input value={minorCity} onChange={(e) => { setMinorCity(e.target.value); setCopyParentAddress(false); }} className="bg-secondary border-border" placeholder="Kaiserslautern" />
+                    </div>
                   </div>
                   <CountrySelect value={minorCountry} onChange={(v) => { setMinorCountry(v); setCopyParentAddress(false); }} />
                   <div>
@@ -463,7 +501,7 @@ const U18Page = () => {
                     </div>
                     <div>
                       <Label className="flex items-center justify-between">
-                        <span>🏡 Anschrift Aufsichtsperson (18+) *</span>
+                        <span>🏡 Straße + Hausnr. Aufsichtsperson (18+) *</span>
                         <button
                           type="button"
                           onClick={() => setCopySupervisorAddress(!copySupervisorAddress)}
@@ -472,7 +510,17 @@ const U18Page = () => {
                           ADRESSE VOM ELTERNTEIL ÜBERNEHMEN
                         </button>
                       </Label>
-                      <Input value={supervisorAddress} onChange={(e) => { setSupervisorAddress(e.target.value); setCopySupervisorAddress(false); }} className="bg-secondary border-border" />
+                      <Input value={supervisorAddress} onChange={(e) => { setSupervisorAddress(e.target.value); setCopySupervisorAddress(false); }} className="bg-secondary border-border" placeholder="Musterstraße 1" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <Label>PLZ *</Label>
+                        <Input value={supervisorZip} onChange={(e) => { setSupervisorZip(e.target.value); setCopySupervisorAddress(false); }} className="bg-secondary border-border" placeholder="67663" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Ort *</Label>
+                        <Input value={supervisorCity} onChange={(e) => { setSupervisorCity(e.target.value); setCopySupervisorAddress(false); }} className="bg-secondary border-border" placeholder="Kaiserslautern" />
+                      </div>
                     </div>
                     <CountrySelect value={supervisorCountry} onChange={(v) => { setSupervisorCountry(v); setCopySupervisorAddress(false); }} />
                     <div>
@@ -498,7 +546,7 @@ const U18Page = () => {
             {/* STEP 5 – Signatures */}
             {step === 5 && (
               <div className="space-y-6">
-                <p className="text-muted-foreground text-sm">Unterschrift des Elternteils bzw. der sorgeberechtigten Person</p>
+                <p className="text-muted-foreground text-sm">Unterschriften der beteiligten Personen</p>
 
                 {!skipSignature && (
                   <>
@@ -510,6 +558,20 @@ const U18Page = () => {
                     <p className="text-xs text-muted-foreground">
                       Hiermit erkläre ich mich als sorgeberechtigte Person einverstanden, dass ich die Aufsicht an die angegebene Person übertrage.
                     </p>
+
+                    {!skipSupervisor && (
+                      <>
+                        <div className="border-t border-border pt-4" />
+                        <SignaturePad
+                          label="Unterschrift der Aufsichtsperson (18+)"
+                          onSignatureChange={setSupervisorSignature}
+                          value={supervisorSignature}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Hiermit bestätige ich, die Aufsicht über die oben genannte minderjährige Person zu übernehmen.
+                        </p>
+                      </>
+                    )}
                   </>
                 )}
 

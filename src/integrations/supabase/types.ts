@@ -1118,23 +1118,30 @@ export type Database = {
           event_id: string | null
           event_title: string
           has_signature: boolean
+          has_supervisor_signature: boolean
           id: string
           minor_address: string
           minor_birthday: string
+          minor_city: string | null
           minor_country: string
           minor_name: string
           minor_phone: string
+          minor_zip: string | null
           parent_address: string
           parent_birthday: string
+          parent_city: string | null
           parent_country: string
           parent_name: string
           parent_phone: string
+          parent_zip: string | null
           supervisor_address: string | null
           supervisor_birthday: string | null
+          supervisor_city: string | null
           supervisor_country: string | null
           supervisor_email: string | null
           supervisor_name: string | null
           supervisor_phone: string | null
+          supervisor_zip: string | null
         }
         Insert: {
           accept_newsletter?: boolean
@@ -1144,23 +1151,30 @@ export type Database = {
           event_id?: string | null
           event_title: string
           has_signature?: boolean
+          has_supervisor_signature?: boolean
           id?: string
           minor_address: string
           minor_birthday: string
+          minor_city?: string | null
           minor_country?: string
           minor_name: string
           minor_phone: string
+          minor_zip?: string | null
           parent_address: string
           parent_birthday: string
+          parent_city?: string | null
           parent_country?: string
           parent_name: string
           parent_phone: string
+          parent_zip?: string | null
           supervisor_address?: string | null
           supervisor_birthday?: string | null
+          supervisor_city?: string | null
           supervisor_country?: string | null
           supervisor_email?: string | null
           supervisor_name?: string | null
           supervisor_phone?: string | null
+          supervisor_zip?: string | null
         }
         Update: {
           accept_newsletter?: boolean
@@ -1170,23 +1184,30 @@ export type Database = {
           event_id?: string | null
           event_title?: string
           has_signature?: boolean
+          has_supervisor_signature?: boolean
           id?: string
           minor_address?: string
           minor_birthday?: string
+          minor_city?: string | null
           minor_country?: string
           minor_name?: string
           minor_phone?: string
+          minor_zip?: string | null
           parent_address?: string
           parent_birthday?: string
+          parent_city?: string | null
           parent_country?: string
           parent_name?: string
           parent_phone?: string
+          parent_zip?: string | null
           supervisor_address?: string | null
           supervisor_birthday?: string | null
+          supervisor_city?: string | null
           supervisor_country?: string | null
           supervisor_email?: string | null
           supervisor_name?: string | null
           supervisor_phone?: string | null
+          supervisor_zip?: string | null
         }
         Relationships: [
           {
