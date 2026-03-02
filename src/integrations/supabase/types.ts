@@ -614,6 +614,54 @@ export type Database = {
           },
         ]
       }
+      job_applications: {
+        Row: {
+          admin_notes: string | null
+          age: number
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          message: string | null
+          phone: string
+          photo_url: string | null
+          positions: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          age: number
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          message?: string | null
+          phone: string
+          photo_url?: string | null
+          positions?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          age?: number
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          message?: string | null
+          phone?: string
+          photo_url?: string | null
+          positions?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lounge_bookings: {
         Row: {
           agreed_terms: boolean
