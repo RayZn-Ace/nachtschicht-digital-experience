@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletions: {
+        Row: {
+          deleted_at: string
+          id: string
+          method: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          deleted_at?: string
+          id?: string
+          method?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          deleted_at?: string
+          id?: string
+          method?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       album_photos: {
         Row: {
           album_id: string
@@ -353,12 +377,14 @@ export type Database = {
           avatar_url: string | null
           birthday: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           email: string | null
           first_name: string | null
           gdpr_agb_consent_at: string | null
           gdpr_consent_at: string | null
           id: string
+          is_deleted: boolean
           last_name: string | null
           salutation: string | null
           user_id: string
@@ -367,12 +393,14 @@ export type Database = {
           avatar_url?: string | null
           birthday?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           email?: string | null
           first_name?: string | null
           gdpr_agb_consent_at?: string | null
           gdpr_consent_at?: string | null
           id?: string
+          is_deleted?: boolean
           last_name?: string | null
           salutation?: string | null
           user_id: string
@@ -381,12 +409,14 @@ export type Database = {
           avatar_url?: string | null
           birthday?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           email?: string | null
           first_name?: string | null
           gdpr_agb_consent_at?: string | null
           gdpr_consent_at?: string | null
           id?: string
+          is_deleted?: boolean
           last_name?: string | null
           salutation?: string | null
           user_id?: string

@@ -29,6 +29,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminPage from "./pages/AdminPage";
 import DashboardPage from "./pages/DashboardPage";
 import MyTicketsPage from "./pages/MyTicketsPage";
+import MeineBestellungenPage from "./pages/MeineBestellungenPage";
+import AccountDeletePage from "./pages/AccountDeletePage";
 import TicketShopPage from "./pages/TicketShopPage";
 import ScannerPage from "./pages/ScannerPage";
 import NotFound from "./pages/NotFound";
@@ -68,6 +70,8 @@ const App = () => (
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/meine-tickets" element={<MyTicketsPage />} />
+                  <Route path="/meine-bestellungen" element={<MeineBestellungenPage />} />
+                  <Route path="/account-loeschen" element={<AccountDeletePage />} />
                   <Route path="/tickets/:eventId" element={<TicketShopPage />} />
                   <Route path="/scanner" element={<ScannerPage />} />
                   <Route path="*" element={<NotFound />} />
