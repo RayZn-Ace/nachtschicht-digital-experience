@@ -38,13 +38,20 @@ const EventLoungeSection = ({ event }: Props) => {
   const eventAreas = parseAreas(event.areas);
 
   const fetchData = async () => {
-    const [loungeRes, bookingRes] = await Promise.all([
-      supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
-      supabase.from("lounge_bookings").select("lounge_id, event_id, booking_type, status").eq("event_id", event.id).neq("status", "cancelled").neq("status", "rejected"),
-    ]);
-    if (loungeRes.data) setLounges(loungeRes.data as any);
-    if (bookingRes.data) setBookings(bookingRes.data as any);
-    setLoading(false);
+    try {
+      const [loungeRes, bookingRes] = await Promise.all([
+        supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
+        supabase.from("lounge_bookings").select("lounge_id, event_id, booking_type, status").eq("event_id", event.id).neq("status", "cancelled").neq("status", "rejected"),
+      ]);
+      if (loungeRes.error) throw loungeRes.error;
+      if (bookingRes.error) throw bookingRes.error;
+      setLounges(loungeRes.data as any);
+      setBookings(bookingRes.data as any);
+    } catch (err) {
+      console.error("Failed to load lounges:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, [event.id]);
