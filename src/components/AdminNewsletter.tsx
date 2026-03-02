@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Trash2, Mail, Users, Search, Plus, Send, Eye, Pencil,
   ChevronLeft, CheckCircle, Loader2, Palette,
-  Calendar, Tag, UserPlus, FolderOpen, X,
+  Calendar, Tag, UserPlus, FolderOpen, X, Copy,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -519,6 +519,19 @@ const AdminNewsletter = () => {
     fetchNewsletters();
   };
 
+  const duplicateNewsletter = async (nl: Newsletter) => {
+    const json = nl.body_json as any;
+    const { error } = await supabase.from("newsletters").insert({
+      subject: `${nl.subject} (Kopie)`,
+      preview_text: nl.preview_text,
+      body_html: nl.body_html,
+      body_json: json,
+    } as any);
+    if (error) { toast.error("Fehler: " + error.message); return; }
+    toast.success("Newsletter dupliziert");
+    fetchNewsletters();
+  };
+
   const filtered = subscribers.filter((s) => {
     const matchesSearch = s.email.toLowerCase().includes(search.toLowerCase()) || (s.name || "").toLowerCase().includes(search.toLowerCase());
     if (selectedCategoryIds.length === 0) return matchesSearch;
@@ -1005,7 +1018,12 @@ const AdminNewsletter = () => {
                       <button onClick={() => openSendDialog(nl.id)} disabled={sending || activeCount === 0} className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary" title="Senden"><Send size={16} /></button>
                     </>
                   )}
-                  {nl.status === "sent" && <CheckCircle size={18} className="text-green-400" />}
+                  {nl.status === "sent" && (
+                    <>
+                      <CheckCircle size={18} className="text-green-400" />
+                      <button onClick={() => duplicateNewsletter(nl)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Duplizieren"><Copy size={16} /></button>
+                    </>
+                  )}
                   <button onClick={() => deleteNewsletter(nl.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive" title="Löschen"><Trash2 size={16} /></button>
                 </div>
               </div>
