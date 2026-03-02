@@ -4,11 +4,13 @@ import { toast } from "sonner";
 import {
   Trash2, Mail, Users, Search, Plus, Send, Eye, Pencil,
   ChevronLeft, CheckCircle, XCircle, Clock, Loader2, Palette,
+  Calendar, Tag, Info,
 } from "lucide-react";
 
 interface Subscriber {
   id: string;
   email: string;
+  name: string | null;
   is_active: boolean;
   subscribed_at: string;
 }
@@ -27,6 +29,17 @@ interface Newsletter {
   created_at: string;
 }
 
+interface EventRow {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  date: string;
+  time: string | null;
+  image_url: string | null;
+  genre: string | null;
+  ticket_price: number | null;
+}
+
 type View = "subscribers" | "campaigns" | "editor";
 
 /* ─── Design presets ─── */
@@ -38,10 +51,57 @@ const COLOR_PRESETS = [
   { name: "Hell & Clean", primary: "#e11d48", bg: "#ffffff", text: "#1a1a1a", accent: "#f43f5e" },
 ];
 
+/* ─── Placeholders ─── */
+const PLACEHOLDERS = [
+  { tag: "{{NAME}}", desc: "Name des Abonnenten (oder E-Mail-Prefix)" },
+  { tag: "{{EMAIL}}", desc: "E-Mail-Adresse" },
+];
+
+const escHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const fmtDate = (d: string) =>
+  new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
+
+const buildEventCardHtml = (ev: EventRow, design: DesignConfig, baseUrl: string): string => {
+  const img = ev.image_url || "/images/gallery-1.jpg";
+  const fullImg = img.startsWith("http") ? img : `${baseUrl}${img}`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;border:1px solid ${design.primary}33;border-radius:12px;overflow:hidden;">
+    <tr><td>
+      <img src="${escHtml(fullImg)}" alt="${escHtml(ev.title)}" style="width:100%;height:180px;object-fit:cover;display:block;"/>
+    </td></tr>
+    <tr><td style="padding:16px;">
+      <h3 style="margin:0 0 4px;font-size:20px;font-weight:bold;color:${design.primary};font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(ev.title)}</h3>
+      ${ev.subtitle ? `<p style="margin:0 0 8px;font-size:14px;color:${design.text}aa;font-style:italic;font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(ev.subtitle)}</p>` : ""}
+      <p style="margin:0 0 8px;font-size:14px;color:${design.text}cc;font-family:'Helvetica Neue',Arial,sans-serif;">📅 ${fmtDate(ev.date)}${ev.time ? ` · ${ev.time} Uhr` : ""}${ev.genre ? ` · ${ev.genre}` : ""}</p>
+      ${ev.ticket_price ? `<p style="margin:0 0 12px;font-size:14px;color:${design.text}cc;font-family:'Helvetica Neue',Arial,sans-serif;">🎟 ab ${Number(ev.ticket_price).toFixed(2).replace(".", ",")} €</p>` : ""}
+      <a href="${baseUrl}/tickets/${ev.id}" target="_blank" style="display:inline-block;padding:10px 24px;background:${design.primary};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;font-family:'Helvetica Neue',Arial,sans-serif;">Tickets sichern</a>
+    </td></tr>
+  </table>`;
+};
+
+interface EditorBlock {
+  id: string;
+  type: "heading" | "text" | "button" | "divider" | "image" | "event" | "event-list";
+  content: string;
+  url?: string;
+  eventId?: string;
+  eventCount?: number;
+}
+
+interface DesignConfig {
+  primary: string;
+  bg: string;
+  text: string;
+  accent: string;
+}
+
 const buildHtml = (
   blocks: EditorBlock[],
   design: DesignConfig,
-  previewText?: string
+  previewText: string | undefined,
+  events: EventRow[],
+  baseUrl: string
 ): string => {
   const blocksHtml = blocks
     .map((b) => {
@@ -56,6 +116,18 @@ const buildHtml = (
           return `<hr style="border:none;border-top:1px solid ${design.primary}33;margin:24px 0;"/>`;
         case "image":
           return `<img src="${escHtml(b.url || "")}" alt="${escHtml(b.content)}" style="max-width:100%;height:auto;border-radius:8px;margin:16px 0;display:block;"/>`;
+        case "event": {
+          const ev = events.find((e) => e.id === b.eventId);
+          if (!ev) return `<p style="color:${design.text}88;font-size:14px;font-style:italic;">[Event nicht gefunden]</p>`;
+          return buildEventCardHtml(ev, design, baseUrl);
+        }
+        case "event-list": {
+          const count = b.eventCount || 3;
+          const upcoming = events.slice(0, count);
+          if (upcoming.length === 0) return `<p style="color:${design.text}88;font-size:14px;font-style:italic;">[Keine kommenden Events]</p>`;
+          return `<h2 style="font-size:22px;font-weight:bold;color:${design.primary};margin:0 0 12px;font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(b.content || "Kommende Events")}</h2>` +
+            upcoming.map((ev) => buildEventCardHtml(ev, design, baseUrl)).join("");
+        }
         default:
           return "";
       }
@@ -69,33 +141,19 @@ const buildHtml = (
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:${design.bg};font-family:'Helvetica Neue',Arial,sans-serif;">${previewSnippet}<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${design.bg};border-radius:12px;border:1px solid ${design.primary}22;"><tr><td style="padding:40px 32px;">${blocksHtml}<p style="font-size:12px;color:${design.text}88;margin-top:32px;text-align:center;font-family:'Helvetica Neue',Arial,sans-serif;">Du erhältst diese E-Mail, weil du unseren Newsletter abonniert hast.</p></td></tr></table></td></tr></table></body></html>`;
 };
 
-const escHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
-interface EditorBlock {
-  id: string;
-  type: "heading" | "text" | "button" | "divider" | "image";
-  content: string;
-  url?: string;
-}
-
-interface DesignConfig {
-  primary: string;
-  bg: string;
-  text: string;
-  accent: string;
-}
-
 const defaultBlocks: EditorBlock[] = [
-  { id: "1", type: "heading", content: "Hey! 👋" },
+  { id: "1", type: "heading", content: "Hey {{NAME}}! 👋" },
   { id: "2", type: "text", content: "Hier kommt dein Newsletter-Text..." },
   { id: "3", type: "button", content: "Tickets sichern", url: "https://nachtschicht-digital-experience.lovable.app/events" },
 ];
+
+const BASE_URL = "https://nachtschicht-digital-experience.lovable.app";
 
 const AdminNewsletter = () => {
   const [view, setView] = useState<View>("campaigns");
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -114,7 +172,7 @@ const AdminNewsletter = () => {
       .from("newsletter_subscribers")
       .select("*")
       .order("subscribed_at", { ascending: false });
-    if (data) setSubscribers(data);
+    if (data) setSubscribers(data as any);
   }, []);
 
   const fetchNewsletters = useCallback(async () => {
@@ -125,9 +183,20 @@ const AdminNewsletter = () => {
     if (data) setNewsletters(data as any);
   }, []);
 
+  const fetchEvents = useCallback(async () => {
+    const { data } = await supabase
+      .from("events")
+      .select("id, title, subtitle, date, time, image_url, genre, ticket_price")
+      .eq("is_published", true)
+      .gte("date", new Date().toISOString())
+      .order("date", { ascending: true })
+      .limit(20);
+    if (data) setEvents(data as any);
+  }, []);
+
   useEffect(() => {
-    Promise.all([fetchSubscribers(), fetchNewsletters()]).finally(() => setLoading(false));
-  }, [fetchSubscribers, fetchNewsletters]);
+    Promise.all([fetchSubscribers(), fetchNewsletters(), fetchEvents()]).finally(() => setLoading(false));
+  }, [fetchSubscribers, fetchNewsletters, fetchEvents]);
 
   const activeCount = subscribers.filter((s) => s.is_active).length;
 
@@ -169,8 +238,10 @@ const AdminNewsletter = () => {
     const b: EditorBlock = {
       id: crypto.randomUUID(),
       type,
-      content: type === "heading" ? "Überschrift" : type === "text" ? "Text hier..." : type === "button" ? "Klick mich" : type === "image" ? "Bild" : "",
+      content: type === "heading" ? "Überschrift" : type === "text" ? "Text hier..." : type === "button" ? "Klick mich" : type === "image" ? "Bild" : type === "event-list" ? "Kommende Events" : "",
       url: type === "button" ? "#" : type === "image" ? "https://placehold.co/600x200" : undefined,
+      eventId: type === "event" ? events[0]?.id : undefined,
+      eventCount: type === "event-list" ? 3 : undefined,
     };
     setBlocks((prev) => [...prev, b]);
   };
@@ -199,7 +270,7 @@ const AdminNewsletter = () => {
     if (!subject.trim()) { toast.error("Betreff ist erforderlich"); return; }
     setSaving(true);
 
-    const html = buildHtml(blocks, design, previewText);
+    const html = buildHtml(blocks, design, previewText, events, BASE_URL);
     const json = { blocks, design };
 
     try {
@@ -277,7 +348,7 @@ const AdminNewsletter = () => {
 
   /* ─── EDITOR VIEW ─── */
   if (view === "editor") {
-    const html = buildHtml(blocks, design, previewText);
+    const html = buildHtml(blocks, design, previewText, events, BASE_URL);
 
     return (
       <div>
@@ -294,12 +365,27 @@ const AdminNewsletter = () => {
 
             <div>
               <label className="text-sm text-foreground mb-1 block">Betreff *</label>
-              <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="z.B. 🎉 Dieses Wochenende: Ladys Night!" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+              <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="z.B. 🎉 Hey {{NAME}}, dieses Wochenende: Ladys Night!" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
             </div>
 
             <div>
               <label className="text-sm text-foreground mb-1 block">Vorschau-Text</label>
               <input value={previewText} onChange={(e) => setPreviewText(e.target.value)} placeholder="Wird in der Inbox-Vorschau angezeigt..." className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+            </div>
+
+            {/* Placeholder Info */}
+            <div className="glass-card p-3 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                <Tag size={12} className="text-primary" /> Platzhalter (werden beim Versand ersetzt)
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {PLACEHOLDERS.map((p) => (
+                  <span key={p.tag} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-md font-mono cursor-help" title={p.desc}>
+                    {p.tag}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Nutze diese Tags in Betreff, Überschriften oder Texten. Beispiel: "Hey {"{{NAME}}"}, schau vorbei!"</p>
             </div>
 
             {/* Design Presets */}
@@ -322,7 +408,6 @@ const AdminNewsletter = () => {
                   </button>
                 ))}
               </div>
-              {/* Custom colors */}
               <div className="flex gap-3 mt-3">
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   Primär <input type="color" value={design.primary} onChange={(e) => setDesign({ ...design, primary: e.target.value })} className="w-6 h-6 rounded cursor-pointer border-0" />
@@ -351,8 +436,51 @@ const AdminNewsletter = () => {
                         <Trash2 size={14} />
                       </button>
                     </div>
+
                     {block.type === "divider" ? (
                       <hr className="border-border" />
+                    ) : block.type === "event" ? (
+                      <div className="space-y-2">
+                        <select
+                          value={block.eventId || ""}
+                          onChange={(e) => updateBlock(block.id, { eventId: e.target.value })}
+                          className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                        >
+                          <option value="">Event auswählen...</option>
+                          {events.map((ev) => (
+                            <option key={ev.id} value={ev.id}>
+                              {ev.title} – {fmtDate(ev.date)}
+                            </option>
+                          ))}
+                        </select>
+                        {block.eventId && events.find((e) => e.id === block.eventId) && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CheckCircle size={12} className="text-green-400" />
+                            {events.find((e) => e.id === block.eventId)?.title}
+                          </div>
+                        )}
+                      </div>
+                    ) : block.type === "event-list" ? (
+                      <div className="space-y-2">
+                        <input
+                          value={block.content}
+                          onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+                          className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                          placeholder="Überschrift z.B. Kommende Events"
+                        />
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-muted-foreground">Anzahl Events:</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={10}
+                            value={block.eventCount || 3}
+                            onChange={(e) => updateBlock(block.id, { eventCount: Math.max(1, Math.min(10, Number(e.target.value))) })}
+                            className="w-16 px-2 py-1 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Zeigt automatisch die nächsten {block.eventCount || 3} kommenden Events an.</p>
+                      </div>
                     ) : (
                       <>
                         {block.type === "heading" ? (
@@ -377,6 +505,12 @@ const AdminNewsletter = () => {
                 <button onClick={() => addBlock("button")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Button</button>
                 <button onClick={() => addBlock("image")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Bild</button>
                 <button onClick={() => addBlock("divider")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Trennlinie</button>
+                <button onClick={() => addBlock("event")} className="px-3 py-1.5 bg-primary/20 border border-primary/30 rounded-md text-xs text-primary hover:bg-primary/30 flex items-center gap-1">
+                  <Calendar size={12} /> + Event
+                </button>
+                <button onClick={() => addBlock("event-list")} className="px-3 py-1.5 bg-primary/20 border border-primary/30 rounded-md text-xs text-primary hover:bg-primary/30 flex items-center gap-1">
+                  <Calendar size={12} /> + Event-Liste
+                </button>
               </div>
             </div>
 
@@ -522,7 +656,7 @@ const AdminNewsletter = () => {
               {filtered.map((sub) => (
                 <div key={sub.id} className="glass-card p-3 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-foreground text-sm truncate">{sub.email}</p>
+                    <p className="text-foreground text-sm truncate">{sub.name ? `${sub.name} · ${sub.email}` : sub.email}</p>
                     <p className="text-muted-foreground text-xs">
                       {new Date(sub.subscribed_at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </p>
