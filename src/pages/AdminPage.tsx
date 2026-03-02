@@ -63,7 +63,7 @@ const AdminPage = () => {
   const [eventTagsMap, setEventTagsMap] = useState<Record<string, EventTag[]>>({});
   const [formData, setFormData] = useState({
     title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
-    image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19,
+    image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19,
     has_muttizettel: false, has_abendkasse: false,
     fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0,
   });
@@ -104,7 +104,7 @@ const AdminPage = () => {
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const resetForm = () => {
-    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0 });
+    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0 });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
     setSelectedTagIds([]);
     setEditing(null);
@@ -120,6 +120,7 @@ const AdminPage = () => {
       time: event.time, end_time: (event as any).end_time || "", genre: event.genre || "", areas: event.areas || "",
       image_url: event.image_url || "", ticket_price: event.ticket_price,
       ticket_quantity: event.ticket_quantity, is_published: event.is_published,
+      is_featured: (event as any).is_featured ?? false,
       vat_rate: (event as any).vat_rate ?? 19,
       has_muttizettel: (event as any).has_muttizettel ?? false,
       has_abendkasse: (event as any).has_abendkasse ?? false,
@@ -476,6 +477,18 @@ const AdminPage = () => {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })} className="accent-primary" />
                   <span className="text-sm text-foreground">Veröffentlicht</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer" title={!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 ? "Maximal 3 Favoriten möglich" : ""}>
+                  <input
+                    type="checkbox"
+                    checked={formData.is_featured}
+                    disabled={!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3}
+                    onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                    className="accent-primary"
+                  />
+                  <span className={`text-sm ${!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 ? "text-muted-foreground" : "text-foreground"}`}>
+                    ⭐ Highlight auf Startseite {events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 && !formData.is_featured ? "(max. 3)" : ""}
+                  </span>
                 </label>
               </div>
 
