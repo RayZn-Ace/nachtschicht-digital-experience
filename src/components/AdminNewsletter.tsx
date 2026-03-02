@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Trash2, Mail, Users, Search, Plus, Send, Eye, Pencil,
   ChevronLeft, CheckCircle, Loader2, Palette,
-  Calendar, Tag, UserPlus, FolderOpen, X, Copy,
+  Calendar, Tag, UserPlus, FolderOpen, X, Copy, Wand2, Sparkles,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -52,6 +52,8 @@ interface EventRow {
   image_url: string | null;
   genre: string | null;
   ticket_price: number | null;
+  image_focus_x: number | null;
+  image_focus_y: number | null;
 }
 
 type View = "subscribers" | "campaigns" | "editor" | "categories";
@@ -90,8 +92,10 @@ const fmtDate = (d: string) =>
 const buildEventCardHtml = (ev: EventRow, design: DesignConfig, baseUrl: string): string => {
   const img = ev.image_url || "/images/gallery-1.jpg";
   const fullImg = img.startsWith("http") ? img : `${baseUrl}${img}`;
+  const focusX = ev.image_focus_x ?? 50;
+  const focusY = ev.image_focus_y ?? 50;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;border:1px solid ${design.primary}33;border-radius:12px;overflow:hidden;">
-    <tr><td><img src="${escHtml(fullImg)}" alt="${escHtml(ev.title)}" style="width:100%;height:180px;object-fit:cover;display:block;"/></td></tr>
+    <tr><td><img src="${escHtml(fullImg)}" alt="${escHtml(ev.title)}" style="width:100%;height:180px;object-fit:cover;object-position:${focusX}% ${focusY}%;display:block;"/></td></tr>
     <tr><td style="padding:16px;">
       <h3 style="margin:0 0 4px;font-size:20px;font-weight:bold;color:${design.primary};font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(ev.title)}</h3>
       ${ev.subtitle ? `<p style="margin:0 0 8px;font-size:14px;color:${design.text}aa;font-style:italic;font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(ev.subtitle)}</p>` : ""}
@@ -235,13 +239,68 @@ const AdminNewsletter = () => {
   const fetchEvents = useCallback(async () => {
     const { data } = await supabase
       .from("events")
-      .select("id, title, subtitle, date, time, image_url, genre, ticket_price")
+      .select("id, title, subtitle, date, time, image_url, genre, ticket_price, image_focus_x, image_focus_y")
       .eq("is_published", true)
       .gte("date", new Date().toISOString())
       .order("date", { ascending: true })
       .limit(20);
     if (data) setEvents(data as any);
   }, []);
+
+  /* ─── AI Smart Crop ─── */
+  const [analyzingCrop, setAnalyzingCrop] = useState<Record<string, boolean>>({});
+
+  const analyzeImageCrop = async (eventId: string) => {
+    const ev = events.find((e) => e.id === eventId);
+    if (!ev?.image_url) { toast.error("Kein Bild vorhanden"); return; }
+    
+    const fullUrl = ev.image_url.startsWith("http") ? ev.image_url : `${BASE_URL}${ev.image_url}`;
+    setAnalyzingCrop((prev) => ({ ...prev, [eventId]: true }));
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-image-crop", {
+        body: { image_url: fullUrl },
+      });
+      if (error) throw error;
+      
+      const { focus_x, focus_y } = data;
+      
+      // Save to database
+      await supabase.from("events").update({
+        image_focus_x: focus_x,
+        image_focus_y: focus_y,
+      } as any).eq("id", eventId);
+      
+      // Update local state
+      setEvents((prev) => prev.map((e) => e.id === eventId ? { ...e, image_focus_x: focus_x, image_focus_y: focus_y } : e));
+      toast.success(`Smart Crop: ${focus_x}% / ${focus_y}%`);
+    } catch (e: any) {
+      toast.error("KI-Analyse fehlgeschlagen: " + (e.message || "Unbekannter Fehler"));
+    } finally {
+      setAnalyzingCrop((prev) => ({ ...prev, [eventId]: false }));
+    }
+  };
+
+  const analyzeAllMissingCrops = async () => {
+    const eventsInBlocks = blocks
+      .filter((b) => b.type === "event" && b.eventId)
+      .map((b) => events.find((e) => e.id === b.eventId))
+      .filter((e): e is EventRow => !!e && !!e.image_url && e.image_focus_x === 50 && e.image_focus_y === 50);
+    
+    const eventListBlocks = blocks.filter((b) => b.type === "event-list");
+    if (eventListBlocks.length > 0) {
+      const count = eventListBlocks[0].eventCount || 3;
+      const upcoming = events.slice(0, count).filter((e) => e.image_url && e.image_focus_x === 50 && e.image_focus_y === 50);
+      eventsInBlocks.push(...upcoming.filter((e) => !eventsInBlocks.find((ex) => ex.id === e.id)));
+    }
+
+    if (eventsInBlocks.length === 0) { toast.info("Alle Event-Bilder haben bereits einen Smart Crop"); return; }
+    
+    toast.info(`Analysiere ${eventsInBlocks.length} Bilder...`);
+    for (const ev of eventsInBlocks) {
+      await analyzeImageCrop(ev.id);
+    }
+  };
 
   useEffect(() => {
     Promise.all([fetchSubscribers(), fetchNewsletters(), fetchCategories(), fetchSubCats(), fetchEvents()]).finally(() => setLoading(false));
@@ -619,10 +678,35 @@ const AdminNewsletter = () => {
                     {block.type === "divider" ? (
                       <hr className="border-border" />
                     ) : block.type === "event" ? (
-                      <select value={block.eventId || ""} onChange={(e) => updateBlock(block.id, { eventId: e.target.value })} className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none">
-                        <option value="">Event auswählen...</option>
-                        {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title} – {fmtDate(ev.date)}</option>)}
-                      </select>
+                      <div className="space-y-2">
+                        <select value={block.eventId || ""} onChange={(e) => updateBlock(block.id, { eventId: e.target.value })} className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none">
+                          <option value="">Event auswählen...</option>
+                          {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title} – {fmtDate(ev.date)}</option>)}
+                        </select>
+                        {block.eventId && (() => {
+                          const ev = events.find((e) => e.id === block.eventId);
+                          if (!ev?.image_url) return null;
+                          const hasCrop = ev.image_focus_x !== 50 || ev.image_focus_y !== 50;
+                          const isAnalyzing = analyzingCrop[ev.id];
+                          return (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => analyzeImageCrop(ev.id)}
+                                disabled={isAnalyzing}
+                                className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-md text-xs text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                              >
+                                {isAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                                {isAnalyzing ? "Analysiere..." : "KI Smart Crop"}
+                              </button>
+                              {hasCrop && (
+                                <span className="flex items-center gap-1 text-xs text-green-400">
+                                  <Sparkles size={12} /> {ev.image_focus_x}% / {ev.image_focus_y}%
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     ) : block.type === "event-list" ? (
                       <div className="space-y-2">
                         <input value={block.content} onChange={(e) => updateBlock(block.id, { content: e.target.value })} className="w-full px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Überschrift z.B. Kommende Events" />
@@ -656,6 +740,9 @@ const AdminNewsletter = () => {
                 <button onClick={() => addBlock("divider")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Trennlinie</button>
                 <button onClick={() => addBlock("event")} className="px-3 py-1.5 bg-primary/20 border border-primary/30 rounded-md text-xs text-primary hover:bg-primary/30 flex items-center gap-1"><Calendar size={12} /> + Event</button>
                 <button onClick={() => addBlock("event-list")} className="px-3 py-1.5 bg-primary/20 border border-primary/30 rounded-md text-xs text-primary hover:bg-primary/30 flex items-center gap-1"><Calendar size={12} /> + Event-Liste</button>
+                {blocks.some((b) => b.type === "event" || b.type === "event-list") && (
+                  <button onClick={analyzeAllMissingCrops} className="px-3 py-1.5 bg-accent/20 border border-accent/30 rounded-md text-xs text-accent-foreground hover:bg-accent/30 flex items-center gap-1 ml-auto"><Wand2 size={12} /> Alle Bilder analysieren</button>
+                )}
               </div>
             </div>
 
