@@ -24,7 +24,7 @@ const AdminTicketTypes = ({ eventId }: Props) => {
   const [types, setTypes] = useState<TicketType[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", price: 0, quantity: 100, sale_start: "", sale_end: "" });
+  const [form, setForm] = useState({ name: "", description: "", price: 0, quantity: 100, sale_start: "", sale_end: "", is_public: true });
 
   const fetchTypes = async () => {
     const { data } = await supabase
@@ -38,7 +38,7 @@ const AdminTicketTypes = ({ eventId }: Props) => {
   useEffect(() => { fetchTypes(); }, [eventId]);
 
   const resetForm = () => {
-    setForm({ name: "", description: "", price: 0, quantity: 100, sale_start: "", sale_end: "" });
+    setForm({ name: "", description: "", price: 0, quantity: 100, sale_start: "", sale_end: "", is_public: true });
     setEditingId(null);
     setShowAdd(false);
   };
@@ -54,6 +54,7 @@ const AdminTicketTypes = ({ eventId }: Props) => {
       sort_order: types.length,
       sale_start: form.sale_start ? new Date(form.sale_start).toISOString() : null,
       sale_end: form.sale_end ? new Date(form.sale_end).toISOString() : null,
+      is_public: form.is_public,
     };
     const { error } = await supabase.from("ticket_types").insert(payload);
     if (error) { toast.error(error.message); return; }
@@ -71,6 +72,7 @@ const AdminTicketTypes = ({ eventId }: Props) => {
       quantity: t.quantity,
       sale_start: t.sale_start ? t.sale_start.slice(0, 16) : "",
       sale_end: t.sale_end ? t.sale_end.slice(0, 16) : "",
+      is_public: (t as any).is_public !== false,
     });
     setShowAdd(false);
   };
@@ -84,6 +86,7 @@ const AdminTicketTypes = ({ eventId }: Props) => {
       quantity: Number(form.quantity),
       sale_start: form.sale_start ? new Date(form.sale_start).toISOString() : null,
       sale_end: form.sale_end ? new Date(form.sale_end).toISOString() : null,
+      is_public: form.is_public,
     };
     const { error } = await supabase.from("ticket_types").update(payload).eq("id", editingId);
     if (error) { toast.error(error.message); return; }
@@ -209,6 +212,20 @@ const AdminTicketTypes = ({ eventId }: Props) => {
               />
             </div>
           </div>
+          <div className="flex items-center gap-3 mb-2">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.is_public}
+                onChange={(e) => setForm({ ...form, is_public: e.target.checked })}
+                className="w-4 h-4 accent-primary rounded"
+              />
+              <span className="text-sm text-foreground">Im Verkauf</span>
+            </label>
+            <span className="text-xs text-muted-foreground">
+              {form.is_public ? "Sichtbar im Ticketshop" : "Nur intern / Freitickets"}
+            </span>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={editingId ? handleUpdate : handleAdd}
@@ -252,6 +269,9 @@ const AdminTicketTypes = ({ eventId }: Props) => {
               <button onClick={() => handleToggle(t)} className={`text-xs px-2 py-0.5 rounded-full ${t.is_active ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'}`}>
                 {t.is_active ? "Aktiv" : "Inaktiv"}
               </button>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${(t as any).is_public !== false ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                {(t as any).is_public !== false ? "Im Verkauf" : "Intern"}
+              </span>
               <button onClick={() => handleEdit(t)} className="text-foreground hover:text-primary transition-colors" title="Bearbeiten">
                 <Pencil size={14} />
               </button>
