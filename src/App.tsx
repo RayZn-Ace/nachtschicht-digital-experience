@@ -1,4 +1,3 @@
-import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,7 +40,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = React.forwardRef<HTMLDivElement>((_props, _ref) => {
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -92,8 +91,6 @@ const App = React.forwardRef<HTMLDivElement>((_props, _ref) => {
       </AuthProvider>
     </QueryClientProvider>
   );
-});
-
-App.displayName = "App";
+};
 
 export default App;
