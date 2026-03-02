@@ -94,14 +94,14 @@ const EventsPage = () => {
                     className="glass-card overflow-hidden hover-lift group cursor-pointer"
                     onClick={() => navigate(`/tickets/${event.id}`)}
                   >
-                    <div className="relative h-52 overflow-hidden">
+                    <div className="relative aspect-video overflow-hidden">
                       <img
                         src={event.image_url || "/images/gallery-1.jpg"}
                         alt={event.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/15 to-transparent" />
                       {event.genre && (
                         <span className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
                           {event.genre}
