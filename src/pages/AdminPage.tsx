@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
 import AdminNewsletter from "@/components/AdminNewsletter";
@@ -16,31 +16,48 @@ import AdminTicketTypes from "@/components/AdminTicketTypes";
 import AdminOrders from "@/components/AdminOrders";
 import AdminLoungeBookings from "@/components/AdminLoungeBookings";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const ALWAYS_OPEN_AREAS = ["openair", "bistro"];
+
+interface Genre {
+  id: string;
+  name: string;
+  is_default: boolean;
+}
+
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
   const [tab, setTab] = useState<"events" | "orders" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes" | "lounges">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [newGenre, setNewGenre] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     title: "", description: "", date: "", time: "22:00", genre: "", areas: "" as string,
-    image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false,
+    image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19,
   });
-  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [selectedAreas, setSelectedAreas] = useState<string[]>(ALWAYS_OPEN_AREAS);
 
   const fetchEvents = async () => {
     const { data } = await supabase.from("events").select("*").order("date", { ascending: true });
     if (data) setEvents(data as unknown as Event[]);
   };
 
-  useEffect(() => { fetchEvents(); }, []);
+  const fetchGenres = async () => {
+    const { data } = await supabase.from("genres").select("*").order("name");
+    if (data) setGenres(data as Genre[]);
+  };
+
+  useEffect(() => { fetchEvents(); fetchGenres(); }, []);
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const resetForm = () => {
-    setFormData({ title: "", description: "", date: "", time: "22:00", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false });
-    setSelectedAreas([]);
+    setFormData({ title: "", description: "", date: "", time: "22:00", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, vat_rate: 19 });
+    setSelectedAreas(ALWAYS_OPEN_AREAS);
     setEditing(null);
     setShowForm(false);
   };
@@ -48,21 +65,44 @@ const AdminPage = () => {
   const handleEdit = (event: Event) => {
     setEditing(event);
     const areas = parseAreas(event.areas);
-    setSelectedAreas(areas);
+    setSelectedAreas([...new Set([...areas, ...ALWAYS_OPEN_AREAS])]);
     setFormData({
       title: event.title, description: event.description || "", date: event.date.split("T")[0],
       time: event.time, genre: event.genre || "", areas: event.areas || "",
       image_url: event.image_url || "", ticket_price: event.ticket_price,
       ticket_quantity: event.ticket_quantity, is_published: event.is_published,
+      vat_rate: (event as any).vat_rate ?? 19,
     });
     setShowForm(true);
   };
 
   const toggleArea = (areaId: string) => {
+    if (ALWAYS_OPEN_AREAS.includes(areaId)) return; // Can't toggle always-open areas
     setSelectedAreas((prev) => {
       const next = prev.includes(areaId) ? prev.filter((a) => a !== areaId) : [...prev, areaId];
       return next;
     });
+  };
+
+  const uploadEventImage = async (file: File) => {
+    setUploadingImage(true);
+    const ext = file.name.split(".").pop();
+    const path = `events/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("event-images").upload(path, file, { upsert: true });
+    if (error) { toast.error("Upload-Fehler: " + error.message); setUploadingImage(false); return; }
+    const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/event-images/${path}`;
+    setFormData((prev) => ({ ...prev, image_url: imageUrl }));
+    toast.success("Titelbild hochgeladen!");
+    setUploadingImage(false);
+  };
+
+  const addGenre = async () => {
+    if (!newGenre.trim()) return;
+    const { error } = await supabase.from("genres").insert({ name: newGenre.trim() } as any);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Genre erstellt!");
+    setNewGenre("");
+    fetchGenres();
   };
 
   const handleSave = async () => {
@@ -72,14 +112,15 @@ const AdminPage = () => {
       date: new Date(formData.date).toISOString(),
       ticket_price: Number(formData.ticket_price),
       ticket_quantity: Number(formData.ticket_quantity),
+      vat_rate: Number(formData.vat_rate),
     };
 
     if (editing) {
-      const { error } = await supabase.from("events").update(payload).eq("id", editing.id);
+      const { error } = await supabase.from("events").update(payload as any).eq("id", editing.id);
       if (error) { toast.error("Fehler: " + error.message); return; }
       toast.success("Event aktualisiert!");
     } else {
-      const { error } = await supabase.from("events").insert(payload);
+      const { error } = await supabase.from("events").insert(payload as any);
       if (error) { toast.error("Fehler: " + error.message); return; }
       toast.success("Event erstellt!");
     }
@@ -112,61 +153,26 @@ const AdminPage = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setTab("events")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors ${tab === "events" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            EVENTS
-          </button>
-          <button
-            onClick={() => setTab("orders")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "orders" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            <ShoppingCart size={16} /> BESTELLUNGEN
-          </button>
-          <button
-            onClick={() => setTab("albums")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "albums" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            <Image size={16} /> FOTOALBEN
-          </button>
-          <button
-            onClick={() => setTab("newsletter")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "newsletter" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            <Mail size={16} /> NEWSLETTER
-          </button>
-          <button
-            onClick={() => setTab("u18")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "u18" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            <FileText size={16} /> MUTTIZETTEL
-          </button>
-          <button
-            onClick={() => setTab("tracking")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "tracking" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            <BarChart3 size={16} /> TRACKING
-          </button>
-          <button
-            onClick={() => setTab("tags")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "tags" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            <Tags size={16} /> TAGS
-          </button>
-          <button
-            onClick={() => setTab("codes")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "codes" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            <Ticket size={16} /> RABATTCODES
-          </button>
-          <button
-            onClick={() => setTab("lounges")}
-            className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === "lounges" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-          >
-            <Sofa size={16} /> LOUNGES
-          </button>
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {([
+            { id: "events", label: "EVENTS", icon: null },
+            { id: "orders", label: "BESTELLUNGEN", icon: ShoppingCart },
+            { id: "albums", label: "FOTOALBEN", icon: Image },
+            { id: "newsletter", label: "NEWSLETTER", icon: Mail },
+            { id: "u18", label: "MUTTIZETTEL", icon: FileText },
+            { id: "tracking", label: "TRACKING", icon: BarChart3 },
+            { id: "tags", label: "TAGS", icon: Tags },
+            { id: "codes", label: "RABATTCODES", icon: Ticket },
+            { id: "lounges", label: "LOUNGES", icon: Sofa },
+          ] as const).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id as any)}
+              className={`px-5 py-2 font-display tracking-wider rounded-md transition-colors flex items-center gap-2 ${tab === id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+            >
+              {Icon && <Icon size={16} />} {label}
+            </button>
+          ))}
         </div>
 
         {tab === "lounges" ? (
@@ -206,10 +212,34 @@ const AdminPage = () => {
                 <label className="text-sm text-foreground mb-1 block">Titel *</label>
                 <input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
               </div>
+
+              {/* Genre dropdown with custom creation */}
               <div>
                 <label className="text-sm text-foreground mb-1 block">Genre</label>
-                <input value={formData.genre} onChange={(e) => setFormData({ ...formData, genre: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+                <div className="flex gap-2">
+                  <select
+                    value={formData.genre}
+                    onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+                    className="flex-1 px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                  >
+                    <option value="">Bitte wählen</option>
+                    {genres.map((g) => (
+                      <option key={g.id} value={g.name}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-1.5 mt-1.5">
+                  <input
+                    value={newGenre}
+                    onChange={(e) => setNewGenre(e.target.value)}
+                    placeholder="Neues Genre erstellen..."
+                    className="flex-1 px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-xs focus:ring-2 focus:ring-primary focus:outline-none"
+                    onKeyDown={(e) => e.key === "Enter" && addGenre()}
+                  />
+                  <button onClick={addGenre} className="px-2.5 py-1.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-xs">+</button>
+                </div>
               </div>
+
               <div>
                 <label className="text-sm text-foreground mb-1 block">Datum *</label>
                 <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
@@ -223,35 +253,91 @@ const AdminPage = () => {
               <div className="md:col-span-2">
                 <label className="text-sm text-foreground mb-2 block">Areas (Räume) – welche Floors sind geöffnet?</label>
                 <div className="flex flex-wrap gap-2">
-                  {CLUB_AREAS.map((area) => (
-                    <button
-                      key={area.id}
-                      type="button"
-                      onClick={() => toggleArea(area.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                        selectedAreas.includes(area.id)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {area.name}
-                      {area.genre && <span className="ml-1 opacity-70">· {area.genre}</span>}
-                    </button>
-                  ))}
+                  {CLUB_AREAS.map((area) => {
+                    const isAlwaysOpen = ALWAYS_OPEN_AREAS.includes(area.id);
+                    return (
+                      <button
+                        key={area.id}
+                        type="button"
+                        onClick={() => toggleArea(area.id)}
+                        disabled={isAlwaysOpen}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                          selectedAreas.includes(area.id)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                        } ${isAlwaysOpen ? "opacity-70 cursor-not-allowed" : ""}`}
+                      >
+                        {area.name}
+                        {area.genre && <span className="ml-1 opacity-70">· {area.genre}</span>}
+                        {isAlwaysOpen && <span className="ml-1 opacity-70">· immer offen</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
+              {/* Titelbild Upload */}
+              <div className="md:col-span-2">
+                <label className="text-sm text-foreground mb-1 block">Titelbild</label>
+                <div className="flex items-start gap-3">
+                  {formData.image_url ? (
+                    <div className="relative w-32 h-20 rounded-md overflow-hidden shrink-0">
+                      <img src={formData.image_url} alt="Titelbild" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setFormData({ ...formData, image_url: "" })}
+                        className="absolute top-1 right-1 p-0.5 bg-background/80 rounded-full text-foreground hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : null}
+                  <label className="cursor-pointer flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && uploadEventImage(e.target.files[0])}
+                    />
+                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 transition-colors text-sm cursor-pointer">
+                      <Upload size={16} />
+                      {uploadingImage ? "Wird hochgeladen..." : "Bild hochladen"}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Ticket price + VAT */}
               <div>
-                <label className="text-sm text-foreground mb-1 block">Bild-URL</label>
-                <input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+                <label className="text-sm text-foreground mb-1 block">Eintrittspreis (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Eintrittspreis"
+                  value={formData.ticket_price || ""}
+                  onChange={(e) => setFormData({ ...formData, ticket_price: Number(e.target.value) })}
+                  className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                />
               </div>
               <div>
-                <label className="text-sm text-foreground mb-1 block">Ticketpreis (€)</label>
-                <input type="number" step="0.01" value={formData.ticket_price} onChange={(e) => setFormData({ ...formData, ticket_price: Number(e.target.value) })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+                <label className="text-sm text-foreground mb-1 block">MwSt.</label>
+                <select
+                  value={formData.vat_rate}
+                  onChange={(e) => setFormData({ ...formData, vat_rate: Number(e.target.value) })}
+                  className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                >
+                  <option value={19}>19% MwSt.</option>
+                  <option value={7}>7% MwSt.</option>
+                </select>
               </div>
               <div>
-                <label className="text-sm text-foreground mb-1 block">Ticket-Kontingent</label>
-                <input type="number" value={formData.ticket_quantity} onChange={(e) => setFormData({ ...formData, ticket_quantity: Number(e.target.value) })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+                <label className="text-sm text-foreground mb-1 block">Ticketkontingent</label>
+                <input
+                  type="number"
+                  placeholder="Ticketkontingent"
+                  value={formData.ticket_quantity || ""}
+                  onChange={(e) => setFormData({ ...formData, ticket_quantity: Number(e.target.value) })}
+                  className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="text-sm text-foreground mb-1 block">Beschreibung</label>

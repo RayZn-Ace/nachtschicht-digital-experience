@@ -220,6 +220,7 @@ export type Database = {
           time: string | null
           title: string
           updated_at: string
+          vat_rate: number
         }
         Insert: {
           areas?: string | null
@@ -236,6 +237,7 @@ export type Database = {
           time?: string | null
           title: string
           updated_at?: string
+          vat_rate?: number
         }
         Update: {
           areas?: string | null
@@ -252,6 +254,28 @@ export type Database = {
           time?: string | null
           title?: string
           updated_at?: string
+          vat_rate?: number
+        }
+        Relationships: []
+      }
+      genres: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
         }
         Relationships: []
       }
