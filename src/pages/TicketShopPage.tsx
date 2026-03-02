@@ -154,6 +154,7 @@ const TicketShopPage = () => {
         total_price: finalTotal,
         buyer_email: email,
         buyer_name: name || null,
+        buyer_phone: guestPhone || null,
         qr_code: qrCode,
         discount_code_id: appliedDiscount?.id || null,
       } as any).select("id");
@@ -171,6 +172,7 @@ const TicketShopPage = () => {
           total_price: tt.price * cart[tt.id] - (appliedDiscount ? discount * (tt.price * cart[tt.id] / rawTotal) : 0),
           buyer_email: email,
           buyer_name: name || null,
+          buyer_phone: guestPhone || null,
           qr_code: `TKT-${crypto.randomUUID()}`,
           discount_code_id: appliedDiscount?.id || null,
         }));
