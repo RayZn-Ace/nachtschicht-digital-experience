@@ -10,7 +10,7 @@ import {
   BarChart3, ShieldAlert, Calendar, QrCode, Users, Mail,
   TrendingUp, TrendingDown, Ticket, DollarSign, Eye, Music,
   Clock, MapPin, AlertCircle, ChevronRight, ShoppingCart,
-  ArrowUpRight, Filter, ShoppingBag, Trash2, Download,
+  ArrowUpRight, Filter, ShoppingBag, Trash2, Download, FileText,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -302,6 +302,9 @@ const DashboardPage = () => {
               </Link>
               <Link to="/meine-tickets" className="flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors">
                 <Ticket size={16} /> MEINE TICKETS
+              </Link>
+              <Link to="/meine-rechnungen" className="flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors">
+                <FileText size={16} /> MEINE RECHNUNGEN
               </Link>
               <Link to="/daten-export" className="flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors">
                 <Download size={16} /> DATEN EXPORT
