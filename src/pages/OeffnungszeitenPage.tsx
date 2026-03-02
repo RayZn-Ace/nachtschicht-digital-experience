@@ -1,6 +1,18 @@
+import { useState, useEffect } from "react";
 import { Clock, PartyPopper, CalendarDays, Info, Sparkles } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useI18n } from "@/hooks/useI18n";
+import { supabase } from "@/integrations/supabase/client";
+
+interface HolidaySpecial {
+  id: string;
+  title: string;
+  date_label: string;
+  hours: string;
+  note_de: string | null;
+  note_en: string | null;
+  sort_order: number;
+}
 
 const regularHours = [
   { day: "Montag – Donnerstag", hours: "Geschlossen", closed: true },
@@ -14,30 +26,6 @@ const regularHoursEN = [
   { day: "Friday", hours: "10:00 PM – 5:00 AM", closed: false },
   { day: "Saturday", hours: "10:00 PM – 5:00 AM", closed: false },
   { day: "Sunday", hours: "Closed", closed: true },
-];
-
-const holidays = [
-  {
-    title: "Silvester / New Year's Eve",
-    date: "31. Dezember",
-    hours: "22:00 – 06:00 Uhr",
-    note: "Exklusive Silvesterparty – nur mit Ticket!",
-    noteEN: "Exclusive NYE party – ticket only!",
-  },
-  {
-    title: "Fasching / Carnival",
-    date: "Weiberdonnerstag & Rosenmontag",
-    hours: "20:00 – 05:00 Uhr",
-    note: "Kostümpflicht! Verkleidung erwünscht.",
-    noteEN: "Costumes required!",
-  },
-  {
-    title: "Halloween",
-    date: "31. Oktober",
-    hours: "21:00 – 05:00 Uhr",
-    note: "Grusel-Special mit Deko & Specials.",
-    noteEN: "Spooky special with decorations & specials.",
-  },
 ];
 
 const specialNotes = [
@@ -68,6 +56,13 @@ const OeffnungszeitenPage = () => {
   const { lang } = useI18n();
   const de = lang === "de";
   const hours = de ? regularHours : regularHoursEN;
+  const [holidays, setHolidays] = useState<HolidaySpecial[]>([]);
+
+  useEffect(() => {
+    supabase.from("holiday_specials").select("*").eq("is_active", true).order("sort_order").then(({ data }) => {
+      if (data) setHolidays(data as unknown as HolidaySpecial[]);
+    });
+  }, []);
 
   return (
     <section className="section-padding">
@@ -134,24 +129,30 @@ const OeffnungszeitenPage = () => {
               </h2>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              {holidays.map((h, i) => (
-                <ScrollReveal key={i} delay={0.25 + i * 0.08}>
-                  <div className="glass-card p-5 h-full flex flex-col">
-                    <h3 className="font-display text-lg tracking-wider text-foreground mb-1">
-                      {h.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mb-3">{h.date}</p>
-                    <p className="text-primary font-display tracking-wider text-sm mb-3">
-                      {h.hours}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-auto">
-                      {de ? h.note : h.noteEN}
-                    </p>
-                  </div>
-                </ScrollReveal>
-              ))}
-            </div>
+            {holidays.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-3">
+                {holidays.map((h, i) => (
+                  <ScrollReveal key={h.id} delay={0.25 + i * 0.08}>
+                    <div className="glass-card p-5 h-full flex flex-col">
+                      <h3 className="font-display text-lg tracking-wider text-foreground mb-1">
+                        {h.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-3">{h.date_label}</p>
+                      <p className="text-primary font-display tracking-wider text-sm mb-3">
+                        {h.hours}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-auto">
+                        {de ? h.note_de : h.note_en}
+                      </p>
+                    </div>
+                  </ScrollReveal>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">
+                {de ? "Aktuell keine Feiertags-Specials geplant." : "No holiday specials planned at the moment."}
+              </p>
+            )}
           </div>
         </ScrollReveal>
 

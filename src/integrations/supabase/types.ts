@@ -362,6 +362,42 @@ export type Database = {
         }
         Relationships: []
       }
+      holiday_specials: {
+        Row: {
+          created_at: string
+          date_label: string
+          hours: string
+          id: string
+          is_active: boolean
+          note_de: string | null
+          note_en: string | null
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          date_label?: string
+          hours?: string
+          id?: string
+          is_active?: boolean
+          note_de?: string | null
+          note_en?: string | null
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          date_label?: string
+          hours?: string
+          id?: string
+          is_active?: boolean
+          note_de?: string | null
+          note_en?: string | null
+          sort_order?: number
+          title?: string
+        }
+        Relationships: []
+      }
       invoice_config: {
         Row: {
           bank_bic: string | null
