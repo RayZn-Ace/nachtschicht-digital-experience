@@ -18,13 +18,14 @@ interface TicketResult {
   event_title?: string;
   event_date?: string;
   event_time?: string;
+  event_id?: string;
   ticket_type?: string;
   qr_code?: string;
   checked_in_at?: string;
   total_price?: number;
 }
 
-type ScanStatus = "success" | "already_redeemed" | "cancelled" | "invalid";
+type ScanStatus = "success" | "already_redeemed" | "cancelled" | "invalid" | "wrong_event";
 
 interface ScanResult {
   status: ScanStatus;
@@ -222,8 +223,18 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
         playSound("error");
         vibrate([100, 50, 100]);
       } else {
-        setResult(data as ScanResult);
-        if (data.status === "success") {
+        let scanData = data as ScanResult;
+        // Check if ticket is for the wrong event when a filter is active
+        if (
+          scanData.status === "success" &&
+          selectedEvent !== "all" &&
+          scanData.ticket?.event_id &&
+          scanData.ticket.event_id !== selectedEvent
+        ) {
+          scanData = { ...scanData, status: "wrong_event", message: "Ticket gehört zu einem anderen Event" };
+          playSound("error");
+          vibrate([100, 50, 100]);
+        } else if (scanData.status === "success") {
           playSound("success");
           vibrate(100);
           fetchStats();
@@ -231,6 +242,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
           playSound("error");
           vibrate([100, 50, 100]);
         }
+        setResult(scanData);
       }
     } catch {
       addToQueue(trimmed);
@@ -244,7 +256,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
       if (autoResetTimer.current) clearTimeout(autoResetTimer.current);
       autoResetTimer.current = setTimeout(() => setResult(null), 3000);
     }
-  }, [fetchStats]);
+  }, [fetchStats, selectedEvent]);
 
   // Keep ref updated so camera callback always calls latest version
   useEffect(() => { handleCheckInRef.current = handleCheckIn; }, [handleCheckIn]);
@@ -414,75 +426,6 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
 
   const percentage = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0;
 
-  // Inline scan feedback (rendered inside camera frame)
-  const renderScanFeedback = () => {
-    if (!result) return null;
-
-    const isSuccess = result.status === "success";
-    const isAlready = result.status === "already_redeemed";
-
-    const bgColor = isSuccess
-      ? "bg-green-500/90"
-      : isAlready
-      ? "bg-yellow-500/90"
-      : "bg-red-500/90";
-
-    const borderColor = isSuccess
-      ? "ring-green-400"
-      : isAlready
-      ? "ring-yellow-400"
-      : "ring-red-400";
-
-    const icon = isSuccess ? (
-      <CheckCircle size={48} className="text-white drop-shadow-lg" />
-    ) : isAlready ? (
-      <AlertTriangle size={48} className="text-white drop-shadow-lg" />
-    ) : (
-      <XCircle size={48} className="text-white drop-shadow-lg" />
-    );
-
-    const label = isSuccess
-      ? "VALID ✓"
-      : isAlready
-      ? "BEREITS GESCANNT"
-      : result.status === "cancelled"
-      ? "STORNIERT"
-      : "UNGÜLTIG";
-
-    return (
-      <div
-        className={`absolute inset-0 z-20 flex flex-col items-center justify-center rounded-lg ${bgColor} ring-4 ${borderColor} animate-fade-in cursor-pointer`}
-        onClick={dismissResult}
-        style={{ touchAction: "manipulation" }}
-      >
-        <div className="text-white text-center space-y-2 px-4">
-          {icon}
-          <h2 className="font-display text-2xl md:text-3xl tracking-wider drop-shadow-md">
-            {label}
-          </h2>
-          {result.ticket?.event_title && (
-            <p className="text-sm font-medium bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 inline-block">
-              {result.ticket.event_title}
-            </p>
-          )}
-          {result.ticket?.buyer_name && (
-            <p className="text-xs opacity-80">{result.ticket.buyer_name} · {result.ticket.quantity}×</p>
-          )}
-          {result.ticket?.ticket_type && (
-            <p className="text-xs opacity-70">{result.ticket.ticket_type}</p>
-          )}
-          {isAlready && result.ticket?.checked_in_at && (
-            <p className="text-xs opacity-70">
-              Eingecheckt: {new Date(result.ticket.checked_in_at).toLocaleTimeString("de-DE")}
-            </p>
-          )}
-          {!result.ticket && (
-            <p className="text-sm opacity-80">{result.message}</p>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <section className="pb-6 pt-4 px-4 md:section-padding" ref={ref}>
@@ -612,9 +555,11 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                 className={`absolute inset-0 z-[100] flex flex-col items-center justify-center rounded-lg ${
                   result.status === "success"
                     ? "bg-green-500/95 ring-4 ring-green-400"
+                    : result.status === "wrong_event"
+                    ? "bg-yellow-500/95 ring-4 ring-yellow-400"
                     : result.status === "already_redeemed"
-                    ? "bg-orange-600/95 ring-4 ring-orange-400"
-                    : "bg-red-500/95 ring-4 ring-red-400"
+                    ? "bg-orange-700/95 ring-4 ring-red-500"
+                    : "bg-red-600/95 ring-4 ring-red-500"
                 } animate-fade-in cursor-pointer`}
                 onClick={dismissResult}
                 style={{ touchAction: "manipulation" }}
@@ -622,7 +567,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                 <div className="text-white text-center space-y-2 px-4">
                   {result.status === "success" ? (
                     <CheckCircle size={48} className="mx-auto text-white drop-shadow-lg" />
-                  ) : result.status === "already_redeemed" ? (
+                  ) : result.status === "wrong_event" ? (
                     <AlertTriangle size={48} className="mx-auto text-white drop-shadow-lg" />
                   ) : (
                     <XCircle size={48} className="mx-auto text-white drop-shadow-lg" />
@@ -630,6 +575,8 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                   <h2 className="font-display text-2xl tracking-wider drop-shadow-md">
                     {result.status === "success"
                       ? "VALID ✓"
+                      : result.status === "wrong_event"
+                      ? "FALSCHES EVENT"
                       : result.status === "already_redeemed"
                       ? "BEREITS GESCANNT"
                       : result.status === "cancelled"
@@ -652,8 +599,13 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                       Eingecheckt: {new Date(result.ticket.checked_in_at).toLocaleTimeString("de-DE")}
                     </p>
                   )}
-                  {!result.ticket && (
-                    <p className="text-sm opacity-80">{result.message}</p>
+                  {result.status === "wrong_event" && (
+                    <p className="text-xs opacity-80">Ticket gehört nicht zum ausgewählten Event</p>
+                  )}
+                  {(result.status === "invalid" || result.status === "cancelled") && (
+                    <p className="text-sm opacity-80 font-mono bg-white/20 backdrop-blur-sm rounded px-2 py-1">
+                      {result.message} {result.ticket?.id ? `· ID: ${result.ticket.id.slice(0, 8)}` : ""}
+                    </p>
                   )}
                 </div>
               </div>
