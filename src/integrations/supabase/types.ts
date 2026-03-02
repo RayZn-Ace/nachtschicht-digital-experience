@@ -791,6 +791,44 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_sends: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          newsletter_id: string
+          sent_at: string | null
+          status: string
+          subscriber_email: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          newsletter_id: string
+          sent_at?: string | null
+          status?: string
+          subscriber_email: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          newsletter_id?: string
+          sent_at?: string | null
+          status?: string
+          subscriber_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_sends_newsletter_id_fkey"
+            columns: ["newsletter_id"]
+            isOneToOne: false
+            referencedRelation: "newsletters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_subscribers: {
         Row: {
           email: string
@@ -809,6 +847,51 @@ export type Database = {
           id?: string
           is_active?: boolean
           subscribed_at?: string
+        }
+        Relationships: []
+      }
+      newsletters: {
+        Row: {
+          body_html: string
+          body_json: Json | null
+          created_at: string
+          id: string
+          preview_text: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          total_failed: number | null
+          total_recipients: number | null
+          total_sent: number | null
+          updated_at: string
+        }
+        Insert: {
+          body_html?: string
+          body_json?: Json | null
+          created_at?: string
+          id?: string
+          preview_text?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          total_failed?: number | null
+          total_recipients?: number | null
+          total_sent?: number | null
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          body_json?: Json | null
+          created_at?: string
+          id?: string
+          preview_text?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          total_failed?: number | null
+          total_recipients?: number | null
+          total_sent?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
