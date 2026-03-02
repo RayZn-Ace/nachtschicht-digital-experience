@@ -53,17 +53,11 @@ const LoungesPage = () => {
 
     const fetchAll = async () => {
       try {
-        console.log("[LoungesPage] Starting fetch...");
         const [loungeRes, eventRes, bookingRes] = await Promise.all([
           supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
           supabase.from("events").select("*").eq("is_published", true).gte("date", new Date().toISOString()).order("date", { ascending: true }),
           supabase.from("lounge_bookings").select("lounge_id, event_id").neq("status", "cancelled"),
         ]);
-        console.log("[LoungesPage] Results:", {
-          lounges: loungeRes.data?.length, loungeErr: loungeRes.error,
-          events: eventRes.data?.length, eventErr: eventRes.error,
-          bookings: bookingRes.data?.length, bookingErr: bookingRes.error,
-        });
         if (loungeRes.error || eventRes.error || bookingRes.error) {
           console.error("Fetch errors:", loungeRes.error, eventRes.error, bookingRes.error);
           if (!cancelled) setError(true);
@@ -72,7 +66,7 @@ const LoungesPage = () => {
         if (eventRes.data && !cancelled) setEvents(eventRes.data as unknown as Event[]);
         if (bookingRes.data && !cancelled) setBookings(bookingRes.data as any);
       } catch (err) {
-        console.error("[LoungesPage] fetchAll error:", err);
+        console.error("LoungesPage fetchAll error:", err);
         if (!cancelled) setError(true);
       } finally {
         clearTimeout(timeout);
