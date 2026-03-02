@@ -59,6 +59,7 @@ const AdminPage = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [allTags, setAllTags] = useState<EventTag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [newTagName, setNewTagName] = useState("");
   const [eventTagsMap, setEventTagsMap] = useState<Record<string, EventTag[]>>({});
   const [formData, setFormData] = useState({
     title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
@@ -140,6 +141,20 @@ const AdminPage = () => {
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prev) => prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]);
+  };
+
+  const createAndSelectTag = async () => {
+    const name = newTagName.trim();
+    if (!name) return;
+    const { data, error } = await supabase.from("event_tags").insert({ name } as any).select("*").single();
+    if (error) { toast.error(error.message); return; }
+    if (data) {
+      const newTag = data as unknown as EventTag;
+      setAllTags((prev) => [...prev, newTag]);
+      setSelectedTagIds((prev) => [...prev, newTag.id]);
+      toast.success(`Tag "${name}" erstellt`);
+    }
+    setNewTagName("");
   };
 
   const uploadEventImage = async (file: File) => {
@@ -350,27 +365,35 @@ const AdminPage = () => {
               </div>
 
               {/* Tags multi-select */}
-              {allTags.length > 0 && (
-                <div className="md:col-span-2">
-                  <label className="text-sm text-foreground mb-2 block">Tags</label>
-                  <div className="flex flex-wrap gap-2">
-                    {allTags.map((tag) => (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleTag(tag.id)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                          selectedTagIds.includes(tag.id)
-                            ? `${tag.color} border-current`
-                            : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                        }`}
-                      >
-                        {tag.name}
-                      </button>
-                    ))}
-                  </div>
+              <div className="md:col-span-2">
+                <label className="text-sm text-foreground mb-2 block">Tags</label>
+                <div className="flex flex-wrap gap-2">
+                  {allTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                        selectedTagIds.includes(tag.id)
+                          ? `${tag.color} border-current`
+                          : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
                 </div>
-              )}
+                <div className="flex gap-1.5 mt-2">
+                  <input
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    placeholder="Neuen Tag erstellen..."
+                    className="flex-1 px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-xs focus:ring-2 focus:ring-primary focus:outline-none"
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), createAndSelectTag())}
+                  />
+                  <button type="button" onClick={createAndSelectTag} className="px-2.5 py-1.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-xs">+</button>
+                </div>
+              </div>
 
               {/* Titelbild Upload */}
               <div className="md:col-span-2">
