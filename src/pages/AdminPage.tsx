@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Event, EventTag } from "@/types/database";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X, Wine, Sparkles, Receipt, TrendingUp, Flag, Users } from "lucide-react";
+import AdminEventTickets from "@/components/AdminEventTickets";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
 import AdminNewsletter from "@/components/AdminNewsletter";
@@ -52,6 +53,7 @@ const AdminPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [ticketsEvent, setTicketsEvent] = useState<Event | null>(null);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [newGenre, setNewGenre] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -613,6 +615,9 @@ const AdminPage = () => {
                   )}
                 </div>
                 <div className="flex gap-2 shrink-0">
+                  <button onClick={() => setTicketsEvent(event)} className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary" title="Tickets verwalten">
+                    <Ticket size={18} />
+                  </button>
                   <button onClick={() => togglePublish(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title={event.is_published ? "Verstecken" : "Veröffentlichen"}>
                     {event.is_published ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -630,6 +635,11 @@ const AdminPage = () => {
         </>
         )}
       </div>
+
+      {/* Ticket management modal */}
+      {ticketsEvent && (
+        <AdminEventTickets event={ticketsEvent} onClose={() => setTicketsEvent(null)} />
+      )}
     </section>
   );
 };
