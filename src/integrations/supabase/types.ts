@@ -961,6 +961,7 @@ export type Database = {
           billing_zip: string | null
           buyer_email: string
           buyer_name: string | null
+          buyer_phone: string | null
           checked_in: boolean
           checked_in_at: string | null
           created_at: string
@@ -982,6 +983,7 @@ export type Database = {
           billing_zip?: string | null
           buyer_email: string
           buyer_name?: string | null
+          buyer_phone?: string | null
           checked_in?: boolean
           checked_in_at?: string | null
           created_at?: string
@@ -1003,6 +1005,7 @@ export type Database = {
           billing_zip?: string | null
           buyer_email?: string
           buyer_name?: string | null
+          buyer_phone?: string | null
           checked_in?: boolean
           checked_in_at?: string | null
           created_at?: string
