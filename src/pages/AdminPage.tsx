@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event, EventTag } from "@/types/database";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X, Wine, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogOut, Image, Mail, FileText, BarChart3, Tags, Ticket, ShoppingCart, Sofa, Upload, X, Wine, Sparkles, Receipt } from "lucide-react";
 import { CLUB_AREAS, parseAreas, formatAreas } from "@/lib/areas";
 import AdminAlbums from "@/components/AdminAlbums";
 import AdminNewsletter from "@/components/AdminNewsletter";
@@ -17,6 +17,7 @@ import AdminTicketCenter from "@/components/AdminTicketCenter";
 import AdminLoungeBookings from "@/components/AdminLoungeBookings";
 import AdminDrinks from "@/components/AdminDrinks";
 import AdminHolidaySpecials from "@/components/AdminHolidaySpecials";
+import AdminInvoiceConfig from "@/components/AdminInvoiceConfig";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ALWAYS_OPEN_AREAS = ["openair", "bistro"];
@@ -29,7 +30,7 @@ interface Genre {
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "ticketcenter" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes" | "lounges" | "drinks" | "holidays">("events");
+  const [tab, setTab] = useState<"events" | "ticketcenter" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes" | "lounges" | "drinks" | "holidays" | "invoiceconfig">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -215,6 +216,7 @@ const AdminPage = () => {
             { id: "lounges", label: "LOUNGES", icon: Sofa },
             { id: "drinks", label: "GETRÄNKE", icon: Wine },
             { id: "holidays", label: "FEIERTAGE", icon: Sparkles },
+            { id: "invoiceconfig", label: "RECHNUNGEN", icon: Receipt },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -226,7 +228,9 @@ const AdminPage = () => {
           ))}
         </div>
 
-        {tab === "holidays" ? (
+        {tab === "invoiceconfig" ? (
+          <AdminInvoiceConfig />
+        ) : tab === "holidays" ? (
           <AdminHolidaySpecials />
         ) : tab === "drinks" ? (
           <AdminDrinks />
