@@ -436,7 +436,7 @@ const AdminPage = () => {
               <div className="md:col-span-2 flex flex-wrap gap-6">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={formData.has_muttizettel} onChange={(e) => setFormData({ ...formData, has_muttizettel: e.target.checked })} className="accent-primary" />
-                  <span className="text-sm text-foreground">Muttizettel erforderlich (U18)</span>
+                  <span className="text-sm text-foreground">Muttizettel erlaubt (U18)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={formData.has_abendkasse} onChange={(e) => setFormData({ ...formData, has_abendkasse: e.target.checked })} className="accent-primary" />
