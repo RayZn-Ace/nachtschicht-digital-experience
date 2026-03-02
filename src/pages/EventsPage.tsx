@@ -10,20 +10,45 @@ import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 const EventsPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const navigate = useNavigate();
   const { t, lang } = useI18n();
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Safety timeout – never stay on "loading" forever
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("EventsPage: fetch timeout after 10s");
+        setLoading(false);
+        setError(true);
+      }
+    }, 10_000);
+
     const fetchEvents = async () => {
-      const { data } = await supabase
-        .from("events")
-        .select("*")
-        .eq("is_published", true)
-        .order("date", { ascending: true });
-      if (data) setEvents(data as unknown as Event[]);
-      setLoading(false);
+      try {
+        const { data, error: fetchErr } = await supabase
+          .from("events")
+          .select("*")
+          .eq("is_published", true)
+          .order("date", { ascending: true });
+        if (fetchErr) {
+          console.error("Events fetch error:", fetchErr);
+          if (!cancelled) setError(true);
+        }
+        if (data && !cancelled) setEvents(data as unknown as Event[]);
+      } catch (err) {
+        console.error("EventsPage fetch error:", err);
+        if (!cancelled) setError(true);
+      } finally {
+        clearTimeout(timeout);
+        if (!cancelled) setLoading(false);
+      }
     };
     fetchEvents();
+
+    return () => { cancelled = true; clearTimeout(timeout); };
   }, []);
 
   return (
@@ -40,6 +65,16 @@ const EventsPage = () => {
 
         {loading ? (
           <div className="text-center text-muted-foreground py-16">{t("events.loading")}</div>
+        ) : error && events.length === 0 ? (
+          <div className="text-center py-16 space-y-4">
+            <p className="text-muted-foreground">{lang === "de" ? "Events konnten nicht geladen werden." : "Could not load events."}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors"
+            >
+              {lang === "de" ? "ERNEUT VERSUCHEN" : "RETRY"}
+            </button>
+          </div>
         ) : events.length === 0 ? (
           <div className="text-center text-muted-foreground py-16">{t("events.empty")}</div>
         ) : (

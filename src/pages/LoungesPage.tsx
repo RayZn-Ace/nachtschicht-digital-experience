@@ -29,6 +29,7 @@ const LoungesPage = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   // Booking form state
   const [bookingLounge, setBookingLounge] = useState<Lounge | null>(null);
@@ -40,6 +41,16 @@ const LoungesPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("LoungesPage: fetch timeout after 10s");
+        setLoading(false);
+        setError(true);
+      }
+    }, 10_000);
+
     const fetchAll = async () => {
       try {
         const [loungeRes, eventRes, bookingRes] = await Promise.all([
@@ -47,19 +58,24 @@ const LoungesPage = () => {
           supabase.from("events").select("*").eq("is_published", true).gte("date", new Date().toISOString()).order("date", { ascending: true }),
           supabase.from("lounge_bookings").select("lounge_id, event_id").neq("status", "cancelled"),
         ]);
-        if (loungeRes.error) console.error("Lounges fetch error:", loungeRes.error);
-        if (eventRes.error) console.error("Events fetch error:", eventRes.error);
-        if (bookingRes.error) console.error("Bookings fetch error:", bookingRes.error);
-        if (loungeRes.data) setLounges(loungeRes.data as any);
-        if (eventRes.data) setEvents(eventRes.data as unknown as Event[]);
-        if (bookingRes.data) setBookings(bookingRes.data as any);
+        if (loungeRes.error || eventRes.error || bookingRes.error) {
+          console.error("Fetch errors:", loungeRes.error, eventRes.error, bookingRes.error);
+          if (!cancelled) setError(true);
+        }
+        if (loungeRes.data && !cancelled) setLounges(loungeRes.data as any);
+        if (eventRes.data && !cancelled) setEvents(eventRes.data as unknown as Event[]);
+        if (bookingRes.data && !cancelled) setBookings(bookingRes.data as any);
       } catch (err) {
         console.error("LoungesPage fetchAll error:", err);
+        if (!cancelled) setError(true);
       } finally {
-        setLoading(false);
+        clearTimeout(timeout);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchAll();
+
+    return () => { cancelled = true; clearTimeout(timeout); };
   }, []);
 
   // Get all unique area_ids from lounges
@@ -136,6 +152,16 @@ const LoungesPage = () => {
 
         {loading ? (
           <div className="text-center text-muted-foreground py-16">Laden...</div>
+        ) : error && lounges.length === 0 ? (
+          <div className="text-center py-16 space-y-4">
+            <p className="text-muted-foreground">Lounges konnten nicht geladen werden.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors"
+            >
+              ERNEUT VERSUCHEN
+            </button>
+          </div>
         ) : loungeEvents.length === 0 ? (
           <div className="text-center text-muted-foreground py-16">
             Aktuell keine Events mit Lounge-Bereichen verfügbar. Schau bald wieder vorbei!
