@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Sun, Moon, Globe, LayoutDashboard } from "lucide-react";
+import { Menu, X, Sun, Moon, Globe, LayoutDashboard, Calendar, Ticket, Image, Mail, FileText, Tags, ShoppingCart, Sofa, Wine, Sparkles, Receipt, TrendingUp, Flag, Users, QrCode, ArrowLeft, Settings } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
+
+const ADMIN_PATHS = ["/dashboard", "/admin", "/scanner"];
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -11,7 +13,10 @@ const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang, t } = useI18n();
   const { user, isAdmin } = useAuth();
-  const navItems = [
+
+  const isAdminArea = isAdmin && ADMIN_PATHS.some((p) => location.pathname.startsWith(p));
+
+  const publicNavItems = [
     { label: t("nav.home"), path: "/" },
     { label: t("nav.events"), path: "/events" },
     { label: t("nav.club"), path: "/club" },
@@ -24,6 +29,14 @@ const Navbar = () => {
     { label: t("nav.contact"), path: "/kontakt" },
   ];
 
+  const adminNavItems = [
+    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    { label: "Verwaltung", path: "/admin", icon: Settings },
+    { label: "Scanner", path: "/scanner", icon: QrCode },
+  ];
+
+  const navItems = isAdminArea ? adminNavItems : publicNavItems;
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50" role="navigation" aria-label="Hauptnavigation">
       <div className="container mx-auto flex items-center justify-between h-16 md:h-20 px-4">
@@ -33,28 +46,30 @@ const Navbar = () => {
 
         {/* Desktop nav */}
         <div className="hidden lg:flex items-center gap-6">
-          {navItems.map((item) => (
+          {isAdminArea && (
             <Link
-              key={item.path}
-              to={item.path}
-              className={`text-sm font-medium tracking-wide transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm ${
-                location.pathname === item.path ? "text-primary" : "text-foreground/80"
-              }`}
+              to="/"
+              className="flex items-center gap-1 text-sm font-medium tracking-wide text-muted-foreground hover:text-foreground transition-colors mr-2"
             >
-              {item.label}
-            </Link>
-          ))}
-          {user && isAdmin && (
-            <Link
-              to="/dashboard"
-              className={`flex items-center gap-1 text-sm font-medium tracking-wide transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm ${
-                location.pathname === "/dashboard" ? "text-primary" : "text-foreground/80"
-              }`}
-            >
-              <LayoutDashboard size={16} />
-              Dashboard
+              <ArrowLeft size={16} />
+              Website
             </Link>
           )}
+          {navItems.map((item) => {
+            const Icon = 'icon' in item ? (item as any).icon : undefined;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-1.5 text-sm font-medium tracking-wide transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm ${
+                  location.pathname === item.path ? "text-primary" : "text-foreground/80"
+                }`}
+              >
+                {Icon && <Icon size={16} />}
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="hidden lg:flex items-center gap-2">
@@ -77,12 +92,25 @@ const Navbar = () => {
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
-          <Link
-            to="/events"
-            className="inline-flex items-center px-5 py-2 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors animate-pulse-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {t("nav.tickets")}
-          </Link>
+          {!isAdminArea && (
+            <>
+              {user && isAdmin && (
+                <Link
+                  to="/dashboard"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors text-sm font-medium"
+                >
+                  <LayoutDashboard size={16} />
+                  Dashboard
+                </Link>
+              )}
+              <Link
+                to="/events"
+                className="inline-flex items-center px-5 py-2 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors animate-pulse-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {t("nav.tickets")}
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -99,19 +127,33 @@ const Navbar = () => {
       {open && (
         <div className="lg:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 animate-fade-in">
           <div className="container mx-auto px-4 py-6 flex flex-col gap-4">
-            {navItems.map((item) => (
+            {isAdminArea && (
               <Link
-                key={item.path}
-                to={item.path}
+                to="/"
                 onClick={() => setOpen(false)}
-                className={`text-lg font-display tracking-wider transition-colors ${
-                  location.pathname === item.path ? "text-primary" : "text-foreground/80"
-                }`}
+                className="flex items-center gap-2 text-lg font-display tracking-wider text-muted-foreground"
               >
-                {item.label}
+                <ArrowLeft size={18} />
+                Zurück zur Website
               </Link>
-            ))}
-            {user && isAdmin && (
+            )}
+            {navItems.map((item) => {
+              const Icon = 'icon' in item ? (item as any).icon : undefined;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-2 text-lg font-display tracking-wider transition-colors ${
+                    location.pathname === item.path ? "text-primary" : "text-foreground/80"
+                  }`}
+                >
+                  {Icon && <Icon size={18} />}
+                  {item.label}
+                </Link>
+              );
+            })}
+            {!isAdminArea && user && isAdmin && (
               <Link
                 to="/dashboard"
                 onClick={() => setOpen(false)}
@@ -140,13 +182,15 @@ const Navbar = () => {
               </button>
             </div>
 
-            <Link
-              to="/events"
-              onClick={() => setOpen(false)}
-              className="mt-2 inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md"
-            >
-              {t("nav.getTickets")}
-            </Link>
+            {!isAdminArea && (
+              <Link
+                to="/events"
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md"
+              >
+                {t("nav.getTickets")}
+              </Link>
+            )}
           </div>
         </div>
       )}
