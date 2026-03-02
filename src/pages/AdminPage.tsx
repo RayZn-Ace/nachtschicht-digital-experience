@@ -13,7 +13,7 @@ import AdminTracking from "@/components/AdminTracking";
 import AdminTags from "@/components/AdminTags";
 import AdminDiscountCodes from "@/components/AdminDiscountCodes";
 import AdminTicketTypes from "@/components/AdminTicketTypes";
-import AdminOrders from "@/components/AdminOrders";
+import AdminTicketCenter from "@/components/AdminTicketCenter";
 import AdminLoungeBookings from "@/components/AdminLoungeBookings";
 import AdminDrinks from "@/components/AdminDrinks";
 
@@ -28,7 +28,7 @@ interface Genre {
 
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
-  const [tab, setTab] = useState<"events" | "orders" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes" | "lounges" | "drinks">("events");
+  const [tab, setTab] = useState<"events" | "ticketcenter" | "albums" | "newsletter" | "u18" | "tracking" | "tags" | "codes" | "lounges" | "drinks">("events");
   const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -204,7 +204,7 @@ const AdminPage = () => {
         <div className="flex gap-2 mb-6 flex-wrap">
           {([
             { id: "events", label: "EVENTS", icon: null },
-            { id: "orders", label: "BESTELLUNGEN", icon: ShoppingCart },
+            { id: "ticketcenter", label: "TICKETCENTER", icon: ShoppingCart },
             { id: "albums", label: "FOTOALBEN", icon: Image },
             { id: "newsletter", label: "NEWSLETTER", icon: Mail },
             { id: "u18", label: "MUTTIZETTEL", icon: FileText },
@@ -228,8 +228,8 @@ const AdminPage = () => {
           <AdminDrinks />
         ) : tab === "lounges" ? (
           <AdminLoungeBookings />
-        ) : tab === "orders" ? (
-          <AdminOrders />
+        ) : tab === "ticketcenter" ? (
+          <AdminTicketCenter />
         ) : tab === "codes" ? (
           <AdminDiscountCodes />
         ) : tab === "tags" ? (
