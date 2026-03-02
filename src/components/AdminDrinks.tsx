@@ -27,6 +27,7 @@ const ICON_OPTIONS = ["Martini", "Beer", "Wine", "GlassWater", "Coffee", "Grape"
 const AdminDrinks = () => {
   const [categories, setCategories] = useState<DrinkCategory[]>([]);
   const [drinks, setDrinks] = useState<Drink[]>([]);
+  const [drinksPageActive, setDrinksPageActive] = useState(true);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
 
   // Category form
@@ -47,7 +48,19 @@ const AdminDrinks = () => {
     if (drs) setDrinks(drs as any);
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  const fetchDrinksPageActive = async () => {
+    const { data } = await supabase.from("site_settings" as any).select("value").eq("key", "drinks_page_active").maybeSingle();
+    if (data) setDrinksPageActive((data as any).value === true);
+  };
+
+  const toggleDrinksPage = async () => {
+    const newVal = !drinksPageActive;
+    await supabase.from("site_settings" as any).update({ value: newVal, updated_at: new Date().toISOString() } as any).eq("key", "drinks_page_active");
+    setDrinksPageActive(newVal);
+    toast.success(newVal ? "Getränkekarte aktiviert" : "Getränkekarte deaktiviert");
+  };
+
+  useEffect(() => { fetchAll(); fetchDrinksPageActive(); }, []);
 
   // Category CRUD
   const saveCat = async () => {
@@ -133,6 +146,27 @@ const AdminDrinks = () => {
 
   return (
     <div className="space-y-6">
+      {/* Drinks page toggle */}
+      <div className="glass-card p-6 flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-xl tracking-wider text-foreground">GETRÄNKEKARTE</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {drinksPageActive ? "Die Getränkekarte ist auf der Website sichtbar." : "Die Getränkekarte ist auf der Website ausgeblendet."}
+          </p>
+        </div>
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={toggleDrinksPage}
+          role="switch"
+          aria-checked={drinksPageActive}
+        >
+          <div className={`relative w-11 h-6 rounded-full transition-colors ${drinksPageActive ? "bg-primary" : "bg-muted"}`}>
+            <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-foreground rounded-full transition-transform ${drinksPageActive ? "translate-x-5" : ""}`} />
+          </div>
+          <span className="text-sm text-foreground font-medium">{drinksPageActive ? "Aktiv" : "Inaktiv"}</span>
+        </div>
+      </div>
+
       {/* New Category */}
       <div className="glass-card p-6">
         <h2 className="font-display text-2xl tracking-wider text-foreground mb-4">

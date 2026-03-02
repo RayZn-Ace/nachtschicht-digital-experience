@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -33,11 +34,18 @@ interface Drink {
 
 const DrinksPage = () => {
   const { lang } = useI18n();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<DrinkCategory[]>([]);
   const [drinks, setDrinks] = useState<Drink[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.from("site_settings" as any).select("value").eq("key", "drinks_page_active").maybeSingle().then(({ data }) => {
+      if (data && (data as any).value !== true) navigate("/", { replace: true });
+    });
+  }, [navigate]);
 
   useEffect(() => {
     const fetchAll = async () => {
