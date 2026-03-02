@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,12 +10,20 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { image_url } = await req.json();
+    const { image_url, event_id } = await req.json();
     if (!image_url) throw new Error("image_url is required");
+    if (!event_id) throw new Error("event_id is required");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    console.log("Generating newsletter banner for event:", event_id, "from:", image_url);
+
+    // Use Gemini image model to create a wide banner with generative fill
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -22,55 +31,32 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-image",
         messages: [
-          {
-            role: "system",
-            content: `You are an image analysis assistant specialized in determining the optimal focal point for cropping event flyers and promotional images.
-
-Analyze the image and identify the most important visual region that should remain visible when the image is cropped to a wide horizontal banner (roughly 600x180 pixels from a 1920x1080 source).
-
-Consider these priorities:
-1. Text with event names, dates, artists, or key information
-2. Faces and people (never cut off faces)
-3. Logos and branding elements
-4. Key visual elements that convey the event's theme
-
-Return ONLY a JSON object with two integer values:
-- focus_x: horizontal focal point as percentage (0-100, where 0=left, 50=center, 100=right)
-- focus_y: vertical focal point as percentage (0-100, where 0=top, 50=center, 100=bottom)
-
-Example: {"focus_x": 50, "focus_y": 35}
-
-The focal point should be the center of the most important content area, so that when CSS object-position is applied, the critical content stays visible in the crop.`
-          },
           {
             role: "user",
             content: [
-              { type: "text", text: "Analyze this event flyer and determine the optimal focal point for cropping. Return only the JSON." },
-              { type: "image_url", image_url: { url: image_url } }
+              {
+                type: "text",
+                text: `This is an event flyer/poster image. I need you to create a wide horizontal newsletter banner version of this image (aspect ratio roughly 3.3:1, like 600x180).
+
+IMPORTANT RULES:
+1. Keep ALL important content visible: event name, artist names, dates, times, logos, faces of people
+2. Do NOT crop out any text or faces
+3. If the original image is taller than wide, zoom out and use generative fill to extend the sides seamlessly
+4. If content would be cut off at top/bottom, extend the image vertically first then crop to the wide format, filling empty areas with matching background
+5. The result should look natural and professional, matching the style and colors of the original
+6. Maintain the mood, lighting, and aesthetic of the original flyer
+7. The generated banner should be high quality and suitable for an email newsletter`
+              },
+              {
+                type: "image_url",
+                image_url: { url: image_url }
+              }
             ]
           }
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "set_focal_point",
-              description: "Set the optimal focal point for image cropping",
-              parameters: {
-                type: "object",
-                properties: {
-                  focus_x: { type: "integer", description: "Horizontal focal point 0-100 (0=left, 50=center, 100=right)" },
-                  focus_y: { type: "integer", description: "Vertical focal point 0-100 (0=top, 50=center, 100=bottom)" }
-                },
-                required: ["focus_x", "focus_y"],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "set_focal_point" } },
+        modalities: ["image", "text"],
       }),
     });
 
@@ -87,29 +73,59 @@ The focal point should be the center of the most important content area, so that
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: "AI-Analyse fehlgeschlagen" }), {
+      return new Response(JSON.stringify({ error: "KI-Bildgenerierung fehlgeschlagen" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
-    
-    // Extract from tool call response
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    let focus_x = 50;
-    let focus_y = 50;
+    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-    if (toolCall?.function?.arguments) {
-      try {
-        const args = JSON.parse(toolCall.function.arguments);
-        focus_x = Math.max(0, Math.min(100, Math.round(args.focus_x ?? 50)));
-        focus_y = Math.max(0, Math.min(100, Math.round(args.focus_y ?? 50)));
-      } catch {
-        console.error("Failed to parse tool call args, using defaults");
-      }
+    if (!imageData) {
+      console.error("No image in response:", JSON.stringify(data).slice(0, 500));
+      return new Response(JSON.stringify({ error: "KI hat kein Bild generiert" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(JSON.stringify({ focus_x, focus_y }), {
+    // Extract base64 data
+    const base64Match = imageData.match(/^data:image\/(png|jpeg|webp);base64,(.+)$/);
+    if (!base64Match) {
+      return new Response(JSON.stringify({ error: "Ungültiges Bildformat von KI" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const imageType = base64Match[1];
+    const base64Data = base64Match[2];
+    const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+    // Upload to storage
+    const fileName = `${event_id}-${Date.now()}.${imageType === "jpeg" ? "jpg" : imageType}`;
+    const { error: uploadError } = await supabase.storage
+      .from("newsletter-banners")
+      .upload(fileName, binaryData, {
+        contentType: `image/${imageType}`,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      return new Response(JSON.stringify({ error: "Bild-Upload fehlgeschlagen: " + uploadError.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage.from("newsletter-banners").getPublicUrl(fileName);
+    const bannerUrl = urlData.publicUrl;
+
+    // Save to events table
+    await supabase.from("events").update({ newsletter_banner_url: bannerUrl }).eq("id", event_id);
+
+    console.log("Banner generated and saved:", bannerUrl);
+
+    return new Response(JSON.stringify({ banner_url: bannerUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

@@ -54,6 +54,7 @@ interface EventRow {
   ticket_price: number | null;
   image_focus_x: number | null;
   image_focus_y: number | null;
+  newsletter_banner_url: string | null;
 }
 
 type View = "subscribers" | "campaigns" | "editor" | "categories";
@@ -90,12 +91,18 @@ const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
 
 const buildEventCardHtml = (ev: EventRow, design: DesignConfig, baseUrl: string): string => {
-  const img = ev.image_url || "/images/gallery-1.jpg";
-  const fullImg = img.startsWith("http") ? img : `${baseUrl}${img}`;
+  // Prefer AI-generated newsletter banner, fallback to original with object-position
+  const bannerImg = ev.newsletter_banner_url;
+  const origImg = ev.image_url || "/images/gallery-1.jpg";
+  const fullOrig = origImg.startsWith("http") ? origImg : `${baseUrl}${origImg}`;
+  const imgSrc = bannerImg || fullOrig;
   const focusX = ev.image_focus_x ?? 50;
   const focusY = ev.image_focus_y ?? 50;
+  const imgStyle = bannerImg
+    ? "width:100%;height:180px;object-fit:cover;display:block;"
+    : `width:100%;height:180px;object-fit:cover;object-position:${focusX}% ${focusY}%;display:block;`;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;border:1px solid ${design.primary}33;border-radius:12px;overflow:hidden;">
-    <tr><td><img src="${escHtml(fullImg)}" alt="${escHtml(ev.title)}" style="width:100%;height:180px;object-fit:cover;object-position:${focusX}% ${focusY}%;display:block;"/></td></tr>
+    <tr><td><img src="${escHtml(imgSrc)}" alt="${escHtml(ev.title)}" style="${imgStyle}"/></td></tr>
     <tr><td style="padding:16px;">
       <h3 style="margin:0 0 4px;font-size:20px;font-weight:bold;color:${design.primary};font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(ev.title)}</h3>
       ${ev.subtitle ? `<p style="margin:0 0 8px;font-size:14px;color:${design.text}aa;font-style:italic;font-family:'Helvetica Neue',Arial,sans-serif;">${escHtml(ev.subtitle)}</p>` : ""}
@@ -239,7 +246,7 @@ const AdminNewsletter = () => {
   const fetchEvents = useCallback(async () => {
     const { data } = await supabase
       .from("events")
-      .select("id, title, subtitle, date, time, image_url, genre, ticket_price, image_focus_x, image_focus_y")
+      .select("id, title, subtitle, date, time, image_url, genre, ticket_price, image_focus_x, image_focus_y, newsletter_banner_url")
       .eq("is_published", true)
       .gte("date", new Date().toISOString())
       .order("date", { ascending: true })
@@ -259,23 +266,17 @@ const AdminNewsletter = () => {
     
     try {
       const { data, error } = await supabase.functions.invoke("analyze-image-crop", {
-        body: { image_url: fullUrl },
+        body: { image_url: fullUrl, event_id: eventId },
       });
       if (error) throw error;
       
-      const { focus_x, focus_y } = data;
-      
-      // Save to database
-      await supabase.from("events").update({
-        image_focus_x: focus_x,
-        image_focus_y: focus_y,
-      } as any).eq("id", eventId);
+      const { banner_url } = data;
       
       // Update local state
-      setEvents((prev) => prev.map((e) => e.id === eventId ? { ...e, image_focus_x: focus_x, image_focus_y: focus_y } : e));
-      toast.success(`Smart Crop: ${focus_x}% / ${focus_y}%`);
+      setEvents((prev) => prev.map((e) => e.id === eventId ? { ...e, newsletter_banner_url: banner_url } : e));
+      toast.success("Newsletter-Banner generiert!");
     } catch (e: any) {
-      toast.error("KI-Analyse fehlgeschlagen: " + (e.message || "Unbekannter Fehler"));
+      toast.error("Banner-Generierung fehlgeschlagen: " + (e.message || "Unbekannter Fehler"));
     } finally {
       setAnalyzingCrop((prev) => ({ ...prev, [eventId]: false }));
     }
@@ -285,18 +286,18 @@ const AdminNewsletter = () => {
     const eventsInBlocks = blocks
       .filter((b) => b.type === "event" && b.eventId)
       .map((b) => events.find((e) => e.id === b.eventId))
-      .filter((e): e is EventRow => !!e && !!e.image_url && e.image_focus_x === 50 && e.image_focus_y === 50);
+      .filter((e): e is EventRow => !!e && !!e.image_url && !e.newsletter_banner_url);
     
     const eventListBlocks = blocks.filter((b) => b.type === "event-list");
     if (eventListBlocks.length > 0) {
       const count = eventListBlocks[0].eventCount || 3;
-      const upcoming = events.slice(0, count).filter((e) => e.image_url && e.image_focus_x === 50 && e.image_focus_y === 50);
+      const upcoming = events.slice(0, count).filter((e) => e.image_url && !e.newsletter_banner_url);
       eventsInBlocks.push(...upcoming.filter((e) => !eventsInBlocks.find((ex) => ex.id === e.id)));
     }
 
-    if (eventsInBlocks.length === 0) { toast.info("Alle Event-Bilder haben bereits einen Smart Crop"); return; }
+    if (eventsInBlocks.length === 0) { toast.info("Alle Event-Bilder haben bereits ein Newsletter-Banner"); return; }
     
-    toast.info(`Analysiere ${eventsInBlocks.length} Bilder...`);
+    toast.info(`Generiere ${eventsInBlocks.length} Banner...`);
     for (const ev of eventsInBlocks) {
       await analyzeImageCrop(ev.id);
     }
@@ -686,22 +687,27 @@ const AdminNewsletter = () => {
                         {block.eventId && (() => {
                           const ev = events.find((e) => e.id === block.eventId);
                           if (!ev?.image_url) return null;
-                          const hasCrop = ev.image_focus_x !== 50 || ev.image_focus_y !== 50;
+                          const hasBanner = !!ev.newsletter_banner_url;
                           const isAnalyzing = analyzingCrop[ev.id];
                           return (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => analyzeImageCrop(ev.id)}
-                                disabled={isAnalyzing}
-                                className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-md text-xs text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
-                              >
-                                {isAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                                {isAnalyzing ? "Analysiere..." : "KI Smart Crop"}
-                              </button>
-                              {hasCrop && (
-                                <span className="flex items-center gap-1 text-xs text-green-400">
-                                  <Sparkles size={12} /> {ev.image_focus_x}% / {ev.image_focus_y}%
-                                </span>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => analyzeImageCrop(ev.id)}
+                                  disabled={isAnalyzing}
+                                  className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-md text-xs text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                                >
+                                  {isAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                                  {isAnalyzing ? "Generiere Banner..." : hasBanner ? "Banner neu generieren" : "KI Banner generieren"}
+                                </button>
+                                {hasBanner && (
+                                  <span className="flex items-center gap-1 text-xs text-green-400">
+                                    <Sparkles size={12} /> Banner erstellt
+                                  </span>
+                                )}
+                              </div>
+                              {hasBanner && (
+                                <img src={ev.newsletter_banner_url!} alt="Banner Preview" className="w-full h-16 object-cover rounded-md border border-border" />
                               )}
                             </div>
                           );
