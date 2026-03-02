@@ -10,7 +10,7 @@ const Navbar = () => {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang, t } = useI18n();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navItems = [
     { label: t("nav.home"), path: "/" },
     { label: t("nav.events"), path: "/events" },
@@ -44,7 +44,7 @@ const Navbar = () => {
               {item.label}
             </Link>
           ))}
-          {user && (
+          {user && isAdmin && (
             <Link
               to="/dashboard"
               className={`flex items-center gap-1 text-sm font-medium tracking-wide transition-colors hover:text-primary ${
@@ -111,7 +111,7 @@ const Navbar = () => {
                 {item.label}
               </Link>
             ))}
-            {user && (
+            {user && isAdmin && (
               <Link
                 to="/dashboard"
                 onClick={() => setOpen(false)}
