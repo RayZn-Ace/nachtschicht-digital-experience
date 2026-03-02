@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
 import type { Event, TicketType, DiscountCode } from "@/types/database";
 import { toast } from "sonner";
-import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2 } from "lucide-react";
+import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2, ShieldCheck, DoorOpen } from "lucide-react";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import ScrollReveal from "@/components/ScrollReveal";
 import EventLoungeSection from "@/components/EventLoungeSection";
@@ -247,6 +247,28 @@ const TicketShopPage = () => {
                 </div>
               )}
               {event.description && <p className="text-muted-foreground text-sm">{event.description}</p>}
+
+              {/* Event info badges */}
+              {(event.has_muttizettel || event.has_abendkasse) && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {event.has_abendkasse && (
+                    <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-accent/50 text-accent-foreground font-medium">
+                      <DoorOpen size={13} />
+                      {lang === "de" ? "Auch an der Abendkasse erhältlich" : "Also available at the door"}
+                    </span>
+                  )}
+                  {event.has_muttizettel && (
+                    <a
+                      href={`/u18?event=${eventId}`}
+                      onClick={(e) => { e.stopPropagation(); }}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-primary/15 text-primary font-medium hover:bg-primary/25 transition-colors"
+                    >
+                      <ShieldCheck size={13} />
+                      {lang === "de" ? "Muttizettel verfügbar" : "Parental consent available"}
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Social proof & scarcity */}
               <div className="flex items-center gap-4 mt-3">
@@ -661,6 +683,36 @@ const TicketShopPage = () => {
                 >
                   {buying ? "..." : lang === "de" ? "JETZT BUCHEN" : "BOOK NOW"}
                 </button>
+              </div>
+            </div>
+          </ScrollReveal>
+        )}
+
+        {/* Muttizettel CTA */}
+        {event && event.has_muttizettel && step !== 3 && (
+          <ScrollReveal>
+            <div className="glass-card p-5 mt-6">
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+                  <ShieldCheck size={20} className="text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display text-lg tracking-wider text-foreground mb-1">
+                    {lang === "de" ? "UNTER 18?" : "UNDER 18?"}
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-3">
+                    {lang === "de"
+                      ? "Für dieses Event ist ein Muttizettel verfügbar. Minderjährige können mit einer unterschriebenen Einverständniserklärung teilnehmen."
+                      : "A parental consent form is available for this event. Minors can attend with a signed consent form."}
+                  </p>
+                  <a
+                    href={`/u18?event=${eventId}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-sm"
+                  >
+                    <ShieldCheck size={14} />
+                    {lang === "de" ? "MUTTIZETTEL ERSTELLEN" : "CREATE CONSENT FORM"}
+                  </a>
+                </div>
               </div>
             </div>
           </ScrollReveal>
