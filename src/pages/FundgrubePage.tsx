@@ -96,16 +96,18 @@ const FundgrubePage = () => {
           ) : (
           <form onSubmit={handleSubmit} className="space-y-4 glass-card p-6 rounded-xl">
             {/* Date */}
-            <div>
-              <Label htmlFor="eventDate" className="text-sm text-foreground">Datum des Events *</Label>
-              <Input
-                id="eventDate"
-                type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="mt-1 bg-muted border-border max-w-[220px]"
-                required
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="eventDate" className="text-sm text-foreground">Datum des Events *</Label>
+                <Input
+                  id="eventDate"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="mt-1 bg-muted border-border"
+                  required
+                />
+              </div>
             </div>
 
             {/* Category */}
