@@ -175,7 +175,7 @@ const EventsPage = () => {
                         </span>
                         <span
                           className="px-4 py-2 bg-muted text-foreground font-display tracking-wider rounded-md text-sm hover:bg-muted/80 transition-colors"
-                          onClick={(e) => { e.stopPropagation(); navigate("/lounges"); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/tickets/${event.id}#lounges`); }}
                         >
                           LOUNGES
                         </span>

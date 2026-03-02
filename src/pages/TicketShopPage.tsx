@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
@@ -13,6 +13,7 @@ import EventLoungeSection from "@/components/EventLoungeSection";
 const TicketShopPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { t, lang } = useI18n();
 
@@ -54,6 +55,16 @@ const TicketShopPage = () => {
     };
     fetchData();
   }, [eventId]);
+
+  // Scroll to hash (e.g. #lounges)
+  useEffect(() => {
+    if (!loading && location.hash) {
+      setTimeout(() => {
+        const el = document.querySelector(location.hash);
+        el?.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+    }
+  }, [loading, location.hash]);
 
   const totalTickets = Object.values(cart).reduce((sum, q) => sum + q, 0);
   const subtotal = ticketTypes.reduce((sum, tt) => sum + (cart[tt.id] || 0) * tt.price, 0);
