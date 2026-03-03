@@ -92,13 +92,13 @@ const Index = () => {
     featuredEvents.length === 2 ? "md:grid-cols-2" : "";
 
   const featuredAspect =
-    featuredEvents.length === 1 ? "aspect-[21/9]" :
-    featuredEvents.length === 2 ? "aspect-video" : "aspect-[3/4] md:aspect-video";
+    featuredEvents.length === 1 ? "aspect-[16/9] md:aspect-[21/9]" :
+    featuredEvents.length === 2 ? "aspect-[4/3] md:aspect-video" : "aspect-[4/3] md:aspect-video";
 
   return (
     <>
       {/* Hero */}
-      <section className="relative h-[100vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-dvh min-h-[600px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <video autoPlay muted loop playsInline className="w-full h-full object-cover">
             <source src="/videos/hero-bg.mp4" type="video/mp4" />
@@ -107,17 +107,17 @@ const Index = () => {
           <div className="absolute inset-0 bg-primary/10" />
         </div>
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <h1 className="font-display text-5xl md:text-7xl lg:text-9xl tracking-wider text-foreground mb-4 animate-fade-in">
+          <h1 className="font-display text-4xl sm:text-5xl md:text-7xl lg:text-9xl tracking-wider text-foreground mb-4 animate-fade-in">
             NACHT<span className="text-gradient">SCHICHT</span>
           </h1>
           <p className="text-lg md:text-2xl text-foreground/80 font-light mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
             {t("hero.subtitle")}
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: "0.4s" }}>
-            <Link to="/events" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-all glow-red">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center animate-fade-in px-4" style={{ animationDelay: "0.4s" }}>
+            <Link to="/events" className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 bg-primary text-primary-foreground font-display text-lg sm:text-xl tracking-wider rounded-md hover:bg-primary/90 transition-all glow-red min-h-[48px]">
               {t("hero.tickets")} <ChevronRight size={20} />
             </Link>
-            <Link to="/club" className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-foreground/30 text-foreground font-display text-xl tracking-wider rounded-md hover:bg-foreground/10 transition-all">
+            <Link to="/club" className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 border border-foreground/30 text-foreground font-display text-lg sm:text-xl tracking-wider rounded-md hover:bg-foreground/10 transition-all min-h-[48px]">
               {t("hero.discover")}
             </Link>
           </div>
@@ -206,8 +206,7 @@ const Index = () => {
                         })}
                       </div>
                     )}
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="font-display text-lg text-foreground">{event.ticket_price > 0 ? `${event.ticket_price.toFixed(2)}€` : "KOSTENLOS"}</span>
+                    <div className="flex items-center justify-end mt-3">
                       <span className="inline-flex items-center gap-1 text-primary text-sm font-medium">
                         Tickets <ChevronRight size={16} />
                       </span>

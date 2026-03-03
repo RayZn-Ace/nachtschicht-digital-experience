@@ -488,7 +488,7 @@ const Navbar = () => {
               <Link
                 to="/events"
                 onClick={() => setOpen(false)}
-                className="mt-2 inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md"
+                className="mt-2 inline-flex items-center justify-center px-6 py-3.5 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md min-h-[48px] w-full"
               >
                 {t("nav.getTickets")}
               </Link>

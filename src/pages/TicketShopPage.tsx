@@ -262,7 +262,7 @@ const TicketShopPage = () => {
         <ScrollReveal>
           <div className="glass-card overflow-hidden mb-6">
             {event.image_url && (
-              <div className="relative h-48 md:h-64 overflow-hidden">
+              <div className="relative h-40 sm:h-48 md:h-64 overflow-hidden">
                 <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
               </div>
@@ -397,7 +397,7 @@ const TicketShopPage = () => {
               </p>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="flex flex-col gap-3 justify-center">
                 <button
                   disabled={ticketPdfLoading}
                   onClick={async () => {
@@ -421,10 +421,10 @@ const TicketShopPage = () => {
                     }
                     setTicketPdfLoading(false);
                   }}
-                  className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm disabled:opacity-50 min-h-[48px]"
                 >
                   {ticketPdfLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                  {lang === "de" ? "TICKET PDF HERUNTERLADEN" : "DOWNLOAD TICKET PDF"}
+                  {lang === "de" ? "TICKET PDF" : "DOWNLOAD TICKET PDF"}
                 </button>
                 <button
                   disabled={invoiceLoading}
@@ -460,14 +460,14 @@ const TicketShopPage = () => {
                     }
                     setInvoiceLoading(false);
                   }}
-                  className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors font-display tracking-wider text-sm disabled:opacity-50 min-h-[48px]"
                 >
                   {invoiceLoading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
-                  {lang === "de" ? "RECHNUNG HERUNTERLADEN" : "DOWNLOAD INVOICE"}
+                  {lang === "de" ? "RECHNUNG" : "DOWNLOAD INVOICE"}
                 </button>
                 <button
                   onClick={() => navigate("/events")}
-                  className="px-5 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 text-sm"
+                  className="px-5 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 text-sm min-h-[48px]"
                 >
                   {lang === "de" ? "WEITERE EVENTS" : "MORE EVENTS"}
                 </button>

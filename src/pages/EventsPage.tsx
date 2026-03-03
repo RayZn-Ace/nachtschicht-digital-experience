@@ -218,13 +218,13 @@ const EventsPage = () => {
 
                       <div className="flex items-center gap-2">
                         <span
-                          className="px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md text-sm"
+                          className="px-4 py-2.5 bg-primary text-primary-foreground font-display tracking-wider rounded-md text-sm min-h-[44px] inline-flex items-center"
                           onClick={(e) => { e.stopPropagation(); navigate(`/tickets/${event.id}`); }}
                         >
                           {soldOut ? (lang === "de" ? "AUSVERKAUFT" : "SOLD OUT") : "TICKETS"}
                         </span>
                         <span
-                          className="px-4 py-2 bg-muted text-foreground font-display tracking-wider rounded-md text-sm hover:bg-muted/80 transition-colors"
+                          className="px-4 py-2.5 bg-muted text-foreground font-display tracking-wider rounded-md text-sm hover:bg-muted/80 transition-colors min-h-[44px] inline-flex items-center"
                           onClick={(e) => { e.stopPropagation(); navigate(`/tickets/${event.id}#lounges`); }}
                         >
                           LOUNGES
