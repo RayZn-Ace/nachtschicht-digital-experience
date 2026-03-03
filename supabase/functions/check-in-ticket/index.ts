@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Find ticket by qr_code or id
+    // Find ticket by qr_code, full id, or short id prefix
     let ticket;
     const { data: byQr } = await adminClient
       .from("tickets")
@@ -76,13 +76,27 @@ Deno.serve(async (req) => {
     if (byQr) {
       ticket = byQr;
     } else {
-      // Try by ticket ID (partial match)
+      // Try by exact ticket ID
       const { data: byId } = await adminClient
         .from("tickets")
         .select("*, events(title, date, time), ticket_types(name)")
         .eq("id", searchValue)
         .maybeSingle();
-      ticket = byId;
+      if (byId) {
+        ticket = byId;
+      } else {
+        // Try by short ID prefix (first 8 chars of UUID, case-insensitive)
+        const shortSearch = searchValue.toLowerCase().replace(/[^a-f0-9]/g, "");
+        if (shortSearch.length >= 6) {
+          const { data: byPrefix } = await adminClient
+            .from("tickets")
+            .select("*, events(title, date, time), ticket_types(name)")
+            .ilike("id", `${shortSearch}%`)
+            .limit(1)
+            .maybeSingle();
+          ticket = byPrefix;
+        }
+      }
     }
 
     if (!ticket) {
