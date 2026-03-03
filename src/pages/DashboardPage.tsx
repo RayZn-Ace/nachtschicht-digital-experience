@@ -274,7 +274,7 @@ const DashboardPage = () => {
 
           <ScrollReveal className="p-6 md:p-10">
             <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <h1 className="font-display text-4xl md:text-6xl tracking-wider text-foreground">
+              <h1 className="font-display text-3xl sm:text-4xl md:text-6xl tracking-wider text-foreground">
                 DASH<span className="text-gradient">BOARD</span>
               </h1>
               <span className="px-3 py-1 text-xs font-display tracking-widest rounded-full bg-primary/20 text-primary border border-primary/30 uppercase">
@@ -285,32 +285,32 @@ const DashboardPage = () => {
               Zentrale Übersicht für Events, Tickets, Umsätze und Kundenverwaltung.
             </p>
 
-            <div className="flex flex-wrap gap-2" role="navigation" aria-label="Admin-Navigation">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2" role="navigation" aria-label="Admin-Navigation">
               {navLinks
                 .filter((l) => !l.adminOnly || isAdmin)
                 .map((l) => (
-                  <Link key={l.label} to={l.href} className={`flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md transition-colors ${l.style}`}>
-                    {l.icon} {l.label.toUpperCase()}
+                  <Link key={l.label} to={l.href} className={`flex items-center justify-center md:justify-start gap-2 px-3 py-2.5 text-xs sm:text-sm font-display tracking-wider rounded-md transition-colors min-h-[44px] ${l.style}`}>
+                    {l.icon} <span className="truncate">{l.label.toUpperCase()}</span>
                   </Link>
                 ))}
             </div>
 
             {/* Profile links (all users) */}
-            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/30" role="navigation" aria-label="Profil-Navigation">
-              <Link to="/meine-bestellungen" className="flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors">
-                <ShoppingBag size={16} /> MEINE BESTELLUNGEN
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 mt-3 pt-3 border-t border-border/30" role="navigation" aria-label="Profil-Navigation">
+              <Link to="/meine-bestellungen" className="flex items-center gap-2 px-3 py-2.5 text-xs sm:text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors min-h-[44px]">
+                <ShoppingBag size={16} className="shrink-0" /> <span className="truncate">BESTELLUNGEN</span>
               </Link>
-              <Link to="/meine-tickets" className="flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors">
-                <Ticket size={16} /> MEINE TICKETS
+              <Link to="/meine-tickets" className="flex items-center gap-2 px-3 py-2.5 text-xs sm:text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors min-h-[44px]">
+                <Ticket size={16} className="shrink-0" /> <span className="truncate">TICKETS</span>
               </Link>
-              <Link to="/meine-rechnungen" className="flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors">
-                <FileText size={16} /> MEINE RECHNUNGEN
+              <Link to="/meine-rechnungen" className="flex items-center gap-2 px-3 py-2.5 text-xs sm:text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors min-h-[44px]">
+                <FileText size={16} className="shrink-0" /> <span className="truncate">RECHNUNGEN</span>
               </Link>
-              <Link to="/daten-export" className="flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors">
-                <Download size={16} /> DATEN EXPORT
+              <Link to="/daten-export" className="flex items-center gap-2 px-3 py-2.5 text-xs sm:text-sm font-display tracking-wider rounded-md bg-muted text-foreground hover:bg-muted/80 transition-colors min-h-[44px]">
+                <Download size={16} className="shrink-0" /> <span className="truncate">EXPORT</span>
               </Link>
-              <Link to="/account-loeschen" className="flex items-center gap-2 px-4 py-2 text-sm font-display tracking-wider rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                <Trash2 size={16} /> ACCOUNT LÖSCHEN
+              <Link to="/account-loeschen" className="flex items-center gap-2 px-3 py-2.5 text-xs sm:text-sm font-display tracking-wider rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors min-h-[44px]">
+                <Trash2 size={16} className="shrink-0" /> <span className="truncate">LÖSCHEN</span>
               </Link>
             </div>
           </ScrollReveal>
@@ -357,9 +357,9 @@ const DashboardPage = () => {
         {/* ─── KPIs ─── */}
         {isAdmin && (
           <ScrollReveal delay={0.1}>
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-6">
               {/* Revenue */}
-              <div className="gradient-card rounded-xl p-4 border border-border/50 lg:col-span-1">
+              <div className="gradient-card rounded-xl p-3 sm:p-4 border border-border/50 col-span-2 sm:col-span-1">
                 <div className="flex items-center justify-between mb-2">
                   <DollarSign size={20} className="text-muted-foreground" />
                   {kpis.revTrend !== 0 && (
@@ -369,12 +369,12 @@ const DashboardPage = () => {
                     </span>
                   )}
                 </div>
-                <p className="font-display text-2xl md:text-3xl tracking-wider text-foreground">{fmtCurrency(kpis.netRevenue)}</p>
+                <p className="font-display text-xl sm:text-2xl md:text-3xl tracking-wider text-foreground">{fmtCurrency(kpis.netRevenue)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">Umsatz (netto)</p>
               </div>
 
               {/* Tickets sold */}
-              <div className="gradient-card rounded-xl p-4 border border-border/50">
+              <div className="gradient-card rounded-xl p-3 sm:p-4 border border-border/50">
                 <div className="flex items-center justify-between mb-2">
                   <Ticket size={20} className="text-muted-foreground" />
                   {kpis.soldTrend !== 0 && (
@@ -384,21 +384,21 @@ const DashboardPage = () => {
                     </span>
                   )}
                 </div>
-                <p className="font-display text-2xl md:text-3xl tracking-wider text-foreground">{kpis.totalSold.toLocaleString("de-DE")}</p>
-                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">Tickets verkauft</p>
+                <p className="font-display text-xl sm:text-2xl md:text-3xl tracking-wider text-foreground">{kpis.totalSold.toLocaleString("de-DE")}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">Verkauft</p>
               </div>
 
               {/* Orders */}
-              <div className="gradient-card rounded-xl p-4 border border-border/50">
+              <div className="gradient-card rounded-xl p-3 sm:p-4 border border-border/50">
                 <div className="flex items-center justify-between mb-2">
                   <ShoppingCart size={20} className="text-muted-foreground" />
                 </div>
-                <p className="font-display text-2xl md:text-3xl tracking-wider text-foreground">{kpis.orderCount}</p>
+                <p className="font-display text-xl sm:text-2xl md:text-3xl tracking-wider text-foreground">{kpis.orderCount}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">Bestellungen</p>
               </div>
 
               {/* AOV */}
-              <div className="gradient-card rounded-xl p-4 border border-border/50">
+              <div className="gradient-card rounded-xl p-3 sm:p-4 border border-border/50">
                 <div className="flex items-center justify-between mb-2">
                   <ArrowUpRight size={20} className="text-muted-foreground" />
                   {kpis.aovTrend !== 0 && (
@@ -408,16 +408,16 @@ const DashboardPage = () => {
                     </span>
                   )}
                 </div>
-                <p className="font-display text-2xl md:text-3xl tracking-wider text-foreground">{fmtCurrency(kpis.aov)}</p>
-                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">Ø Bestellwert</p>
+                <p className="font-display text-xl sm:text-2xl md:text-3xl tracking-wider text-foreground">{fmtCurrency(kpis.aov)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">Ø Wert</p>
               </div>
 
               {/* Check-ins */}
-              <div className="gradient-card rounded-xl p-4 border border-border/50">
+              <div className="gradient-card rounded-xl p-3 sm:p-4 border border-border/50 col-span-2 sm:col-span-1">
                 <div className="flex items-center justify-between mb-2">
                   <QrCode size={20} className="text-muted-foreground" />
                 </div>
-                <p className="font-display text-2xl md:text-3xl tracking-wider text-foreground">{kpis.checkedIn}</p>
+                <p className="font-display text-xl sm:text-2xl md:text-3xl tracking-wider text-foreground">{kpis.checkedIn}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">Check-ins</p>
               </div>
             </div>

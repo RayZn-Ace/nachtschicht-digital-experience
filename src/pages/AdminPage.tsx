@@ -313,12 +313,12 @@ const AdminPage = () => {
   return (
     <section className="section-padding">
       <div className="container mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-3xl md:text-5xl tracking-wider text-foreground">
-            ADMIN <span className="text-gradient">DASHBOARD</span>
+        <div className="flex items-center justify-between mb-6 gap-3">
+          <h1 className="font-display text-2xl sm:text-3xl md:text-5xl tracking-wider text-foreground">
+            ADMIN <span className="text-gradient">PANEL</span>
           </h1>
-          <button onClick={signOut} className="flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors">
-            <LogOut size={18} /> LOGOUT
+          <button onClick={signOut} className="flex items-center gap-2 px-3 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors text-sm min-h-[44px]">
+            <LogOut size={18} /> <span className="hidden sm:inline">LOGOUT</span>
           </button>
         </div>
 
@@ -668,13 +668,13 @@ const AdminPage = () => {
             const eventAreas = parseAreas(event.areas);
             const eventTags = eventTagsMap[event.id] || [];
             return (
-              <div key={event.id} className="glass-card p-4 flex items-center gap-4">
+              <div key={event.id} className="glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 {event.image_url && (
-                  <img src={event.image_url} alt={event.title} className="w-16 h-16 rounded-md object-cover shrink-0" />
+                  <img src={event.image_url} alt={event.title} className="w-full sm:w-16 h-32 sm:h-16 rounded-md object-cover shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-display text-lg tracking-wider text-foreground truncate">{event.title}</h3>
+                    <h3 className="font-display text-base sm:text-lg tracking-wider text-foreground truncate">{event.title}</h3>
                     {event.is_published ? (
                       <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Live</span>
                     ) : (
@@ -726,20 +726,20 @@ const AdminPage = () => {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <button onClick={() => setTicketsEvent(event)} className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary" title="Tickets verwalten">
+                <div className="flex gap-1 sm:gap-2 shrink-0 border-t sm:border-t-0 border-border/30 pt-2 sm:pt-0 mt-1 sm:mt-0">
+                  <button onClick={() => setTicketsEvent(event)} className="p-2.5 hover:bg-primary/20 rounded-md transition-colors text-primary min-h-[44px] min-w-[44px] flex items-center justify-center" title="Tickets verwalten">
                     <Ticket size={18} />
                   </button>
-                  <button onClick={() => togglePublish(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title={event.is_published ? "Verstecken" : "Veröffentlichen"}>
+                  <button onClick={() => togglePublish(event)} className="p-2.5 hover:bg-muted rounded-md transition-colors text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center" title={event.is_published ? "Verstecken" : "Veröffentlichen"}>
                     {event.is_published ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
-                  <button onClick={() => handleDuplicate(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Duplizieren">
+                  <button onClick={() => handleDuplicate(event)} className="p-2.5 hover:bg-muted rounded-md transition-colors text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center" title="Duplizieren">
                     <Copy size={18} />
                   </button>
-                  <button onClick={() => handleEdit(event)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Bearbeiten">
+                  <button onClick={() => handleEdit(event)} className="p-2.5 hover:bg-muted rounded-md transition-colors text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center" title="Bearbeiten">
                     <Pencil size={18} />
                   </button>
-                  <button onClick={() => handleDelete(event.id)} className="p-2 hover:bg-destructive/20 rounded-md transition-colors text-destructive" title="Löschen">
+                  <button onClick={() => handleDelete(event.id)} className="p-2.5 hover:bg-destructive/20 rounded-md transition-colors text-destructive min-h-[44px] min-w-[44px] flex items-center justify-center" title="Löschen">
                     <Trash2 size={18} />
                   </button>
                 </div>
