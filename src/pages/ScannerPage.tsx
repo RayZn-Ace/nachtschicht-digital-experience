@@ -55,27 +55,60 @@ const addToQueue = (qr_code: string): QueuedCheckIn => {
 };
 const removeFromQueue = (id: string) => saveQueue(loadQueue().filter((q) => q.id !== id));
 
-const playSound = (type: "success" | "error") => {
+const playSound = (type: "success" | "wrong_event" | "already_redeemed" | "error") => {
   try {
     const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.connect(gain);
     gain.connect(ctx.destination);
+
     if (type === "success") {
+      // Cheerful ascending double-beep
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.connect(gain);
       osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.3);
-    } else {
-      osc.frequency.setValueAtTime(300, ctx.currentTime);
-      osc.frequency.setValueAtTime(200, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.25);
+    } else if (type === "wrong_event") {
+      // Two-tone warning: mid pitch up-down
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.connect(gain);
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.setValueAtTime(800, ctx.currentTime + 0.12);
+      osc.frequency.setValueAtTime(600, ctx.currentTime + 0.24);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.4);
+    } else if (type === "already_redeemed") {
+      // Triple short beeps (bip-bip-bip)
+      const osc = ctx.createOscillator();
+      osc.type = "square";
+      osc.connect(gain);
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.setValueAtTime(0.01, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.01, ctx.currentTime + 0.20);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + 0.24);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.35);
+    } else {
+      // Error: low descending buzz
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.connect(gain);
+      osc.frequency.setValueAtTime(350, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(150, ctx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
     }
   } catch {}
 };
@@ -188,7 +221,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
     if (!trimmed || processingRef.current) return;
     if (trimmed === lastScanned.current) return;
     lastScanned.current = trimmed;
-    setTimeout(() => { lastScanned.current = ""; }, 3000);
+    setTimeout(() => { lastScanned.current = ""; }, 2000);
 
     setProcessing(true);
 
@@ -229,9 +262,15 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
           playSound("success");
           vibrate(100);
           fetchStats();
+        } else if (scanData.status === "wrong_event") {
+          playSound("wrong_event");
+          vibrate([100, 50, 100]);
+        } else if (scanData.status === "already_redeemed") {
+          playSound("already_redeemed");
+          vibrate([100, 50, 100, 50, 100]);
         } else {
           playSound("error");
-          vibrate([100, 50, 100]);
+          vibrate([200, 100, 200]);
         }
       }
     } catch {
@@ -272,9 +311,10 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
       const onScanError = () => {};
 
       const scanConfig = {
-        fps: 12,
+        fps: 25,
         qrbox: { width: qrSize, height: qrSize },
         disableFlip: false,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       };
 
       let started = false;
