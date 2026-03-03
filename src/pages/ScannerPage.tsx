@@ -624,7 +624,9 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                     <p className="text-xs opacity-80">{result.ticket.buyer_name} · {result.ticket.quantity}×</p>
                   )}
                   {result.ticket?.ticket_type && (
-                    <p className="text-xs opacity-70">{result.ticket.ticket_type}</p>
+                    <p className="text-sm font-semibold bg-white/25 backdrop-blur-sm rounded-md px-3 py-1 inline-block">
+                      {result.ticket.ticket_type}
+                    </p>
                   )}
                   {result.status === "already_redeemed" && result.ticket?.checked_in_at && (
                     <p className="text-xs opacity-70">
