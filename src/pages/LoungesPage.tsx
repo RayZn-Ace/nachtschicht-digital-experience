@@ -50,7 +50,7 @@ const LoungesPage = () => {
       const [loungeRes, eventRes, bookingRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
         supabase.from("events").select("*").eq("is_published", true).gte("date", new Date().toISOString()).order("date", { ascending: true }),
-        supabase.from("lounge_bookings").select("lounge_id, event_id, booking_type, status").neq("status", "cancelled").neq("status", "rejected"),
+        supabase.rpc("get_lounge_availability"),
       ]);
       if (loungeRes.error || eventRes.error || bookingRes.error) { setError(true); }
       if (loungeRes.data) setLounges(loungeRes.data as any);

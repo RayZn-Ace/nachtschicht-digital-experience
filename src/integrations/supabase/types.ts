@@ -1641,6 +1641,15 @@ export type Database = {
     }
     Functions: {
       generate_invoice_number: { Args: never; Returns: string }
+      get_lounge_availability: {
+        Args: { p_event_id?: string }
+        Returns: {
+          booking_type: string
+          event_id: string
+          lounge_id: string
+          status: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
