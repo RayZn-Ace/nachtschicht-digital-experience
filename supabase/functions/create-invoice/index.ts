@@ -12,6 +12,37 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // --- Authentication: require valid JWT + check identity ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(
+      authHeader.replace("Bearer ", "")
+    );
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+
+    // --- Input validation ---
     const { ticket_ids } = await req.json();
     if (!ticket_ids || !Array.isArray(ticket_ids) || ticket_ids.length === 0) {
       return new Response(JSON.stringify({ error: "ticket_ids required" }), {
@@ -19,10 +50,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     // Fetch all tickets
     const { data: tickets, error: ticketsErr } = await admin
@@ -33,6 +60,24 @@ Deno.serve(async (req) => {
     if (ticketsErr || !tickets || tickets.length === 0) {
       return new Response(JSON.stringify({ error: "Tickets not found" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Authorization: user must own the tickets OR be admin
+    const { data: roleData } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    const isAdmin = !!roleData;
+    const ownsAllTickets = tickets.every((t: any) => t.user_id === userId);
+
+    if (!isAdmin && !ownsAllTickets) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -110,7 +155,7 @@ Deno.serve(async (req) => {
         .single();
       if (cfgErr || !cfgRow) {
         return new Response(
-          JSON.stringify({ error: "Failed to generate invoice number", details: numErr?.message }),
+          JSON.stringify({ error: "Failed to generate invoice number" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -137,7 +182,6 @@ Deno.serve(async (req) => {
     const vatRate = Number(event.vat_rate) || 19;
     const totalBrutto = tickets.reduce((s: number, t: any) => s + Number(t.total_price), 0);
     const totalFees = tickets.reduce((s: number, t: any) => s + Number(t.fee_amount || 0), 0);
-    const ticketBruttoExFees = totalBrutto - totalFees;
     const subtotal = +(totalBrutto / (1 + vatRate / 100)).toFixed(2);
     const vatAmount = +(totalBrutto - subtotal).toFixed(2);
 
@@ -172,12 +216,12 @@ Deno.serve(async (req) => {
     if (invErr || !invoice) {
       console.error("Invoice insert error:", invErr);
       return new Response(
-        JSON.stringify({ error: "Failed to create invoice", details: invErr?.message }),
+        JSON.stringify({ error: "Failed to create invoice" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Create line items – one per ticket row (ticket price lines)
+    // Create line items
     const lineItems: any[] = [];
     let sortIdx = 0;
 
@@ -239,7 +283,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("create-invoice error:", err);
     return new Response(
-      JSON.stringify({ error: "Invoice creation failed", details: String(err) }),
+      JSON.stringify({ error: "Invoice creation failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -12,6 +12,36 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // --- Authentication: require valid JWT ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(
+      authHeader.replace("Bearer ", "")
+    );
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+
     const { booking_id } = await req.json();
     if (!booking_id) {
       return new Response(JSON.stringify({ error: "booking_id required" }), {
@@ -19,10 +49,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     // Fetch booking
     const { data: booking, error: bErr } = await admin
@@ -34,6 +60,22 @@ Deno.serve(async (req) => {
     if (bErr || !booking) {
       return new Response(JSON.stringify({ error: "Booking not found" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Authorization: user must own the booking OR be admin
+    const { data: roleData } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    const isAdmin = !!roleData;
+    if (!isAdmin && booking.user_id !== userId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -70,7 +112,6 @@ Deno.serve(async (req) => {
     let invoiceNumber: string | null = null;
     const { data: rpcResult, error: numErr } = await admin.rpc("generate_invoice_number");
     if (numErr) {
-      // Fallback
       const { data: cfgRow } = await admin
         .from("invoice_config")
         .select("id, invoice_prefix, next_invoice_number")
@@ -137,7 +178,7 @@ Deno.serve(async (req) => {
     if (invErr || !invoice) {
       console.error("Invoice insert error:", invErr);
       return new Response(
-        JSON.stringify({ error: "Failed to create invoice", details: invErr?.message }),
+        JSON.stringify({ error: "Failed to create invoice" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -173,7 +214,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("create-lounge-invoice error:", err);
     return new Response(
-      JSON.stringify({ error: "Invoice creation failed", details: String(err) }),
+      JSON.stringify({ error: "Invoice creation failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
