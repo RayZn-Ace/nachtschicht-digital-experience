@@ -23,6 +23,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "nav.hours": { de: "Öffnungszeiten", en: "Opening Hours" },
   "nav.tickets": { de: "TICKETS", en: "TICKETS" },
   "nav.getTickets": { de: "TICKETS SICHERN", en: "GET TICKETS" },
+  "nav.meinBereich": { de: "MEIN BEREICH", en: "MY AREA" },
   "nav.category.events": { de: "Events", en: "Events" },
   "nav.category.club": { de: "Club", en: "Club" },
   "nav.category.info": { de: "Infos & Jobs", en: "Info & Jobs" },

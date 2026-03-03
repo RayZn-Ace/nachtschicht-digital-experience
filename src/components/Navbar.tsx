@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  Menu, X, Sun, Moon, Globe, LayoutDashboard, Calendar, Ticket, Image, Mail,
+  Menu, X, Sun, Moon, Globe, LayoutDashboard, Calendar, Ticket, Image, Mail, User,
   FileText, Tags, ShoppingCart, Sofa, Wine, Sparkles, Receipt, TrendingUp,
   Flag, Users, QrCode, ArrowLeft, Settings, BarChart3, ChevronDown,
   PartyPopper, Star, HelpCircle, Briefcase, MessageSquare, Camera, Building2, GlassWater, Search,
@@ -323,10 +323,15 @@ const Navbar = () => {
                 </Link>
               )}
               <Link
-                to="/events"
-                className="inline-flex items-center px-5 py-2 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors animate-pulse-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                to="/mein-bereich"
+                className={`inline-flex items-center gap-1.5 px-5 py-2 font-display text-lg tracking-wider rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  location.pathname === "/mein-bereich"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90 animate-pulse-glow"
+                }`}
               >
-                {t("nav.tickets")}
+                <User size={16} />
+                {t("nav.meinBereich")}
               </Link>
             </>
           )}
@@ -486,11 +491,12 @@ const Navbar = () => {
 
             {!isAdminArea && (
               <Link
-                to="/events"
+                to="/mein-bereich"
                 onClick={() => setOpen(false)}
-                className="mt-2 inline-flex items-center justify-center px-6 py-3.5 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md min-h-[48px] w-full"
+                className="mt-2 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md min-h-[48px] w-full"
               >
-                {t("nav.getTickets")}
+                <User size={20} />
+                {t("nav.meinBereich")}
               </Link>
             )}
           </div>
