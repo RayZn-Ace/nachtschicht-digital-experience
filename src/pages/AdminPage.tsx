@@ -694,7 +694,7 @@ const AdminPage = () => {
                     <p className="text-muted-foreground text-xs italic">{(event as any).subtitle}</p>
                   )}
                   <p className="text-muted-foreground text-sm">
-                    {new Date(event.date).toLocaleDateString("de-DE")} – {event.time}{(event as any).end_time ? ` bis ${(event as any).end_time}` : ""} | {event.genre} | {event.ticket_price}€ | {event.tickets_sold}/{event.ticket_quantity} Tickets
+                    {new Date(event.date).toLocaleDateString("de-DE")} – {event.time}{(event as any).end_time ? ` bis ${(event as any).end_time}` : ""} | {event.genre} | {event.ticket_price}€
                   </p>
                   {/* KPI Stats */}
                   {(() => {
