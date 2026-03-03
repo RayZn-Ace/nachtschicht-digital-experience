@@ -311,9 +311,11 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
       const onScanError = () => {};
 
       const scanConfig = {
-        fps: 25,
+        fps: 30,
         qrbox: { width: qrSize, height: qrSize },
-        disableFlip: false,
+        aspectRatio: 1,
+        disableFlip: true,
+        formatsToSupport: [0], // QR_CODE only – skips all other barcode checks
         experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       };
 
