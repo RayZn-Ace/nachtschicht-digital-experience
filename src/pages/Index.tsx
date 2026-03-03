@@ -138,13 +138,10 @@ const Index = () => {
             <ScrollReveal>
               <div className={`grid grid-cols-1 ${featuredGridCols} gap-4`}>
                 {featuredEvents.map((event, i) => (
-                  <div
+                  <Link
                     key={event.id}
-                    className="block relative rounded-2xl overflow-hidden group hover-lift cursor-pointer"
-                    onClick={() => navigate(`/tickets/${event.id}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && navigate(`/tickets/${event.id}`)}
+                    to={`/tickets/${event.id}`}
+                    className="block relative rounded-2xl overflow-hidden group hover-lift"
                   >
                     <img
                       src={event.image_url || "/images/gallery-1.jpg"}
@@ -152,8 +149,8 @@ const Index = () => {
                       className={`w-full ${featuredAspect} object-cover group-hover:scale-105 transition-transform duration-700`}
                       loading={i === 0 ? "eager" : "lazy"}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-                    <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6">
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
                       <span className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded font-display text-xs tracking-wider mb-2">HIGHLIGHT</span>
                       <h2 className={`font-display tracking-wider text-foreground ${featuredEvents.length === 1 ? "text-2xl md:text-4xl" : "text-lg md:text-2xl"}`}>
                         {tr(event.title)}
@@ -162,8 +159,11 @@ const Index = () => {
                         {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" })}
                         {event.time ? ` · ${event.time} ${lang === "de" ? "Uhr" : ""}` : ""}
                       </p>
+                      <span className="inline-flex items-center gap-1 mt-2 text-primary text-sm font-display tracking-wider">
+                        {t("hero.tickets")} <ChevronRight size={16} />
+                      </span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </ScrollReveal>
