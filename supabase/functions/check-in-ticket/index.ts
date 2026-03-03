@@ -85,16 +85,45 @@ Deno.serve(async (req) => {
       if (byId) {
         ticket = byId;
       } else {
-        // Try by short ID prefix (first 8 chars of UUID, case-insensitive)
-        const shortSearch = searchValue.toLowerCase().replace(/[^a-f0-9]/g, "");
-        if (shortSearch.length >= 6) {
-          const { data: byPrefix } = await adminClient
-            .from("tickets")
-            .select("*, events(title, date, time), ticket_types(name)")
-            .ilike("id", `${shortSearch}%`)
-            .limit(1)
-            .maybeSingle();
-          ticket = byPrefix;
+        // Try by flexible ID prefix input (supports short IDs + pasted UUID fragments)
+        const normalized = searchValue.toLowerCase();
+        const compactHex = normalized.replace(/[^a-f0-9]/g, "");
+        const hyphenatedInput = normalized.replace(/[^a-f0-9-]/g, "");
+
+        if (compactHex.length >= 6) {
+          const idPrefixCandidates = Array.from(
+            new Set([
+              hyphenatedInput,
+              compactHex,
+              compactHex.length > 8 ? `${compactHex.slice(0, 8)}-${compactHex.slice(8)}` : "",
+            ].filter((value) => value.length >= 6))
+          );
+
+          for (const candidate of idPrefixCandidates) {
+            const { data: byPrefix } = await adminClient
+              .from("tickets")
+              .select("*, events(title, date, time), ticket_types(name)")
+              .ilike("id", `${candidate}%`)
+              .limit(1)
+              .maybeSingle();
+
+            if (byPrefix) {
+              ticket = byPrefix;
+              break;
+            }
+          }
+
+          // Fallback: input contains only the code-part from "TKT-xxxx..."
+          if (!ticket) {
+            const { data: byQrSuffix } = await adminClient
+              .from("tickets")
+              .select("*, events(title, date, time), ticket_types(name)")
+              .ilike("qr_code", `TKT-${compactHex}%`)
+              .limit(1)
+              .maybeSingle();
+
+            ticket = byQrSuffix;
+          }
         }
       }
     }
