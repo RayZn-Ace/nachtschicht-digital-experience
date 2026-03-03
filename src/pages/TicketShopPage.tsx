@@ -385,12 +385,37 @@ const TicketShopPage = () => {
                     weekday: "long", day: "2-digit", month: "long", year: "numeric"
                   })} – {event.time}
                 </div>
-                <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
-                  <span className="text-muted-foreground">
-                    {totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}
-                  </span>
-                  <span className="text-foreground font-bold">{finalTotal.toFixed(2)}€</span>
-                </div>
+                {/* Ticket categories breakdown */}
+                {useGlobalPrice ? (
+                  <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
+                    <span className="text-muted-foreground">
+                      {totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}
+                    </span>
+                    <span className="text-foreground font-bold">{finalTotal.toFixed(2)}€</span>
+                  </div>
+                ) : (
+                  <div className="pt-2 border-t border-border space-y-1">
+                    {ticketTypes.filter((tt) => (cart[tt.id] || 0) > 0).map((tt) => (
+                      <div key={tt.id} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
+                          <Ticket size={12} />
+                          {cart[tt.id]}× {tr(tt.name)}
+                        </span>
+                        <span className="text-foreground font-medium">{(tt.price * cart[tt.id]).toFixed(2)}€</span>
+                      </div>
+                    ))}
+                    {totalFees > 0 && (
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
+                        <span>{totalFees.toFixed(2)}€</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-sm pt-1 border-t border-border/50">
+                      <span className="text-foreground font-semibold">{lang === "de" ? "Gesamt" : "Total"}</span>
+                      <span className="text-foreground font-bold">{finalTotal.toFixed(2)}€</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Info */}
@@ -628,7 +653,7 @@ const TicketShopPage = () => {
                   value={guestName}
                   onChange={(e) => setGuestName(e.target.value)}
                   className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                  placeholder={lang === "de" ? "Vor- und Nachname" : "Full name"}
+                  placeholder={lang === "de" ? "Vorname" : "First name"}
                 />
               </div>
 
