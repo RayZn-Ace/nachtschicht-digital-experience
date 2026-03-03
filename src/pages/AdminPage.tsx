@@ -698,8 +698,7 @@ const AdminPage = () => {
                   </p>
                   {/* KPI Stats */}
                   {(() => {
-                    const s = eventStats[event.id];
-                    if (!s) return null;
+                    const s = eventStats[event.id] || { sold: 0, revenue: 0, checkedIn: 0, totalTickets: 0 };
                     return (
                       <div className="flex flex-wrap gap-3 mt-1">
                         <span className="text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-full font-medium">
