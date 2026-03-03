@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Fetch ticket with event and ticket type
     const { data: ticket, error: ticketErr } = await adminClient
       .from("tickets")
       .select("*, events(*), ticket_types(*)")
@@ -41,15 +40,14 @@ Deno.serve(async (req) => {
 
     const event = ticket.events;
     const ticketType = ticket.ticket_types;
+    const shortId = ticket.id.slice(0, 8).toUpperCase();
 
-    // Generate QR code via external API (no canvas needed in Deno)
     const qrData = ticket.qr_code || ticket.id;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}&bgcolor=FFFFFF&color=000000&format=png`;
     const qrResponse = await fetch(qrApiUrl);
     if (!qrResponse.ok) throw new Error("QR code generation failed");
     const qrArrayBuffer = await qrResponse.arrayBuffer();
 
-    // Create PDF
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([400, 600]);
     const { width, height } = page.getSize();
@@ -59,64 +57,34 @@ Deno.serve(async (req) => {
 
     const black = rgb(0, 0, 0);
     const gray = rgb(0.4, 0.4, 0.4);
-    const accent = rgb(0.86, 0.08, 0.24); // Crimson accent
+    const accent = rgb(0.86, 0.08, 0.24);
 
-    // Background
-    page.drawRectangle({
-      x: 0, y: 0, width, height,
-      color: rgb(1, 1, 1),
-    });
+    page.drawRectangle({ x: 0, y: 0, width, height, color: rgb(1, 1, 1) });
 
     // Header bar
-    page.drawRectangle({
-      x: 0, y: height - 80, width, height: 80,
-      color: rgb(0.08, 0.08, 0.12),
-    });
+    page.drawRectangle({ x: 0, y: height - 80, width, height: 80, color: rgb(0.08, 0.08, 0.12) });
+    page.drawText("NACHTSCHICHT", { x: 30, y: height - 45, size: 22, font: fontBold, color: rgb(1, 1, 1) });
+    page.drawText("TICKET", { x: 30, y: height - 65, size: 12, font: fontRegular, color: rgb(0.7, 0.7, 0.7) });
 
-    page.drawText("NACHTSCHICHT", {
-      x: 30, y: height - 45,
-      size: 22, font: fontBold,
-      color: rgb(1, 1, 1),
-    });
+    // Ticket number top-right in header
+    const ticketNrText = `#${shortId}`;
+    const ticketNrW = fontBold.widthOfTextAtSize(ticketNrText, 11);
+    page.drawText(ticketNrText, { x: width - 30 - ticketNrW, y: height - 50, size: 11, font: fontBold, color: rgb(1, 1, 1) });
 
-    page.drawText("TICKET", {
-      x: 30, y: height - 65,
-      size: 12, font: fontRegular,
-      color: rgb(0.7, 0.7, 0.7),
-    });
-
-    // Event title
     let yPos = height - 115;
-    page.drawText(event.title || "Event", {
-      x: 30, y: yPos,
-      size: 18, font: fontBold, color: black,
-      maxWidth: width - 60,
-    });
+    page.drawText(event.title || "Event", { x: 30, y: yPos, size: 18, font: fontBold, color: black, maxWidth: width - 60 });
 
     if (event.subtitle) {
       yPos -= 20;
-      page.drawText(event.subtitle, {
-        x: 30, y: yPos,
-        size: 11, font: fontRegular, color: gray,
-        maxWidth: width - 60,
-      });
+      page.drawText(event.subtitle, { x: 30, y: yPos, size: 11, font: fontRegular, color: gray, maxWidth: width - 60 });
     }
 
-    // Separator
     yPos -= 20;
-    page.drawLine({
-      start: { x: 30, y: yPos },
-      end: { x: width - 30, y: yPos },
-      thickness: 1,
-      color: rgb(0.85, 0.85, 0.85),
-    });
+    page.drawLine({ start: { x: 30, y: yPos }, end: { x: width - 30, y: yPos }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
 
-    // Event details
     yPos -= 25;
     const eventDate = event.date
-      ? new Date(event.date).toLocaleDateString("de-DE", {
-          weekday: "long", day: "2-digit", month: "long", year: "numeric",
-        })
+      ? new Date(event.date).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })
       : "";
 
     const details = [
@@ -125,102 +93,59 @@ Deno.serve(async (req) => {
       { label: "Ticket-Typ", value: ticketType?.name || "Standard" },
       { label: "Anzahl", value: `${ticket.quantity}x` },
       { label: "Name", value: ticket.buyer_name || "" },
+      { label: "Ticket-Nr.", value: shortId },
     ];
 
     for (const detail of details) {
       if (!detail.value) continue;
-      page.drawText(detail.label, {
-        x: 30, y: yPos,
-        size: 9, font: fontRegular, color: gray,
-      });
-      page.drawText(detail.value, {
-        x: 120, y: yPos,
-        size: 10, font: fontBold, color: black,
-        maxWidth: width - 150,
-      });
+      page.drawText(detail.label, { x: 30, y: yPos, size: 9, font: fontRegular, color: gray });
+      page.drawText(detail.value, { x: 120, y: yPos, size: 10, font: fontBold, color: black, maxWidth: width - 150 });
       yPos -= 18;
     }
 
-    // Price + Fee
+    // Price
     yPos -= 10;
     const ticketFee = Number(ticket.fee_amount || 0);
     const ticketPriceExFee = Number(ticket.total_price) - ticketFee;
 
     if (ticketFee > 0) {
-      // Show ticket price
-      page.drawRectangle({
-        x: 30, y: yPos - 5, width: width - 60, height: 22,
-        color: rgb(0.96, 0.96, 0.96),
-      });
-      page.drawText("Ticketpreis", {
-        x: 40, y: yPos + 1,
-        size: 9, font: fontRegular, color: gray,
-      });
-      page.drawText(`${ticketPriceExFee.toFixed(2)} €`, {
-        x: width - 120, y: yPos + 1,
-        size: 10, font: fontRegular, color: black,
-      });
+      page.drawRectangle({ x: 30, y: yPos - 5, width: width - 60, height: 22, color: rgb(0.96, 0.96, 0.96) });
+      page.drawText("Ticketpreis", { x: 40, y: yPos + 1, size: 9, font: fontRegular, color: gray });
+      page.drawText(`${ticketPriceExFee.toFixed(2)} €`, { x: width - 120, y: yPos + 1, size: 10, font: fontRegular, color: black });
 
-      // Show fee
       yPos -= 22;
-      page.drawRectangle({
-        x: 30, y: yPos - 5, width: width - 60, height: 22,
-        color: rgb(0.96, 0.96, 0.96),
-      });
-      page.drawText("Servicegebühr", {
-        x: 40, y: yPos + 1,
-        size: 9, font: fontRegular, color: gray,
-      });
-      page.drawText(`${ticketFee.toFixed(2)} €`, {
-        x: width - 120, y: yPos + 1,
-        size: 10, font: fontRegular, color: black,
-      });
+      page.drawRectangle({ x: 30, y: yPos - 5, width: width - 60, height: 22, color: rgb(0.96, 0.96, 0.96) });
+      page.drawText("Servicegebühr", { x: 40, y: yPos + 1, size: 9, font: fontRegular, color: gray });
+      page.drawText(`${ticketFee.toFixed(2)} €`, { x: width - 120, y: yPos + 1, size: 10, font: fontRegular, color: black });
 
-      // Total
       yPos -= 24;
     }
 
-    page.drawRectangle({
-      x: 30, y: yPos - 5, width: width - 60, height: 28,
-      color: rgb(0.96, 0.96, 0.96),
-      borderColor: rgb(0.9, 0.9, 0.9),
-      borderWidth: 1,
-    });
-    page.drawText("Gesamtpreis", {
-      x: 40, y: yPos + 3,
-      size: 10, font: fontRegular, color: gray,
-    });
-    page.drawText(`${Number(ticket.total_price).toFixed(2)} €`, {
-      x: width - 120, y: yPos + 3,
-      size: 14, font: fontBold, color: accent,
-    });
+    page.drawRectangle({ x: 30, y: yPos - 5, width: width - 60, height: 28, color: rgb(0.96, 0.96, 0.96), borderColor: rgb(0.9, 0.9, 0.9), borderWidth: 1 });
+    page.drawText("Gesamtpreis", { x: 40, y: yPos + 3, size: 10, font: fontRegular, color: gray });
+    page.drawText(`${Number(ticket.total_price).toFixed(2)} €`, { x: width - 120, y: yPos + 3, size: 14, font: fontBold, color: accent });
+
+    // Ticket type name above QR
+    yPos -= 35;
+    const typeName = ticketType?.name || "Standard";
+    const typeNameW = fontRegular.widthOfTextAtSize(typeName, 9);
+    page.drawText(typeName, { x: (width - typeNameW) / 2, y: yPos, size: 9, font: fontRegular, color: gray });
 
     // QR Code
-    yPos -= 50;
+    yPos -= 15;
     const qrBytes = new Uint8Array(qrArrayBuffer);
     const qrImage = await pdfDoc.embedPng(qrBytes);
     const qrSize = 150;
-
-    page.drawImage(qrImage, {
-      x: (width - qrSize) / 2,
-      y: yPos - qrSize,
-      width: qrSize,
-      height: qrSize,
-    });
+    page.drawImage(qrImage, { x: (width - qrSize) / 2, y: yPos - qrSize, width: qrSize, height: qrSize });
 
     yPos -= qrSize + 15;
-    const codeText = String(qrData).substring(0, 36);
-    const codeWidth = fontRegular.widthOfTextAtSize(codeText, 7);
-    page.drawText(codeText, {
-      x: (width - codeWidth) / 2, y: yPos,
-      size: 7, font: fontRegular, color: gray,
-    });
+    // Short ticket number below QR for manual entry
+    const manualCode = shortId;
+    const manualW = fontBold.widthOfTextAtSize(manualCode, 12);
+    page.drawText(manualCode, { x: (width - manualW) / 2, y: yPos, size: 12, font: fontBold, color: black });
 
     // Footer
-    page.drawText("Bitte zeige dieses Ticket am Einlass vor.", {
-      x: 30, y: 30,
-      size: 8, font: fontRegular, color: gray,
-    });
+    page.drawText("Bitte zeige dieses Ticket am Einlass vor.", { x: 30, y: 30, size: 8, font: fontRegular, color: gray });
 
     const pdfBytes = await pdfDoc.save();
 
@@ -228,7 +153,7 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="ticket-${ticket.id.slice(0, 8)}.pdf"`,
+        "Content-Disposition": `attachment; filename="ticket-${shortId}.pdf"`,
       },
     });
   } catch (err) {
