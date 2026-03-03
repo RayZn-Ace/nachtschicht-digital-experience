@@ -47,7 +47,7 @@ const EventLoungeSection = ({ event }: Props) => {
     try {
       const [loungeRes, bookingRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
-        supabase.from("lounge_bookings").select("lounge_id, event_id, booking_type, status").eq("event_id", event.id).neq("status", "cancelled").neq("status", "rejected"),
+        supabase.rpc("get_lounge_availability", { p_event_id: event.id }),
       ]);
       if (loungeRes.error) throw loungeRes.error;
       if (bookingRes.error) throw bookingRes.error;
