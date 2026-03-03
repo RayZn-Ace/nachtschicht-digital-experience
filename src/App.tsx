@@ -36,6 +36,7 @@ import DatenschutzExportPage from "./pages/DatenschutzExportPage";
 import TicketShopPage from "./pages/TicketShopPage";
 import ScannerPage from "./pages/ScannerPage";
 import ProfilPage from "./pages/ProfilPage";
+import MeinBereichPage from "./pages/MeinBereichPage";
 import FundgrubePage from "./pages/FundgrubePage";
 import NotFound from "./pages/NotFound";
 
@@ -82,6 +83,7 @@ const App = () => {
                     <Route path="/tickets/:eventId" element={<TicketShopPage />} />
                     <Route path="/scanner" element={<ScannerPage />} />
                     <Route path="/profil" element={<ProfilPage />} />
+                    <Route path="/mein-bereich" element={<MeinBereichPage />} />
                     <Route path="/fundgrube" element={<FundgrubePage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
