@@ -133,8 +133,8 @@ const LoungeReservationWizard = ({ lounge, event, onClose, onSuccess }: Props) =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
-      <div className="glass-card w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass-card w-full sm:max-w-lg max-h-[95dvh] sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="p-5 border-b border-border flex items-start justify-between">
           <div>
