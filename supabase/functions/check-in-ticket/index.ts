@@ -91,21 +91,27 @@ Deno.serve(async (req) => {
         // Flexible prefix search using id::text cast (UUID columns don't support ILIKE directly)
         const normalized = searchValue.toLowerCase();
         const compactHex = normalized.replace(/[^a-f0-9]/g, "");
+        const normalizedInput = normalized.replace(/[^a-z0-9-]/g, "");
 
         if (compactHex.length >= 6) {
-          // Search by id prefix using text cast
-          const { data: byPrefix } = await adminClient
+          // Fast path: search by id prefix using text cast
+          const idPrefix = compactHex.slice(0, 8);
+          const { data: byPrefix, error: byPrefixError } = await adminClient
             .from("tickets")
             .select("*, events(title, date, time), ticket_types(name)")
-            .filter("id::text", "ilike", `${compactHex.slice(0, 8)}%`)
+            .filter("id::text", "ilike", `${idPrefix}%`)
             .limit(1)
             .maybeSingle();
+
+          if (byPrefixError) {
+            console.warn("id::text prefix lookup failed:", byPrefixError.message);
+          }
 
           if (byPrefix) {
             ticket = byPrefix;
           }
 
-          // Fallback: try matching against qr_code suffix
+          // Fallback 1: try matching against qr_code parts
           if (!ticket) {
             const { data: byQrSuffix } = await adminClient
               .from("tickets")
@@ -115,6 +121,31 @@ Deno.serve(async (req) => {
               .maybeSingle();
 
             ticket = byQrSuffix;
+          }
+
+          // Fallback 2 (robust): load recent tickets and match prefixes in JS
+          if (!ticket) {
+            const { data: recentTickets } = await adminClient
+              .from("tickets")
+              .select("*, events(title, date, time), ticket_types(name)")
+              .order("created_at", { ascending: false })
+              .limit(1000);
+
+            if (recentTickets?.length) {
+              ticket = recentTickets.find((t) => {
+                const idLower = String(t.id || "").toLowerCase();
+                const idNoDash = idLower.replace(/-/g, "");
+                const qrLower = String(t.qr_code || "").toLowerCase();
+                const qrCompact = qrLower.replace(/^tkt-/, "").replace(/[^a-z0-9]/g, "");
+
+                return (
+                  idLower.startsWith(normalizedInput) ||
+                  idNoDash.startsWith(compactHex) ||
+                  qrLower.includes(normalizedInput) ||
+                  qrCompact.startsWith(compactHex)
+                );
+              });
+            }
           }
         }
       }
