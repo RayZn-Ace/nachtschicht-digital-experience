@@ -64,6 +64,7 @@ const AdminPage = () => {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [newTagName, setNewTagName] = useState("");
   const [eventTagsMap, setEventTagsMap] = useState<Record<string, EventTag[]>>({});
+  const [eventStats, setEventStats] = useState<Record<string, { sold: number; revenue: number; checkedIn: number; totalTickets: number }>>({});
   const [formData, setFormData] = useState({
     title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19,
@@ -75,6 +76,22 @@ const AdminPage = () => {
   const fetchEvents = async () => {
     const { data } = await supabase.from("events").select("*").order("date", { ascending: true });
     if (data) setEvents(data as unknown as Event[]);
+  };
+
+  const fetchEventStats = async () => {
+    const { data: tickets } = await supabase.from("tickets").select("event_id, quantity, total_price, checked_in, status");
+    if (!tickets) return;
+    const stats: Record<string, { sold: number; revenue: number; checkedIn: number; totalTickets: number }> = {};
+    tickets.forEach((t: any) => {
+      if (!stats[t.event_id]) stats[t.event_id] = { sold: 0, revenue: 0, checkedIn: 0, totalTickets: 0 };
+      if (t.status === "confirmed") {
+        stats[t.event_id].sold += t.quantity;
+        stats[t.event_id].revenue += t.total_price;
+        stats[t.event_id].totalTickets += 1;
+        if (t.checked_in) stats[t.event_id].checkedIn += 1;
+      }
+    });
+    setEventStats(stats);
   };
 
   const fetchGenres = async () => {
@@ -100,7 +117,7 @@ const AdminPage = () => {
     setEventTagsMap(map);
   };
 
-  useEffect(() => { fetchEvents(); fetchGenres(); fetchAllTags(); }, []);
+  useEffect(() => { fetchEvents(); fetchGenres(); fetchAllTags(); fetchEventStats(); }, []);
   useEffect(() => { if (allTags.length > 0) fetchEventTagsMap(); }, [allTags]);
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
@@ -679,6 +696,24 @@ const AdminPage = () => {
                   <p className="text-muted-foreground text-sm">
                     {new Date(event.date).toLocaleDateString("de-DE")} – {event.time}{(event as any).end_time ? ` bis ${(event as any).end_time}` : ""} | {event.genre} | {event.ticket_price}€ | {event.tickets_sold}/{event.ticket_quantity} Tickets
                   </p>
+                  {/* KPI Stats */}
+                  {(() => {
+                    const s = eventStats[event.id];
+                    if (!s) return null;
+                    return (
+                      <div className="flex flex-wrap gap-3 mt-1">
+                        <span className="text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-full font-medium">
+                          🎫 {s.sold}/{event.ticket_quantity} verkauft
+                        </span>
+                        <span className="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full font-medium">
+                          💰 {s.revenue.toFixed(2)}€ Umsatz
+                        </span>
+                        <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full font-medium">
+                          📱 {s.checkedIn}/{s.totalTickets} gescannt
+                        </span>
+                      </div>
+                    );
+                  })()}
                   {eventAreas.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {eventAreas.map((aId) => {
