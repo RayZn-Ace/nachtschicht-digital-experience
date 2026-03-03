@@ -15,13 +15,11 @@ export interface TrackingConfig {
   meta_pixel_id: string | null;
   meta_advanced_matching: boolean;
   meta_capi_active: boolean;
-  meta_access_token: string | null;
   meta_dataset_id: string | null;
   meta_test_event_code: string | null;
   tiktok_pixel_active: boolean;
   tiktok_pixel_id: string | null;
   tiktok_events_api_active: boolean;
-  tiktok_access_token: string | null;
   ga4_active: boolean;
   ga4_measurement_id: string | null;
   google_ads_active: boolean;
@@ -29,7 +27,6 @@ export interface TrackingConfig {
   google_ads_conversion_labels: Record<string, string>;
   google_enhanced_conversions: boolean;
   google_server_backup: boolean;
-  ga4_api_secret: string | null;
   consent_active: boolean;
   consent_mode_v2: boolean;
   consent_defaults: Record<string, string>;
@@ -142,7 +139,7 @@ export const loadConfig = async (): Promise<TrackingConfig> => {
     return new Promise((resolve) => { _configCallbacks.push(resolve); });
   }
   _configLoading = true;
-  const { data } = await supabase.from("tracking_config").select("*").limit(1).maybeSingle();
+  const { data } = await supabase.rpc("get_tracking_config_public" as any);
   const config: TrackingConfig = data ? (data as any) : getDefaultConfig();
   _config = config;
   _configLoading = false;
@@ -154,11 +151,11 @@ export const loadConfig = async (): Promise<TrackingConfig> => {
 const getDefaultConfig = (): TrackingConfig => ({
   gtm_active: false, gtm_container_id: null,
   meta_pixel_active: false, meta_pixel_id: null, meta_advanced_matching: false,
-  meta_capi_active: false, meta_access_token: null, meta_dataset_id: null, meta_test_event_code: null,
-  tiktok_pixel_active: false, tiktok_pixel_id: null, tiktok_events_api_active: false, tiktok_access_token: null,
+  meta_capi_active: false, meta_dataset_id: null, meta_test_event_code: null,
+  tiktok_pixel_active: false, tiktok_pixel_id: null, tiktok_events_api_active: false,
   ga4_active: false, ga4_measurement_id: null,
   google_ads_active: false, google_ads_conversion_id: null, google_ads_conversion_labels: {},
-  google_enhanced_conversions: false, google_server_backup: false, ga4_api_secret: null,
+  google_enhanced_conversions: false, google_server_backup: false,
   consent_active: false, consent_mode_v2: false, consent_defaults: {},
   debug_mode: false,
 });
