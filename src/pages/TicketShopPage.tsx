@@ -162,7 +162,11 @@ const TicketShopPage = () => {
   const handlePurchase = async () => {
     if (totalCount === 0) return;
     const email = user?.email || guestEmail;
-    const name = user?.user_metadata?.full_name || guestName;
+    const name = guestName || user?.user_metadata?.full_name || "";
+    if (!name.trim()) {
+      toast.error(lang === "de" ? "Bitte Name eingeben" : "Please enter your name");
+      return;
+    }
     if (!email) {
       toast.error(lang === "de" ? "Bitte E-Mail eingeben" : "Please enter email");
       return;
@@ -616,6 +620,18 @@ const TicketShopPage = () => {
                 {lang === "de" ? "DEINE DATEN" : "YOUR DETAILS"}
               </h2>
 
+              <div>
+                <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Name *" : "Name *"}</label>
+                <input
+                  type="text"
+                  required
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                  placeholder={lang === "de" ? "Vor- und Nachname" : "Full name"}
+                />
+              </div>
+
               {!user && (
                 <div>
                   <label className="text-sm text-foreground mb-1 block">E-Mail *</label>
@@ -692,7 +708,7 @@ const TicketShopPage = () => {
                 </button>
                 <button
                   onClick={handlePurchase}
-                  disabled={buying || (!user && !guestEmail)}
+                  disabled={buying || (!user && !guestEmail) || !guestName.trim()}
                   className="flex-1 py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 disabled:opacity-50"
                 >
                   {buying ? "..." : lang === "de" ? "JETZT BUCHEN" : "BOOK NOW"}
