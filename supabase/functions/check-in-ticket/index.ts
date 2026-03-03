@@ -76,49 +76,41 @@ Deno.serve(async (req) => {
     if (byQr) {
       ticket = byQr;
     } else {
-      // Try by exact ticket ID
-      const { data: byId } = await adminClient
-        .from("tickets")
-        .select("*, events(title, date, time), ticket_types(name)")
-        .eq("id", searchValue)
-        .maybeSingle();
-      if (byId) {
-        ticket = byId;
-      } else {
-        // Try by flexible ID prefix input (supports short IDs + pasted UUID fragments)
+      // Try by exact ticket ID (only if it looks like a valid UUID)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(searchValue)) {
+        const { data: byId } = await adminClient
+          .from("tickets")
+          .select("*, events(title, date, time), ticket_types(name)")
+          .eq("id", searchValue)
+          .maybeSingle();
+        if (byId) ticket = byId;
+      }
+
+      if (!ticket) {
+        // Flexible prefix search using id::text cast (UUID columns don't support ILIKE directly)
         const normalized = searchValue.toLowerCase();
         const compactHex = normalized.replace(/[^a-f0-9]/g, "");
-        const hyphenatedInput = normalized.replace(/[^a-f0-9-]/g, "");
 
         if (compactHex.length >= 6) {
-          const idPrefixCandidates = Array.from(
-            new Set([
-              hyphenatedInput,
-              compactHex,
-              compactHex.length > 8 ? `${compactHex.slice(0, 8)}-${compactHex.slice(8)}` : "",
-            ].filter((value) => value.length >= 6))
-          );
+          // Search by id prefix using text cast
+          const { data: byPrefix } = await adminClient
+            .from("tickets")
+            .select("*, events(title, date, time), ticket_types(name)")
+            .filter("id::text", "ilike", `${compactHex.slice(0, 8)}%`)
+            .limit(1)
+            .maybeSingle();
 
-          for (const candidate of idPrefixCandidates) {
-            const { data: byPrefix } = await adminClient
-              .from("tickets")
-              .select("*, events(title, date, time), ticket_types(name)")
-              .ilike("id", `${candidate}%`)
-              .limit(1)
-              .maybeSingle();
-
-            if (byPrefix) {
-              ticket = byPrefix;
-              break;
-            }
+          if (byPrefix) {
+            ticket = byPrefix;
           }
 
-          // Fallback: input contains only the code-part from "TKT-xxxx..."
+          // Fallback: try matching against qr_code suffix
           if (!ticket) {
             const { data: byQrSuffix } = await adminClient
               .from("tickets")
               .select("*, events(title, date, time), ticket_types(name)")
-              .ilike("qr_code", `TKT-${compactHex}%`)
+              .ilike("qr_code", `%${compactHex}%`)
               .limit(1)
               .maybeSingle();
 
