@@ -311,16 +311,8 @@ const AdminPage = () => {
   };
 
   return (
-    <section className="section-padding">
-      <div className="container mx-auto">
-        <div className="flex items-center justify-between mb-6 gap-3">
-          <h1 className="font-display text-2xl sm:text-3xl md:text-5xl tracking-wider text-foreground">
-            ADMIN <span className="text-gradient">PANEL</span>
-          </h1>
-          <button onClick={signOut} className="flex items-center gap-2 px-3 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors text-sm min-h-[44px]">
-            <LogOut size={18} /> <span className="hidden sm:inline">LOGOUT</span>
-          </button>
-        </div>
+    <section>
+      <div className="max-w-7xl mx-auto">
 
 
         {tab === "lostfound" ? (

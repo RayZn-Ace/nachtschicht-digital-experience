@@ -266,8 +266,8 @@ const DashboardPage = () => {
     : [];
 
   return (
-    <section className="section-padding" aria-label="Dashboard">
-      <div className="container mx-auto max-w-7xl">
+    <section aria-label="Dashboard">
+      <div className="max-w-7xl mx-auto">
         {/* Session bar */}
         <div className="gradient-card rounded-xl mb-6 overflow-hidden">
           <AdminSessionBar roles={roles} />
