@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Calendar, ShoppingCart, Ticket, Tags,
   Image, Mail, FileText, Flag, Sofa, Wine, Sparkles, Users,
   Search, BarChart3, TrendingUp, Receipt, Settings, QrCode,
-  ArrowLeft, LogOut, Menu, X,
+  ArrowLeft, LogOut, Menu, X, FileSpreadsheet,
 } from "lucide-react";
 import { useState } from "react";
 
