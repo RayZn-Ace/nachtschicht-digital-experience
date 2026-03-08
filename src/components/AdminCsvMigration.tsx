@@ -457,8 +457,8 @@ const AdminCsvMigration = () => {
       {/* Step: Done */}
       {step === "done" && importResult && (
         <div className="text-center py-12 space-y-6">
-          <div className="bg-green-500/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
-            <Check className="h-8 w-8 text-green-500" />
+          <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
+            <Check className="h-8 w-8 text-primary" />
           </div>
           <div>
             <h3 className="font-semibold text-lg">Import abgeschlossen!</h3>

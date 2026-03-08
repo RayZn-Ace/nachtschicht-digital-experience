@@ -25,6 +25,7 @@ import AdminPhotoReports from "@/components/AdminPhotoReports";
 import AdminApplicants from "@/components/AdminApplicants";
 import AdminCustomers from "@/components/AdminCustomers";
 import AdminLostAndFound from "@/components/AdminLostAndFound";
+import AdminCsvMigration from "@/components/AdminCsvMigration";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ALWAYS_OPEN_AREAS = ["openair", "bistro"];

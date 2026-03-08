@@ -61,6 +61,7 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
       { label: "Kundendaten", tab: "customers", icon: Users },
       { label: "Rechnungen", tab: "invoiceconfig", icon: Receipt },
       { label: "Tracking", tab: "tracking", icon: Settings },
+      { label: "CSV-Migration", tab: "csvmigration", icon: FileSpreadsheet },
     ],
   },
 ];
