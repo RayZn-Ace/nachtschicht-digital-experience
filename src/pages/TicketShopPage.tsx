@@ -60,6 +60,46 @@ const TicketShopPage = () => {
     fetchData();
   }, [eventId]);
 
+  // Handle return from Mollie payment
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const paymentStatus = params.get("payment");
+    const ticketIdsParam = params.get("ticket_ids");
+
+    if (paymentStatus === "success" && ticketIdsParam) {
+      setPaymentChecking(true);
+      const ids = ticketIdsParam.split(",");
+
+      // Poll for confirmed status (webhook might take a moment)
+      const checkTickets = async (retries = 0): Promise<void> => {
+        const { data } = await supabase
+          .from("tickets")
+          .select("id, status, qr_code")
+          .in("id", ids);
+
+        const allConfirmed = data?.every((t: any) => t.status === "confirmed");
+        if (allConfirmed && data && data.length > 0) {
+          setPurchasedQrCode(data[0].qr_code || "");
+          setPurchasedTicketIds(ids);
+          setStep(3);
+          setPaymentChecking(false);
+          // Clean URL
+          window.history.replaceState({}, "", location.pathname);
+          toast.success(lang === "de" ? "Zahlung erfolgreich! 🎉" : "Payment successful! 🎉");
+        } else if (retries < 15) {
+          setTimeout(() => checkTickets(retries + 1), 2000);
+        } else {
+          setPaymentChecking(false);
+          toast.info(lang === "de"
+            ? "Zahlung wird verarbeitet – du erhältst dein Ticket per E-Mail."
+            : "Payment is being processed – you'll receive your ticket by email.");
+          window.history.replaceState({}, "", location.pathname);
+        }
+      };
+      checkTickets();
+    }
+  }, [location.search]);
+
   // Scroll to hash (e.g. #lounges)
   useEffect(() => {
     if (!loading && location.hash) {
