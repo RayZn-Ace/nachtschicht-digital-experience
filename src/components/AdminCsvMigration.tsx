@@ -54,6 +54,8 @@ const AdminCsvMigration = () => {
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("22:00");
+  const [eventLocation, setEventLocation] = useState("Nachtschicht");
+  const [eventCity, setEventCity] = useState("Kaiserslautern");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ events: number; tickets: number; customers: number } | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -193,6 +195,7 @@ const AdminCsvMigration = () => {
         .from("events")
         .insert({
           title: eventTitle,
+          subtitle: `${eventLocation}, ${eventCity}`,
           date: new Date(eventDate).toISOString(),
           time: eventTime,
           is_published: false,
@@ -301,6 +304,8 @@ const AdminCsvMigration = () => {
     setEventTitle("");
     setEventDate("");
     setEventTime("22:00");
+    setEventLocation("Nachtschicht");
+    setEventCity("Kaiserslautern");
     setImportResult(null);
     setFileName("");
     if (fileRef.current) fileRef.current.value = "";
@@ -389,6 +394,16 @@ const AdminCsvMigration = () => {
               <div>
                 <Label>Uhrzeit</Label>
                 <Input value={eventTime} onChange={e => setEventTime(e.target.value)} placeholder="22:00" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Location</Label>
+                <Input value={eventLocation} onChange={e => setEventLocation(e.target.value)} placeholder="Nachtschicht" />
+              </div>
+              <div>
+                <Label>Ort</Label>
+                <Input value={eventCity} onChange={e => setEventCity(e.target.value)} placeholder="Kaiserslautern" />
               </div>
             </div>
           </div>
