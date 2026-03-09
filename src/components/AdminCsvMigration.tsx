@@ -394,6 +394,16 @@ const AdminCsvMigration = () => {
                 <Input value={eventTime} onChange={e => setEventTime(e.target.value)} placeholder="22:00" />
               </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Location</Label>
+                <Input value={eventLocation} onChange={e => setEventLocation(e.target.value)} placeholder="Nachtschicht" />
+              </div>
+              <div>
+                <Label>Ort</Label>
+                <Input value={eventCity} onChange={e => setEventCity(e.target.value)} placeholder="Kaiserslautern" />
+              </div>
+            </div>
           </div>
 
           {/* Data preview */}
