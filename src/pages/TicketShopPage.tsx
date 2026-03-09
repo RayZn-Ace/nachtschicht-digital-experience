@@ -285,6 +285,13 @@ const TicketShopPage = () => {
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
+  if (paymentChecking) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-foreground gap-4">
+      <Loader2 size={40} className="animate-spin text-primary" />
+      <p className="text-lg font-display tracking-wider">{lang === "de" ? "ZAHLUNG WIRD ÜBERPRÜFT..." : "VERIFYING PAYMENT..."}</p>
+      <p className="text-sm text-muted-foreground">{lang === "de" ? "Bitte warte einen Moment." : "Please wait a moment."}</p>
+    </div>
+  );
   if (!event) return <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">Event nicht gefunden.</div>;
 
   const remaining = event.ticket_quantity - event.tickets_sold;
