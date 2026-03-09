@@ -46,6 +46,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Clean up any stale pending bookings (e.g. aborted payments) for this lounge+event
+    await adminClient.from("lounge_bookings")
+      .delete()
+      .eq("lounge_id", lounge_id)
+      .eq("event_id", event_id)
+      .eq("status", "pending")
+      .eq("deposit_paid", false);
+
     // Create booking record as pending
     const { data: booking, error: insertErr } = await adminClient.from("lounge_bookings").insert({
       lounge_id,
