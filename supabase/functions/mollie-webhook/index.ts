@@ -40,6 +40,56 @@ Deno.serve(async (req) => {
     }
 
     const payment = await mollieRes.json();
+    const paymentType = payment.metadata?.type || "ticket";
+
+    // ─── LOUNGE BOOKING PAYMENTS ───
+    if (paymentType === "lounge_booking") {
+      const bookingId: string = payment.metadata?.booking_id;
+      if (!bookingId) {
+        console.error("No booking_id in lounge payment metadata");
+        return new Response("OK", { status: 200 });
+      }
+
+      if (payment.status === "paid") {
+        const { error: updateErr } = await adminClient
+          .from("lounge_bookings")
+          .update({ deposit_paid: true, status: "confirmed" })
+          .eq("id", bookingId)
+          .eq("status", "pending");
+
+        if (updateErr) {
+          console.error("Failed to confirm lounge booking:", updateErr);
+          return new Response("DB error", { status: 500 });
+        }
+
+        // Fire-and-forget: send booking email + create invoice
+        fetch(`${supabaseUrl}/functions/v1/send-booking-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+          body: JSON.stringify({ booking_id: bookingId }),
+        }).catch(console.error);
+
+        fetch(`${supabaseUrl}/functions/v1/create-lounge-invoice`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+          body: JSON.stringify({ booking_id: bookingId }),
+        }).catch(console.error);
+
+        console.log(`Lounge payment ${paymentId} confirmed for booking ${bookingId}`);
+      } else if (payment.status === "failed" || payment.status === "canceled" || payment.status === "expired") {
+        await adminClient
+          .from("lounge_bookings")
+          .update({ status: "cancelled" })
+          .eq("id", bookingId)
+          .eq("status", "pending");
+
+        console.log(`Lounge payment ${paymentId} ${payment.status} – booking cancelled`);
+      }
+
+      return new Response("OK", { status: 200 });
+    }
+
+    // ─── TICKET PAYMENTS (existing logic) ───
     const ticketIds: string[] = payment.metadata?.ticket_ids || [];
     const discountCodeId: string | null = payment.metadata?.discount_code_id || null;
 
