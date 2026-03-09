@@ -304,6 +304,8 @@ const AdminCsvMigration = () => {
     setEventTitle("");
     setEventDate("");
     setEventTime("22:00");
+    setEventLocation("Nachtschicht");
+    setEventCity("Kaiserslautern");
     setImportResult(null);
     setFileName("");
     if (fileRef.current) fileRef.current.value = "";
