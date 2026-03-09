@@ -67,6 +67,8 @@ const AdminPage = () => {
   const [newTagName, setNewTagName] = useState("");
   const [eventTagsMap, setEventTagsMap] = useState<Record<string, EventTag[]>>({});
   const [eventStats, setEventStats] = useState<Record<string, { sold: number; revenue: number; checkedIn: number; totalTickets: number }>>({});
+  const [allLounges, setAllLounges] = useState<{ id: string; name: string; area_id: string; is_active: boolean }[]>([]);
+  const [selectedLoungeIds, setSelectedLoungeIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19,
