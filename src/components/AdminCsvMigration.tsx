@@ -195,6 +195,7 @@ const AdminCsvMigration = () => {
         .from("events")
         .insert({
           title: eventTitle,
+          subtitle: `${eventLocation}, ${eventCity}`,
           date: new Date(eventDate).toISOString(),
           time: eventTime,
           is_published: false,
