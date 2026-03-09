@@ -78,7 +78,7 @@ const EventLoungeSection = ({ event }: Props) => {
   const getStatus = (loungeId: string) => {
     const booking = bookings.find((b) => b.lounge_id === loungeId);
     if (!booking) return "free";
-    if (booking.booking_type === "guaranteed" && (booking.status === "confirmed" || booking.status === "pending")) return "guaranteed";
+    if (booking.booking_type === "guaranteed" && booking.status === "confirmed") return "guaranteed";
     if (booking.booking_type === "non_binding") return "non_binding";
     return "free";
   };
