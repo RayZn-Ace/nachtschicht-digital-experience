@@ -7,6 +7,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Strip emojis & non-WinAnsi characters for pdf-lib compatibility
+function stripEmoji(str: string): string {
+  return str.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu, "").trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -72,7 +77,7 @@ Deno.serve(async (req) => {
     page.drawText(ticketNrText, { x: width - 30 - ticketNrW, y: height - 50, size: 11, font: fontBold, color: rgb(1, 1, 1) });
 
     let yPos = height - 115;
-    page.drawText(event.title || "Event", { x: 30, y: yPos, size: 18, font: fontBold, color: black, maxWidth: width - 60 });
+    page.drawText(stripEmoji(event.title || "Event"), { x: 30, y: yPos, size: 18, font: fontBold, color: black, maxWidth: width - 60 });
 
     if (event.subtitle) {
       yPos -= 20;

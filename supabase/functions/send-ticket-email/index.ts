@@ -7,6 +7,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Strip emojis & non-WinAnsi characters for pdf-lib compatibility
+function stripEmoji(str: string): string {
+  return str.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu, "").trim();
+}
+
 async function generateTicketPdf(ticket: any, event: any, ticketType: any): Promise<Uint8Array> {
   const qrData = ticket.qr_code || ticket.id;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
@@ -36,7 +41,7 @@ async function generateTicketPdf(ticket: any, event: any, ticketType: any): Prom
   page.drawText(ticketNrText, { x: width - 30 - ticketNrW, y: height - 50, size: 11, font: fontBold, color: rgb(1, 1, 1) });
 
   let yPos = height - 115;
-  page.drawText(event.title || "Event", { x: 30, y: yPos, size: 18, font: fontBold, color: black, maxWidth: width - 60 });
+  page.drawText(stripEmoji(event.title || "Event"), { x: 30, y: yPos, size: 18, font: fontBold, color: black, maxWidth: width - 60 });
 
   if (event.subtitle) {
     yPos -= 20;
@@ -74,7 +79,7 @@ async function generateTicketPdf(ticket: any, event: any, ticketType: any): Prom
 
   // Ticket type name above QR
   yPos -= 35;
-  const typeName = ticketType?.name || "Standard";
+  const typeName = stripEmoji(ticketType?.name || "Standard");
   const typeNameW = fontRegular.widthOfTextAtSize(typeName, 9);
   page.drawText(typeName, { x: (width - typeNameW) / 2, y: yPos, size: 9, font: fontRegular, color: gray });
 
@@ -224,7 +229,7 @@ async function generateInvoicePdf(adminClient: any, invoiceId: string): Promise<
       page.drawRectangle({ x: marginLeft, y: y - 4, width: contentWidth, height: 16, color: lightGray });
     }
     page.drawText(`${i + 1}`, { x: colX.pos + 5, y, size: 8, font: fontRegular, color: black });
-    page.drawText(item.description, { x: colX.desc, y, size: 8, font: fontRegular, color: black, maxWidth: colX.qty - colX.desc - 10 });
+    page.drawText(stripEmoji(item.description), { x: colX.desc, y, size: 8, font: fontRegular, color: black, maxWidth: colX.qty - colX.desc - 10 });
     page.drawText(`${item.quantity}`, { x: colX.qty + 10, y, size: 8, font: fontRegular, color: black });
     page.drawText(formatCurrency(Number(item.unit_price)), { x: colX.price, y, size: 8, font: fontRegular, color: black });
     page.drawText(`${Number(item.vat_rate)}%`, { x: colX.vat, y, size: 8, font: fontRegular, color: black });
