@@ -213,78 +213,74 @@ const TicketShopPage = () => {
       return;
     }
     setBuying(true);
-    const qrCode = `TKT-${crypto.randomUUID()}`;
 
-    let ticketIds: string[] = [];
-
-    if (useGlobalPrice) {
-      // Single ticket with global price
-      const { data, error } = await supabase.from("tickets").insert({
-        event_id: eventId!,
-        user_id: user?.id || null,
-        quantity: globalQuantity,
-        total_price: finalTotal,
-        fee_amount: totalFees,
-        buyer_email: email,
-        buyer_name: name || null,
-        buyer_phone: guestPhone || null,
-        qr_code: qrCode,
-        discount_code_id: appliedDiscount?.id || null,
-      } as any).select("id");
-      if (error) { toast.error(error.message); setBuying(false); return; }
-      if (data) ticketIds = data.map((t: any) => t.id);
-    } else {
-      // One ticket per type – distribute fee proportionally
-      const inserts = ticketTypes
+    // Build cart payload for edge function
+    const cartPayload: Record<string, { quantity: number; price: number; ticket_type_id: string }> = {};
+    if (!useGlobalPrice) {
+      ticketTypes
         .filter((tt) => (cart[tt.id] || 0) > 0)
-        .map((tt) => {
-          const ticketSubtotal = tt.price * cart[tt.id];
-          const ticketDiscount = appliedDiscount ? discount * (ticketSubtotal / rawTotal) : 0;
-          // Proportional fee per ticket row
-          const ticketFee = rawTotal > 0 ? totalFees * (ticketSubtotal / rawTotal) : 0;
-          return {
-            event_id: eventId!,
-            user_id: user?.id || null,
-            ticket_type_id: tt.id,
+        .forEach((tt) => {
+          cartPayload[tt.id] = {
             quantity: cart[tt.id],
-            total_price: +(ticketSubtotal - ticketDiscount + ticketFee).toFixed(2),
-            fee_amount: +ticketFee.toFixed(2),
-            buyer_email: email,
-            buyer_name: name || null,
-            buyer_phone: guestPhone || null,
-            qr_code: `TKT-${crypto.randomUUID()}`,
-            discount_code_id: appliedDiscount?.id || null,
+            price: tt.price,
+            ticket_type_id: tt.id,
           };
         });
-      const { data, error } = await supabase.from("tickets").insert(inserts as any).select("id");
-      if (error) { toast.error(error.message); setBuying(false); return; }
-      if (data) ticketIds = data.map((t: any) => t.id);
     }
 
-    // Increment discount uses
-    if (appliedDiscount) {
-      await supabase.from("discount_codes").update({ uses: appliedDiscount.uses + 1 }).eq("id", appliedDiscount.id);
-    }
+    const redirectUrl = `${window.location.origin}/tickets/${eventId}`;
 
-    // Create invoice + send ticket email (fire-and-forget, don't block checkout)
-    if (ticketIds.length > 0) {
-      supabase.functions.invoke("create-invoice", {
-        body: { ticket_ids: ticketIds },
-      }).then(({ error: invError }) => {
-        if (invError) console.error("Invoice creation failed:", invError);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-mollie-payment", {
+        body: {
+          event_id: eventId,
+          user_id: user?.id || null,
+          cart: useGlobalPrice ? {} : cartPayload,
+          guest_name: name,
+          guest_email: email,
+          guest_phone: guestPhone || null,
+          discount_code_id: appliedDiscount?.id || null,
+          final_total: finalTotal,
+          total_fees: totalFees,
+          discount,
+          raw_total: rawTotal,
+          use_global_price: useGlobalPrice,
+          global_quantity: globalQuantity,
+          redirect_url: redirectUrl,
+        },
       });
 
-      supabase.functions.invoke("send-ticket-email", {
-        body: { ticket_ids: ticketIds },
-      }).then(({ error: emailError }) => {
-        if (emailError) console.error("Ticket email failed:", emailError);
-      });
-    }
+      if (error) throw error;
 
-    toast.success(lang === "de" ? "Ticket erfolgreich gebucht! 🎉" : "Ticket booked successfully! 🎉");
-    setPurchasedQrCode(qrCode);
-    setPurchasedTicketIds(ticketIds);
-    setStep(3); // success
+      const result = typeof data === "string" ? JSON.parse(data) : data;
+
+      if (result.error) {
+        toast.error(result.error);
+        setBuying(false);
+        return;
+      }
+
+      // Free ticket – no Mollie redirect needed
+      if (result.free) {
+        setPurchasedQrCode(result.qr_code || "");
+        setPurchasedTicketIds(result.ticket_ids || []);
+        toast.success(lang === "de" ? "Ticket erfolgreich gebucht! 🎉" : "Ticket booked successfully! 🎉");
+        setStep(3);
+        setBuying(false);
+        return;
+      }
+
+      // Redirect to Mollie checkout
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+
+      toast.error(lang === "de" ? "Zahlung konnte nicht erstellt werden" : "Could not create payment");
+    } catch (err: any) {
+      console.error("Payment error:", err);
+      toast.error(lang === "de" ? "Fehler bei der Zahlung" : "Payment error");
+    }
     setBuying(false);
   };
 
