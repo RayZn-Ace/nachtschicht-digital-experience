@@ -67,6 +67,8 @@ const AdminPage = () => {
   const [newTagName, setNewTagName] = useState("");
   const [eventTagsMap, setEventTagsMap] = useState<Record<string, EventTag[]>>({});
   const [eventStats, setEventStats] = useState<Record<string, { sold: number; revenue: number; checkedIn: number; totalTickets: number }>>({});
+  const [allLounges, setAllLounges] = useState<{ id: string; name: string; area_id: string; is_active: boolean }[]>([]);
+  const [selectedLoungeIds, setSelectedLoungeIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19,
@@ -119,7 +121,12 @@ const AdminPage = () => {
     setEventTagsMap(map);
   };
 
-  useEffect(() => { fetchEvents(); fetchGenres(); fetchAllTags(); fetchEventStats(); }, []);
+  const fetchAllLounges = async () => {
+    const { data } = await supabase.from("lounges").select("id, name, area_id, is_active").order("sort_order");
+    if (data) setAllLounges(data as any);
+  };
+
+  useEffect(() => { fetchEvents(); fetchGenres(); fetchAllTags(); fetchEventStats(); fetchAllLounges(); }, []);
   useEffect(() => { if (allTags.length > 0) fetchEventTagsMap(); }, [allTags]);
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
@@ -129,6 +136,7 @@ const AdminPage = () => {
     setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0 });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
     setSelectedTagIds([]);
+    setSelectedLoungeIds([]);
     setEditing(null);
     setShowForm(false);
   };
@@ -154,6 +162,9 @@ const AdminPage = () => {
     // Load existing tag assignments for this event
     const { data } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
     setSelectedTagIds(data ? data.map((d: any) => d.tag_id) : []);
+    // Load existing lounge assignments for this event
+    const { data: loungeData } = await supabase.from("event_lounges").select("lounge_id").eq("event_id", event.id);
+    setSelectedLoungeIds(loungeData ? loungeData.map((d: any) => d.lounge_id) : []);
     setShowForm(true);
   };
 
@@ -211,6 +222,14 @@ const AdminPage = () => {
     }
   };
 
+  const saveLoungeAssignments = async (eventId: string) => {
+    await supabase.from("event_lounges").delete().eq("event_id", eventId);
+    if (selectedLoungeIds.length > 0) {
+      const rows = selectedLoungeIds.map((lounge_id) => ({ event_id: eventId, lounge_id }));
+      await supabase.from("event_lounges").insert(rows);
+    }
+  };
+
   const handleSave = async () => {
     const payload = {
       ...formData,
@@ -227,11 +246,15 @@ const AdminPage = () => {
       const { error } = await supabase.from("events").update(payload as any).eq("id", editing.id);
       if (error) { toast.error("Fehler: " + error.message); return; }
       await saveTagAssignments(editing.id);
+      await saveLoungeAssignments(editing.id);
       toast.success("Event aktualisiert!");
     } else {
       const { data, error } = await supabase.from("events").insert(payload as any).select("id").single();
       if (error) { toast.error("Fehler: " + error.message); return; }
-      if (data) await saveTagAssignments((data as any).id);
+      if (data) {
+        await saveTagAssignments((data as any).id);
+        await saveLoungeAssignments((data as any).id);
+      }
       toast.success("Event erstellt!");
     }
     resetForm();
@@ -305,6 +328,11 @@ const AdminPage = () => {
           fee_mode_override: tt.fee_mode_override,
         }));
         await supabase.from("ticket_types").insert(newTypes);
+      }
+      // Copy lounge assignments
+      const { data: loungeAssignments } = await supabase.from("event_lounges").select("lounge_id").eq("event_id", event.id);
+      if (loungeAssignments && loungeAssignments.length > 0) {
+        await supabase.from("event_lounges").insert(loungeAssignments.map((l: any) => ({ event_id: newId, lounge_id: l.lounge_id })));
       }
     }
     toast.success("Event dupliziert!");
@@ -475,6 +503,72 @@ const AdminPage = () => {
                   />
                   <button type="button" onClick={createAndSelectTag} className="px-2.5 py-1.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-xs">+</button>
                 </div>
+              </div>
+
+              {/* Lounges multi-select grouped by area */}
+              <div className="md:col-span-2">
+                <label className="text-sm text-foreground mb-2 block">Lounges – welche Lounges sind für dieses Event buchbar?</label>
+                {(() => {
+                  const loungesByArea = CLUB_AREAS.map((area) => ({
+                    area,
+                    lounges: allLounges.filter((l) => l.area_id === area.id && l.is_active),
+                  })).filter((g) => g.lounges.length > 0);
+
+                  const toggleLounge = (id: string) => {
+                    setSelectedLoungeIds((prev) => prev.includes(id) ? prev.filter((l) => l !== id) : [...prev, id]);
+                  };
+
+                  const toggleAllInArea = (areaLounges: typeof allLounges) => {
+                    const allSelected = areaLounges.every((l) => selectedLoungeIds.includes(l.id));
+                    if (allSelected) {
+                      setSelectedLoungeIds((prev) => prev.filter((id) => !areaLounges.some((l) => l.id === id)));
+                    } else {
+                      setSelectedLoungeIds((prev) => [...new Set([...prev, ...areaLounges.map((l) => l.id)])]);
+                    }
+                  };
+
+                  return (
+                    <div className="space-y-3">
+                      {loungesByArea.map(({ area, lounges: areaLounges }) => {
+                        const selectedCount = areaLounges.filter((l) => selectedLoungeIds.includes(l.id)).length;
+                        return (
+                          <div key={area.id} className="border border-border rounded-lg p-3 bg-muted/20">
+                            <div className="flex items-center justify-between mb-2">
+                              <button
+                                type="button"
+                                onClick={() => toggleAllInArea(areaLounges)}
+                                className={`text-xs font-medium px-2 py-1 rounded ${area.color}`}
+                              >
+                                {area.name} ({selectedCount}/{areaLounges.length})
+                              </button>
+                              <span className="text-[10px] text-muted-foreground">Klick = alle an/aus</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {areaLounges.map((lounge) => (
+                                <button
+                                  key={lounge.id}
+                                  type="button"
+                                  onClick={() => toggleLounge(lounge.id)}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                    selectedLoungeIds.includes(lounge.id)
+                                      ? "bg-primary text-primary-foreground border-primary"
+                                      : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                                  }`}
+                                >
+                                  <Sofa size={12} />
+                                  {lounge.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {loungesByArea.length === 0 && (
+                        <p className="text-xs text-muted-foreground">Keine aktiven Lounges vorhanden.</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Titelbild Upload */}

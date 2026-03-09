@@ -221,6 +221,42 @@ export type Database = {
           },
         ]
       }
+      event_lounges: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          lounge_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          lounge_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          lounge_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_lounges_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_lounges_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_tag_assignments: {
         Row: {
           event_id: string
