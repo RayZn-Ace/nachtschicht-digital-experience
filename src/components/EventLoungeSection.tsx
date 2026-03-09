@@ -83,12 +83,8 @@ const EventLoungeSection = ({ event }: Props) => {
     return "free";
   };
 
-  // Collect all area IDs from available lounges to handle explicit assignments in non-event areas
-  const loungeAreaIds = [...new Set(availableLounges.map((l) => l.area_id))];
-  const displayAreas = hasExplicitAssignments ? loungeAreaIds : eventAreas;
-
   // Group lounges by area
-  const areaGroups = displayAreas
+  const areaGroups = eventAreas
     .map((areaId) => {
       const area = CLUB_AREAS.find((a) => a.id === areaId);
       if (!area) return null;
