@@ -793,6 +793,9 @@ const AdminPage = () => {
             );
           })}
         </div>
+            );
+          })()}
+        </div>
         </>
         )}
       </div>
