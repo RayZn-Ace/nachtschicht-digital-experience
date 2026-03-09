@@ -79,7 +79,7 @@ async function generateTicketPdf(ticket: any, event: any, ticketType: any): Prom
 
   // Ticket type name above QR
   yPos -= 35;
-  const typeName = ticketType?.name || "Standard";
+  const typeName = stripEmoji(ticketType?.name || "Standard");
   const typeNameW = fontRegular.widthOfTextAtSize(typeName, 9);
   page.drawText(typeName, { x: (width - typeNameW) / 2, y: yPos, size: 9, font: fontRegular, color: gray });
 
