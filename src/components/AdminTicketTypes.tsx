@@ -97,7 +97,12 @@ const AdminTicketTypes = ({ eventId }: Props) => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Ticketart löschen?")) return;
-    await supabase.from("ticket_types").delete().eq("id", id);
+    const { error } = await supabase.from("ticket_types").delete().eq("id", id);
+    if (error) {
+      console.error("Delete error:", error);
+      toast.error("Fehler beim Löschen: " + error.message);
+      return;
+    }
     toast.success("Gelöscht");
     fetchTypes();
   };
