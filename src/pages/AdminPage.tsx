@@ -55,6 +55,7 @@ const AdminPage = () => {
     }
   }, [urlTab]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [eventFilter, setEventFilter] = useState<"published" | "draft" | "past">("published");
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [ticketsEvent, setTicketsEvent] = useState<Event | null>(null);
@@ -657,9 +658,52 @@ const AdminPage = () => {
           </div>
         )}
 
+        {/* Event filter tabs */}
+        <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4">
+          {([
+            { key: "published" as const, label: "Veröffentlicht" },
+            { key: "draft" as const, label: "Entwurf" },
+            { key: "past" as const, label: "Vergangen" },
+          ]).map(({ key, label }) => {
+            const now = new Date();
+            const count = events.filter((e) => {
+              const eventDate = new Date(e.date);
+              const isPast = eventDate < now;
+              if (key === "past") return isPast;
+              if (key === "published") return !isPast && e.is_published;
+              return !isPast && !e.is_published;
+            }).length;
+            return (
+              <button
+                key={key}
+                onClick={() => setEventFilter(key)}
+                className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                  eventFilter === key
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
         <div className="space-y-3">
-          {events.length === 0 && <p className="text-muted-foreground text-center py-12">Noch keine Events erstellt.</p>}
-          {events.map((event) => {
+          {(() => {
+            const now = new Date();
+            const filtered = events.filter((e) => {
+              const eventDate = new Date(e.date);
+              const isPast = eventDate < now;
+              if (eventFilter === "past") return isPast;
+              if (eventFilter === "published") return !isPast && e.is_published;
+              return !isPast && !e.is_published;
+            }).sort((a, b) => {
+              if (eventFilter === "past") return new Date(b.date).getTime() - new Date(a.date).getTime();
+              return new Date(a.date).getTime() - new Date(b.date).getTime();
+            });
+            if (filtered.length === 0) return <p className="text-muted-foreground text-center py-12">Keine Events in dieser Kategorie.</p>;
+            return filtered.map((event) => {
             const eventAreas = parseAreas(event.areas);
             const eventTags = eventTagsMap[event.id] || [];
             const stats = eventStats[event.id] || { sold: 0, revenue: 0, checkedIn: 0, totalTickets: 0 };
@@ -747,7 +791,8 @@ const AdminPage = () => {
                 </div>
               </div>
             );
-          })}
+            });
+          })()}
         </div>
         </>
         )}
