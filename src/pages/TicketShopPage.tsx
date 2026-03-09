@@ -778,9 +778,9 @@ const TicketShopPage = () => {
                 <button
                   onClick={handlePurchase}
                   disabled={buying || (!user && !guestEmail) || !guestName.trim()}
-                  className="flex-1 py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 disabled:opacity-50"
+                  className="flex-1 py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {buying ? "..." : lang === "de" ? "JETZT BUCHEN" : "BOOK NOW"}
+                  {buying ? <><Loader2 size={18} className="animate-spin" /> {lang === "de" ? "WIRD VERARBEITET..." : "PROCESSING..."}</> : lang === "de" ? (finalTotal > 0 ? "JETZT BEZAHLEN" : "JETZT BUCHEN") : (finalTotal > 0 ? "PAY NOW" : "BOOK NOW")}
                 </button>
               </div>
             </div>
