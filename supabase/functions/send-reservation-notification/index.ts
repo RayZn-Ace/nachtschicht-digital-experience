@@ -132,7 +132,7 @@ serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: `${clubName} <noreply@smeanet.de>`,
+        from: `${clubName} <noreply@nachtschicht-kaiserslautern.app>`,
         to: [body.email],
         subject: guestSubject,
         html: guestHtml,

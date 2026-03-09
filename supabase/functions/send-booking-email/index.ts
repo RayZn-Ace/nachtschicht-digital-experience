@@ -67,7 +67,7 @@ serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Nachtschicht <noreply@smeanet.de>",
+        from: "Nachtschicht <noreply@nachtschicht-kaiserslautern.app>",
         to: [to],
         subject,
         html,

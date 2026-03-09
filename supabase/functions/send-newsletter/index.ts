@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       .single();
 
     const senderName = config?.company_name || "Nachtschicht";
-    const senderEmail = "noreply@smeanet.de";
+    const senderEmail = "noreply@nachtschicht-kaiserslautern.app";
 
     let totalSent = 0;
     let totalFailed = 0;
