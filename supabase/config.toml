@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.translate]
 verify_jwt = false
+
+[functions.create-mollie-payment]
+verify_jwt = false
+
+[functions.mollie-webhook]
+verify_jwt = false
