@@ -96,7 +96,9 @@ const AdminTicketTypes = ({ eventId }: Props) => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Ticketart löschen?")) return;
+    if (!confirm("Ticketart löschen? Bereits verkaufte Tickets bleiben erhalten.")) return;
+    // Unlink any tickets referencing this type
+    await supabase.from("tickets").update({ ticket_type_id: null }).eq("ticket_type_id", id);
     const { error } = await supabase.from("ticket_types").delete().eq("id", id);
     if (error) {
       console.error("Delete error:", error);
