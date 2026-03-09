@@ -42,7 +42,6 @@ const EventLoungeSection = ({ event }: Props) => {
   const [expandedArea, setExpandedArea] = useState<string | null>(null);
 
   const eventAreas = parseAreas(event.areas);
-  const [hasExplicitAssignments, setHasExplicitAssignments] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -57,13 +56,10 @@ const EventLoungeSection = ({ event }: Props) => {
       const allLounges = loungeRes.data as any as Lounge[];
       const assignedIds = assignmentRes.data?.map((a: any) => a.lounge_id) || [];
       
-      // If event has lounge assignments, filter by them; otherwise show all area-matching lounges
       if (assignedIds.length > 0) {
         setLounges(allLounges.filter((l) => assignedIds.includes(l.id)));
-        setHasExplicitAssignments(true);
       } else {
         setLounges(allLounges);
-        setHasExplicitAssignments(false);
       }
       setBookings(bookingRes.data as any);
     } catch (err) {
@@ -75,10 +71,7 @@ const EventLoungeSection = ({ event }: Props) => {
 
   useEffect(() => { fetchData(); }, [event.id]);
 
-  // When explicitly assigned, show all assigned lounges regardless of area; otherwise filter by event areas
-  const availableLounges = hasExplicitAssignments
-    ? lounges
-    : lounges.filter((l) => eventAreas.includes(l.area_id));
+  const availableLounges = lounges.filter((l) => eventAreas.includes(l.area_id));
 
   if (loading || availableLounges.length === 0) return null;
 
