@@ -395,8 +395,138 @@ const AdminPage = () => {
           </button>
         </div>
 
+        {/* Event filter tabs */}
+        <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4">
+          {([
+            { key: "published" as const, label: "Veröffentlicht" },
+            { key: "draft" as const, label: "Entwurf" },
+            { key: "past" as const, label: "Vergangen" },
+          ]).map(({ key, label }) => {
+            const now = new Date();
+            const count = events.filter((e) => {
+              const eventDate = new Date(e.date);
+              const isPast = eventDate < now;
+              if (key === "past") return isPast;
+              if (key === "published") return !isPast && e.is_published;
+              return !isPast && !e.is_published;
+            }).length;
+            return (
+              <button
+                key={key}
+                onClick={() => setEventFilter(key)}
+                className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                  eventFilter === key
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="space-y-3">
+          {(() => {
+            const now = new Date();
+            const filtered = events.filter((e) => {
+              const eventDate = new Date(e.date);
+              const isPast = eventDate < now;
+              if (eventFilter === "past") return isPast;
+              if (eventFilter === "published") return !isPast && e.is_published;
+              return !isPast && !e.is_published;
+            }).sort((a, b) => {
+              if (eventFilter === "past") return new Date(b.date).getTime() - new Date(a.date).getTime();
+              return new Date(a.date).getTime() - new Date(b.date).getTime();
+            });
+            if (filtered.length === 0) return <p className="text-muted-foreground text-center py-12">Keine Events in dieser Kategorie.</p>;
+            return filtered.map((event) => {
+            const eventAreas = parseAreas(event.areas);
+            const eventTags = eventTagsMap[event.id] || [];
+            const stats = eventStats[event.id] || { sold: 0, revenue: 0, checkedIn: 0, totalTickets: 0 };
+            return (
+              <div key={event.id} className="glass-card overflow-hidden">
+                <div className="flex items-start gap-3 p-3 sm:p-4">
+                  {event.image_url && (
+                    <img src={event.image_url} alt={event.title} className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-display text-base sm:text-lg tracking-wider text-foreground leading-tight line-clamp-2">{event.title}</h3>
+                      {event.is_published ? (
+                        <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full shrink-0 font-medium">Live</span>
+                      ) : (
+                        <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full shrink-0 font-medium">Entwurf</span>
+                      )}
+                    </div>
+                    {(event as any).subtitle && (
+                      <p className="text-muted-foreground text-xs italic truncate mt-0.5">{(event as any).subtitle}</p>
+                    )}
+                    <p className="text-muted-foreground text-xs mt-1">
+                      {new Date(event.date).toLocaleDateString("de-DE")} · {event.time}{(event as any).end_time ? `–${(event as any).end_time}` : ""} · {event.genre} · {event.ticket_price}€
+                    </p>
+                  </div>
+                </div>
+                {((event as any).has_muttizettel || (event as any).has_abendkasse || eventTags.length > 0 || eventAreas.length > 0) && (
+                  <div className="flex flex-wrap gap-1 px-3 sm:px-4 pb-2">
+                    {(event as any).has_muttizettel && (
+                      <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full">U18</span>
+                    )}
+                    {(event as any).has_abendkasse && (
+                      <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">AK</span>
+                    )}
+                    {eventTags.map((tag) => (
+                      <span key={tag.id} className={`text-[10px] px-1.5 py-0.5 rounded-full ${tag.color}`}>{tag.name}</span>
+                    ))}
+                    {eventAreas.map((aId) => {
+                      const area = CLUB_AREAS.find((a) => a.id === aId);
+                      return area ? (
+                        <span key={aId} className={`text-[10px] px-1.5 py-0.5 rounded-full ${area.color}`}>
+                          {area.name}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-px bg-border/30 mx-3 sm:mx-4 mb-2 rounded-md overflow-hidden text-center">
+                  <div className="bg-muted/30 py-1.5 px-1">
+                    <span className="text-[10px] text-muted-foreground block">Verkauft</span>
+                    <span className="text-xs font-medium text-foreground">{stats.sold}/{event.ticket_quantity}</span>
+                  </div>
+                  <div className="bg-muted/30 py-1.5 px-1">
+                    <span className="text-[10px] text-muted-foreground block">Umsatz</span>
+                    <span className="text-xs font-medium text-foreground">{stats.revenue.toFixed(0)}€</span>
+                  </div>
+                  <div className="bg-muted/30 py-1.5 px-1">
+                    <span className="text-[10px] text-muted-foreground block">Check-in</span>
+                    <span className="text-xs font-medium text-foreground">{stats.checkedIn}/{stats.totalTickets}</span>
+                  </div>
+                </div>
+                <div className="flex border-t border-border/30">
+                  <button onClick={() => setTicketsEvent(event)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 hover:bg-primary/10 transition-colors text-primary text-xs font-medium min-h-[44px]" title="Tickets">
+                    <Ticket size={15} /> <span className="hidden xs:inline">Tickets</span>
+                  </button>
+                  <button onClick={() => togglePublish(event)} className="flex-1 flex items-center justify-center py-2.5 hover:bg-muted transition-colors text-muted-foreground min-h-[44px]" title={event.is_published ? "Verstecken" : "Veröffentlichen"}>
+                    {event.is_published ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                  <button onClick={() => handleDuplicate(event)} className="flex-1 flex items-center justify-center py-2.5 hover:bg-muted transition-colors text-muted-foreground min-h-[44px]" title="Duplizieren">
+                    <Copy size={15} />
+                  </button>
+                  <button onClick={() => handleEdit(event)} className="flex-1 flex items-center justify-center py-2.5 hover:bg-muted transition-colors text-muted-foreground min-h-[44px]" title="Bearbeiten">
+                    <Pencil size={15} />
+                  </button>
+                  <button onClick={() => handleDelete(event.id)} className="flex-1 flex items-center justify-center py-2.5 hover:bg-destructive/10 transition-colors text-destructive min-h-[44px]" title="Löschen">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            );
+            });
+          })()}
+        </div>
+
         {showForm && (
-          <div className="glass-card p-6 mb-8 animate-fade-in">
+          <div className="glass-card p-6 mt-6 animate-fade-in">
             <h2 className="font-display text-2xl tracking-wider text-foreground mb-4">
               {editing ? "EVENT BEARBEITEN" : "NEUES EVENT"}
             </h2>
@@ -754,143 +884,6 @@ const AdminPage = () => {
             {editing && <AdminTicketTypes eventId={editing.id} />}
           </div>
         )}
-
-        {/* Event filter tabs */}
-        <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4">
-          {([
-            { key: "published" as const, label: "Veröffentlicht" },
-            { key: "draft" as const, label: "Entwurf" },
-            { key: "past" as const, label: "Vergangen" },
-          ]).map(({ key, label }) => {
-            const now = new Date();
-            const count = events.filter((e) => {
-              const eventDate = new Date(e.date);
-              const isPast = eventDate < now;
-              if (key === "past") return isPast;
-              if (key === "published") return !isPast && e.is_published;
-              return !isPast && !e.is_published;
-            }).length;
-            return (
-              <button
-                key={key}
-                onClick={() => setEventFilter(key)}
-                className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-                  eventFilter === key
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {label} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="space-y-3">
-          {(() => {
-            const now = new Date();
-            const filtered = events.filter((e) => {
-              const eventDate = new Date(e.date);
-              const isPast = eventDate < now;
-              if (eventFilter === "past") return isPast;
-              if (eventFilter === "published") return !isPast && e.is_published;
-              return !isPast && !e.is_published;
-            }).sort((a, b) => {
-              if (eventFilter === "past") return new Date(b.date).getTime() - new Date(a.date).getTime();
-              return new Date(a.date).getTime() - new Date(b.date).getTime();
-            });
-            if (filtered.length === 0) return <p className="text-muted-foreground text-center py-12">Keine Events in dieser Kategorie.</p>;
-            return filtered.map((event) => {
-            const eventAreas = parseAreas(event.areas);
-            const eventTags = eventTagsMap[event.id] || [];
-            const stats = eventStats[event.id] || { sold: 0, revenue: 0, checkedIn: 0, totalTickets: 0 };
-            return (
-              <div key={event.id} className="glass-card overflow-hidden">
-                {/* Header row: image + title + status */}
-                <div className="flex items-start gap-3 p-3 sm:p-4">
-                  {event.image_url && (
-                    <img src={event.image_url} alt={event.title} className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display text-base sm:text-lg tracking-wider text-foreground leading-tight line-clamp-2">{event.title}</h3>
-                      {event.is_published ? (
-                        <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full shrink-0 font-medium">Live</span>
-                      ) : (
-                        <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full shrink-0 font-medium">Entwurf</span>
-                      )}
-                    </div>
-                    {(event as any).subtitle && (
-                      <p className="text-muted-foreground text-xs italic truncate mt-0.5">{(event as any).subtitle}</p>
-                    )}
-                    <p className="text-muted-foreground text-xs mt-1">
-                      {new Date(event.date).toLocaleDateString("de-DE")} · {event.time}{(event as any).end_time ? `–${(event as any).end_time}` : ""} · {event.genre} · {event.ticket_price}€
-                    </p>
-                  </div>
-                </div>
-
-                {/* Badges row */}
-                {((event as any).has_muttizettel || (event as any).has_abendkasse || eventTags.length > 0 || eventAreas.length > 0) && (
-                  <div className="flex flex-wrap gap-1 px-3 sm:px-4 pb-2">
-                    {(event as any).has_muttizettel && (
-                      <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full">U18</span>
-                    )}
-                    {(event as any).has_abendkasse && (
-                      <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">AK</span>
-                    )}
-                    {eventTags.map((tag) => (
-                      <span key={tag.id} className={`text-[10px] px-1.5 py-0.5 rounded-full ${tag.color}`}>{tag.name}</span>
-                    ))}
-                    {eventAreas.map((aId) => {
-                      const area = CLUB_AREAS.find((a) => a.id === aId);
-                      return area ? (
-                        <span key={aId} className={`text-[10px] px-1.5 py-0.5 rounded-full ${area.color}`}>
-                          {area.name}
-                        </span>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-
-                {/* KPI Stats row */}
-                <div className="grid grid-cols-3 gap-px bg-border/30 mx-3 sm:mx-4 mb-2 rounded-md overflow-hidden text-center">
-                  <div className="bg-muted/30 py-1.5 px-1">
-                    <span className="text-[10px] text-muted-foreground block">Verkauft</span>
-                    <span className="text-xs font-medium text-foreground">{stats.sold}/{event.ticket_quantity}</span>
-                  </div>
-                  <div className="bg-muted/30 py-1.5 px-1">
-                    <span className="text-[10px] text-muted-foreground block">Umsatz</span>
-                    <span className="text-xs font-medium text-foreground">{stats.revenue.toFixed(0)}€</span>
-                  </div>
-                  <div className="bg-muted/30 py-1.5 px-1">
-                    <span className="text-[10px] text-muted-foreground block">Check-in</span>
-                    <span className="text-xs font-medium text-foreground">{stats.checkedIn}/{stats.totalTickets}</span>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex border-t border-border/30">
-                  <button onClick={() => setTicketsEvent(event)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 hover:bg-primary/10 transition-colors text-primary text-xs font-medium min-h-[44px]" title="Tickets">
-                    <Ticket size={15} /> <span className="hidden xs:inline">Tickets</span>
-                  </button>
-                  <button onClick={() => togglePublish(event)} className="flex-1 flex items-center justify-center py-2.5 hover:bg-muted transition-colors text-muted-foreground min-h-[44px]" title={event.is_published ? "Verstecken" : "Veröffentlichen"}>
-                    {event.is_published ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                  <button onClick={() => handleDuplicate(event)} className="flex-1 flex items-center justify-center py-2.5 hover:bg-muted transition-colors text-muted-foreground min-h-[44px]" title="Duplizieren">
-                    <Copy size={15} />
-                  </button>
-                  <button onClick={() => handleEdit(event)} className="flex-1 flex items-center justify-center py-2.5 hover:bg-muted transition-colors text-muted-foreground min-h-[44px]" title="Bearbeiten">
-                    <Pencil size={15} />
-                  </button>
-                  <button onClick={() => handleDelete(event.id)} className="flex-1 flex items-center justify-center py-2.5 hover:bg-destructive/10 transition-colors text-destructive min-h-[44px]" title="Löschen">
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-            );
-            });
-          })()}
-        </div>
         </>
         )}
       </div>
