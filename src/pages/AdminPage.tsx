@@ -329,6 +329,11 @@ const AdminPage = () => {
         }));
         await supabase.from("ticket_types").insert(newTypes);
       }
+      // Copy lounge assignments
+      const { data: loungeAssignments } = await supabase.from("event_lounges").select("lounge_id").eq("event_id", event.id);
+      if (loungeAssignments && loungeAssignments.length > 0) {
+        await supabase.from("event_lounges").insert(loungeAssignments.map((l: any) => ({ event_id: newId, lounge_id: l.lounge_id })));
+      }
     }
     toast.success("Event dupliziert!");
     fetchEvents();
