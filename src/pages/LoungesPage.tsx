@@ -45,26 +45,57 @@ const LoungesPage = () => {
     canonical: "/lounges",
   });
 
+  const [eventLoungeMap, setEventLoungeMap] = useState<Record<string, string[]>>({});
+
   const fetchData = async () => {
     try {
-      const [loungeRes, eventRes, bookingRes] = await Promise.all([
+      const [loungeRes, eventRes, bookingRes, assignRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
         supabase.from("events").select("*").eq("is_published", true).gte("date", new Date().toISOString()).order("date", { ascending: true }),
         supabase.rpc("get_lounge_availability"),
+        supabase.from("event_lounges").select("event_id, lounge_id"),
       ]);
       if (loungeRes.error || eventRes.error || bookingRes.error) { setError(true); }
       if (loungeRes.data) setLounges(loungeRes.data as any);
       if (eventRes.data) setEvents(eventRes.data as unknown as Event[]);
       if (bookingRes.data) setBookings(bookingRes.data as any);
+      if (assignRes.data) {
+        const map: Record<string, string[]> = {};
+        assignRes.data.forEach((a: any) => {
+          if (!map[a.event_id]) map[a.event_id] = [];
+          map[a.event_id].push(a.lounge_id);
+        });
+        setEventLoungeMap(map);
+      }
     } catch (err) { setError(true); } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const loungeAreaIds = [...new Set(lounges.map((l) => l.area_id))];
-  const loungeEvents = events.filter((e) => { const areas = parseAreas(e.areas); return loungeAreaIds.some((aId) => areas.includes(aId)); });
+  // Events that have at least one lounge assigned
+  const loungeEvents = events.filter((e) => {
+    const assignedIds = eventLoungeMap[e.id];
+    if (assignedIds && assignedIds.length > 0) return true;
+    // Fallback: if no assignments exist for any event, show events with matching areas
+    const hasAnyAssignments = Object.keys(eventLoungeMap).length > 0;
+    if (hasAnyAssignments) return false;
+    const areas = parseAreas(e.areas);
+    const loungeAreaIds = [...new Set(lounges.map((l) => l.area_id))];
+    return loungeAreaIds.some((aId) => areas.includes(aId));
+  });
+
   const currentEvent = loungeEvents.find((e) => e.id === selectedEvent);
-  const availableLounges = selectedEvent && currentEvent ? lounges.filter((l) => parseAreas(currentEvent.areas).includes(l.area_id)) : [];
+
+  const availableLounges = (() => {
+    if (!selectedEvent || !currentEvent) return [];
+    const assignedIds = eventLoungeMap[selectedEvent];
+    if (assignedIds && assignedIds.length > 0) {
+      return lounges.filter((l) => assignedIds.includes(l.id));
+    }
+    // Fallback: filter by area
+    return lounges.filter((l) => parseAreas(currentEvent.areas).includes(l.area_id));
+  })();
+
   const getStatus = (loungeId: string) => { const booking = bookings.find((b) => b.lounge_id === loungeId && b.event_id === selectedEvent); if (!booking) return "free"; if (booking.booking_type === "guaranteed" && (booking.status === "confirmed" || booking.status === "pending")) return "guaranteed"; return "available"; };
   const dateFmt = (d: string) => new Date(d).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" });
 
