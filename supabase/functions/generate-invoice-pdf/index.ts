@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
         x: colX.pos + 5, y,
         size: 8, font: fontRegular, color: black,
       });
-      page.drawText(item.description, {
+      page.drawText(stripEmoji(item.description), {
         x: colX.desc, y,
         size: 8, font: fontRegular, color: black,
         maxWidth: colX.qty - colX.desc - 10,
