@@ -383,7 +383,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Nachtschicht <tickets@smeanet.de>",
+        from: "Nachtschicht <tickets@nachtschicht-kaiserslautern.app>",
         to: [buyerEmail],
         subject: `Dein Ticket für ${eventTitle}`,
         html: `

@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Nachtschicht Kontakt <kontakt@smeanet.de>",
+        from: "Nachtschicht Kontakt <kontakt@nachtschicht-kaiserslautern.app>",
         to: ["info@nachtschicht-kaiserslautern.de"],
         reply_to: email,
         subject: `Kontaktanfrage: ${subject || "Allgemeine Anfrage"}`,
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Nachtschicht <kontakt@smeanet.de>",
+        from: "Nachtschicht <kontakt@nachtschicht-kaiserslautern.app>",
         to: [email],
         subject: "Wir haben deine Nachricht erhalten!",
         html: `
