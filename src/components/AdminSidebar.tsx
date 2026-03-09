@@ -27,6 +27,7 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
     items: [
       { label: "Events", tab: "events", icon: Calendar },
       { label: "Ticketcenter", tab: "ticketcenter", icon: ShoppingCart },
+      { label: "Lounge-Buchungen", tab: "lounges", icon: Sofa },
       { label: "Rabattcodes", tab: "codes", icon: Ticket },
       { label: "Tags", tab: "tags", icon: Tags },
     ],
@@ -45,7 +46,7 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
     label: "Betrieb",
     icon: Sofa,
     items: [
-      { label: "Lounges", tab: "lounges", icon: Sofa },
+      { label: "Lounge-Verwaltung", tab: "loungemanage", icon: Sofa },
       { label: "Getränke", tab: "drinks", icon: Wine },
       { label: "Feiertage", tab: "holidays", icon: Sparkles },
       { label: "Bewerber", tab: "applicants", icon: Users },
