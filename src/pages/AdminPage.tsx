@@ -104,8 +104,8 @@ const AdminPage = () => {
       if (t.status === "confirmed") {
         stats[t.event_id].sold += t.quantity;
         stats[t.event_id].revenue += t.total_price;
-        stats[t.event_id].totalTickets += 1;
-        if (t.checked_in) stats[t.event_id].checkedIn += 1;
+        stats[t.event_id].totalTickets += t.quantity;
+        if (t.checked_in) stats[t.event_id].checkedIn += t.quantity;
       }
     });
     setEventStats(stats);
