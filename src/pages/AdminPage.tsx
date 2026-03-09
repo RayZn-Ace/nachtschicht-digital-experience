@@ -222,6 +222,14 @@ const AdminPage = () => {
     }
   };
 
+  const saveLoungeAssignments = async (eventId: string) => {
+    await supabase.from("event_lounges").delete().eq("event_id", eventId);
+    if (selectedLoungeIds.length > 0) {
+      const rows = selectedLoungeIds.map((lounge_id) => ({ event_id: eventId, lounge_id }));
+      await supabase.from("event_lounges").insert(rows);
+    }
+  };
+
   const handleSave = async () => {
     const payload = {
       ...formData,
