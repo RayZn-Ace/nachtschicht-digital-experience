@@ -54,6 +54,8 @@ const AdminCsvMigration = () => {
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("22:00");
+  const [eventLocation, setEventLocation] = useState("Nachtschicht");
+  const [eventCity, setEventCity] = useState("Kaiserslautern");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ events: number; tickets: number; customers: number } | null>(null);
   const [showDetails, setShowDetails] = useState(false);
