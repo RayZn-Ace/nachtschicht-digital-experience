@@ -97,37 +97,80 @@ const LoungeReservationWizard = ({ lounge, event, onClose, onSuccess }: Props) =
     if (!agreedTerms) return;
     setSubmitting(true);
 
-    const { error } = await supabase.from("lounge_bookings").insert({
-      lounge_id: lounge.id,
-      event_id: event.id,
-      user_name: name.trim(),
-      user_email: email.trim(),
-      user_phone: phone.trim() || null,
-      guest_count: guests,
-      message: notes.trim() || null,
-      arrival_time: arrivalTime,
-      booking_type: bookingType,
-      deposit_amount: bookingType === "guaranteed" ? DEPOSIT_AMOUNT : 0,
-      deposit_paid: false,
-      notes: notes.trim() || null,
-      user_id: user?.id || null,
-      agreed_terms: true,
-      status: "pending",
-    } as any);
+    try {
+      if (bookingType === "guaranteed") {
+        // Guaranteed booking: create via edge function → redirect to Mollie
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const res = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/create-lounge-payment`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lounge_id: lounge.id,
+              event_id: event.id,
+              user_id: user?.id || null,
+              user_name: name.trim(),
+              user_email: email.trim(),
+              user_phone: phone.trim() || null,
+              guest_count: guests,
+              arrival_time: arrivalTime,
+              booking_type: "guaranteed",
+              deposit_amount: DEPOSIT_AMOUNT,
+              service_fee: serviceFee,
+              total_amount: totalDeposit,
+              notes: notes.trim() || null,
+              redirect_url: window.location.origin + "/lounges",
+            }),
+          }
+        );
 
-    if (error) {
-      if (error.code === "23505") {
-        toast.error("Diese Lounge ist für dieses Event bereits reserviert.");
-      } else {
-        toast.error("Fehler: " + error.message);
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          toast.error(data.error || "Zahlung konnte nicht erstellt werden.");
+          setSubmitting(false);
+          return;
+        }
+
+        if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
+          return;
+        }
       }
-    } else {
-      toast.success(
-        bookingType === "guaranteed"
-          ? "Garantierte Reservierung gesendet! 🎉 Bitte bezahle die Anzahlung."
-          : "Unverbindliche Reservierung gesendet! 🎉 Wir melden uns bei dir."
-      );
-      onSuccess();
+
+      // Non-binding booking: create directly
+      const { error } = await supabase.from("lounge_bookings").insert({
+        lounge_id: lounge.id,
+        event_id: event.id,
+        user_name: name.trim(),
+        user_email: email.trim(),
+        user_phone: phone.trim() || null,
+        guest_count: guests,
+        message: notes.trim() || null,
+        arrival_time: arrivalTime,
+        booking_type: "non_binding",
+        deposit_amount: 0,
+        deposit_paid: false,
+        notes: notes.trim() || null,
+        user_id: user?.id || null,
+        agreed_terms: true,
+        status: "pending",
+      } as any);
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.error("Diese Lounge ist für dieses Event bereits reserviert.");
+        } else {
+          toast.error("Fehler: " + error.message);
+        }
+      } else {
+        toast.success("Unverbindliche Reservierung gesendet! 🎉 Wir melden uns bei dir.");
+        onSuccess();
+      }
+    } catch (err) {
+      toast.error("Ein Fehler ist aufgetreten. Bitte versuche es erneut.");
+      console.error(err);
     }
     setSubmitting(false);
   };
