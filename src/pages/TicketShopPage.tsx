@@ -551,134 +551,158 @@ const TicketShopPage = () => {
           /* Step 1: Select tickets */
           <ScrollReveal>
             <div className="glass-card p-5 space-y-4 animate-fade-in">
-              <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center gap-2">
-                <Ticket size={22} /> {lang === "de" ? "TICKETS WÄHLEN" : "SELECT TICKETS"}
-              </h2>
-
-              {useGlobalPrice ? (
-                /* Global price mode */
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">{lang === "de" ? "Eintrittskarte" : "Entry Ticket"}</p>
-                    <p className="text-primary font-bold text-lg">{event.ticket_price}€</p>
+              {/* Abendkasse-only mode: no ticket types, only door price */}
+              {useGlobalPrice && event.has_abendkasse ? (
+                <>
+                  <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center gap-2">
+                    <DoorOpen size={22} /> {lang === "de" ? "ABENDKASSE" : "BOX OFFICE"}
+                  </h2>
+                  <div className="p-4 border border-border rounded-lg">
+                    <p className="text-muted-foreground text-sm">
+                      {lang === "de"
+                        ? "Für dieses Event gibt es keinen Online-Vorverkauf. Tickets sind nur an der Abendkasse erhältlich."
+                        : "No online presale for this event. Tickets are available at the door only."}
+                    </p>
+                    {event.ticket_price > 0 && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-foreground font-medium">{lang === "de" ? "Eintrittspreis:" : "Entry price:"}</span>
+                        <span className="text-primary font-bold text-xl">{event.ticket_price}€</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => updateCart("global", -1)} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-muted">
-                      <Minus size={16} />
-                    </button>
-                    <span className="text-lg font-bold text-foreground w-8 text-center">{globalQuantity}</span>
-                    <button onClick={() => updateCart("global", 1)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90">
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                </div>
+                </>
               ) : (
-                /* Ticket types */
-                <div className="space-y-3">
-                  {ticketTypes.map((tt) => {
-                    const ttRemaining = tt.quantity - tt.sold;
-                    const ttSoldOut = ttRemaining <= 0;
-                    return (
-                      <div key={tt.id} className={`flex items-center justify-between p-4 border border-border rounded-lg ${ttSoldOut ? 'opacity-50' : ''}`}>
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground">{tr(tt.name)}</p>
-                          {tt.description && <p className="text-xs text-muted-foreground">{tr(tt.description)}</p>}
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-primary font-bold text-lg">{tt.price}€</span>
-                            {ttRemaining <= 10 && !ttSoldOut && (
-                              <span className="text-xs text-destructive">
-                                {lang === "de" ? `Noch ${ttRemaining}` : `${ttRemaining} left`}
-                              </span>
+                <>
+                  <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center gap-2">
+                    <Ticket size={22} /> {lang === "de" ? "TICKETS WÄHLEN" : "SELECT TICKETS"}
+                  </h2>
+
+                  {useGlobalPrice ? (
+                    /* Global price mode */
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div>
+                        <p className="font-medium text-foreground">{lang === "de" ? "Eintrittskarte" : "Entry Ticket"}</p>
+                        <p className="text-primary font-bold text-lg">{event.ticket_price}€</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => updateCart("global", -1)} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-muted">
+                          <Minus size={16} />
+                        </button>
+                        <span className="text-lg font-bold text-foreground w-8 text-center">{globalQuantity}</span>
+                        <button onClick={() => updateCart("global", 1)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90">
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Ticket types */
+                    <div className="space-y-3">
+                      {ticketTypes.map((tt) => {
+                        const ttRemaining = tt.quantity - tt.sold;
+                        const ttSoldOut = ttRemaining <= 0;
+                        return (
+                          <div key={tt.id} className={`flex items-center justify-between p-4 border border-border rounded-lg ${ttSoldOut ? 'opacity-50' : ''}`}>
+                            <div className="flex-1">
+                              <p className="font-medium text-foreground">{tr(tt.name)}</p>
+                              {tt.description && <p className="text-xs text-muted-foreground">{tr(tt.description)}</p>}
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-primary font-bold text-lg">{tt.price}€</span>
+                                {ttRemaining <= 10 && !ttSoldOut && (
+                                  <span className="text-xs text-destructive">
+                                    {lang === "de" ? `Noch ${ttRemaining}` : `${ttRemaining} left`}
+                                  </span>
+                                )}
+                                {ttSoldOut && <span className="text-xs text-destructive font-bold">{lang === "de" ? "Ausverkauft" : "Sold out"}</span>}
+                              </div>
+                            </div>
+                            {!ttSoldOut && (
+                              <div className="flex items-center gap-3">
+                                <button onClick={() => updateCart(tt.id, -1)} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-muted">
+                                  <Minus size={16} />
+                                </button>
+                                <span className="text-lg font-bold text-foreground w-8 text-center">{cart[tt.id] || 0}</span>
+                                <button
+                                  onClick={() => updateCart(tt.id, 1)}
+                                  disabled={(cart[tt.id] || 0) >= ttRemaining}
+                                  className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-50"
+                                >
+                                  <Plus size={16} />
+                                </button>
+                              </div>
                             )}
-                            {ttSoldOut && <span className="text-xs text-destructive font-bold">{lang === "de" ? "Ausverkauft" : "Sold out"}</span>}
                           </div>
-                        </div>
-                        {!ttSoldOut && (
-                          <div className="flex items-center gap-3">
-                            <button onClick={() => updateCart(tt.id, -1)} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-muted">
-                              <Minus size={16} />
-                            </button>
-                            <span className="text-lg font-bold text-foreground w-8 text-center">{cart[tt.id] || 0}</span>
-                            <button
-                              onClick={() => updateCart(tt.id, 1)}
-                              disabled={(cart[tt.id] || 0) >= ttRemaining}
-                              className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-50"
-                            >
-                              <Plus size={16} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Discount code */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    value={discountCode}
-                    onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                    placeholder={lang === "de" ? "Rabattcode eingeben" : "Enter discount code"}
-                    className="w-full pl-9 pr-4 py-2.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none font-mono"
-                    onKeyDown={(e) => e.key === "Enter" && applyDiscount()}
-                  />
-                </div>
-                <button
-                  onClick={applyDiscount}
-                  disabled={discountLoading}
-                  className="px-4 py-2.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-sm"
-                >
-                  {lang === "de" ? "EINLÖSEN" : "APPLY"}
-                </button>
-              </div>
-              {appliedDiscount && (
-                <div className="flex items-center gap-2 text-green-400 text-sm">
-                  <Tag size={14} />
-                  {appliedDiscount.discount_type === "percent" ? `${appliedDiscount.discount_value}%` : `${appliedDiscount.discount_value}€`} Rabatt mit "{appliedDiscount.code}"
-                  <button onClick={() => { setAppliedDiscount(null); setDiscountCode(""); }} className="text-muted-foreground hover:text-foreground ml-auto text-xs">✕</button>
-                </div>
-              )}
-
-              {/* Summary */}
-              {totalCount > 0 && (
-                <div className="border-t border-border pt-4 space-y-1">
-                  {(discount > 0 || totalFees > 0) && (
-                    <>
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>{lang === "de" ? "Zwischensumme" : "Subtotal"}</span>
-                        <span>{rawTotal.toFixed(2)}€</span>
-                      </div>
-                      {discount > 0 && (
-                        <div className="flex justify-between text-sm text-green-400">
-                          <span>{lang === "de" ? "Rabatt" : "Discount"}</span>
-                          <span>-{discount.toFixed(2)}€</span>
-                        </div>
-                      )}
-                      {totalFees > 0 && (
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
-                          <span>{totalFees.toFixed(2)}€</span>
-                        </div>
-                      )}
-                    </>
+                        );
+                      })}
+                    </div>
                   )}
-                  <div className="flex justify-between text-lg font-bold text-foreground">
-                    <span>{totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}</span>
-                    <span>{finalTotal.toFixed(2)}€</span>
-                  </div>
-                </div>
-              )}
 
-              <button
-                onClick={() => setStep(2)}
-                disabled={totalCount === 0}
-                className="w-full py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {lang === "de" ? "WEITER ZUR BUCHUNG" : "CONTINUE TO CHECKOUT"}
-              </button>
+                  {/* Discount code */}
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                        placeholder={lang === "de" ? "Rabattcode eingeben" : "Enter discount code"}
+                        className="w-full pl-9 pr-4 py-2.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none font-mono"
+                        onKeyDown={(e) => e.key === "Enter" && applyDiscount()}
+                      />
+                    </div>
+                    <button
+                      onClick={applyDiscount}
+                      disabled={discountLoading}
+                      className="px-4 py-2.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-sm"
+                    >
+                      {lang === "de" ? "EINLÖSEN" : "APPLY"}
+                    </button>
+                  </div>
+                  {appliedDiscount && (
+                    <div className="flex items-center gap-2 text-green-400 text-sm">
+                      <Tag size={14} />
+                      {appliedDiscount.discount_type === "percent" ? `${appliedDiscount.discount_value}%` : `${appliedDiscount.discount_value}€`} Rabatt mit "{appliedDiscount.code}"
+                      <button onClick={() => { setAppliedDiscount(null); setDiscountCode(""); }} className="text-muted-foreground hover:text-foreground ml-auto text-xs">✕</button>
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  {totalCount > 0 && (
+                    <div className="border-t border-border pt-4 space-y-1">
+                      {(discount > 0 || totalFees > 0) && (
+                        <>
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <span>{lang === "de" ? "Zwischensumme" : "Subtotal"}</span>
+                            <span>{rawTotal.toFixed(2)}€</span>
+                          </div>
+                          {discount > 0 && (
+                            <div className="flex justify-between text-sm text-green-400">
+                              <span>{lang === "de" ? "Rabatt" : "Discount"}</span>
+                              <span>-{discount.toFixed(2)}€</span>
+                            </div>
+                          )}
+                          {totalFees > 0 && (
+                            <div className="flex justify-between text-sm text-muted-foreground">
+                              <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
+                              <span>{totalFees.toFixed(2)}€</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      <div className="flex justify-between text-lg font-bold text-foreground">
+                        <span>{totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}</span>
+                        <span>{finalTotal.toFixed(2)}€</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setStep(2)}
+                    disabled={totalCount === 0}
+                    className="w-full py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {lang === "de" ? "WEITER ZUR BUCHUNG" : "CONTINUE TO CHECKOUT"}
+                  </button>
+                </>
+              )}
             </div>
           </ScrollReveal>
         ) : (
