@@ -367,6 +367,8 @@ const AdminPage = () => {
           <AdminDrinks />
         ) : tab === "lounges" ? (
           <AdminLoungeBookings />
+        ) : tab === "loungemanage" ? (
+          <AdminLoungeManagement />
         ) : tab === "ticketcenter" ? (
           <AdminTicketCenter />
         ) : tab === "codes" ? (
