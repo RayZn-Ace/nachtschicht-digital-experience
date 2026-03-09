@@ -246,11 +246,15 @@ const AdminPage = () => {
       const { error } = await supabase.from("events").update(payload as any).eq("id", editing.id);
       if (error) { toast.error("Fehler: " + error.message); return; }
       await saveTagAssignments(editing.id);
+      await saveLoungeAssignments(editing.id);
       toast.success("Event aktualisiert!");
     } else {
       const { data, error } = await supabase.from("events").insert(payload as any).select("id").single();
       if (error) { toast.error("Fehler: " + error.message); return; }
-      if (data) await saveTagAssignments((data as any).id);
+      if (data) {
+        await saveTagAssignments((data as any).id);
+        await saveLoungeAssignments((data as any).id);
+      }
       toast.success("Event erstellt!");
     }
     resetForm();
