@@ -162,6 +162,9 @@ const AdminPage = () => {
     // Load existing tag assignments for this event
     const { data } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
     setSelectedTagIds(data ? data.map((d: any) => d.tag_id) : []);
+    // Load existing lounge assignments for this event
+    const { data: loungeData } = await supabase.from("event_lounges").select("lounge_id").eq("event_id", event.id);
+    setSelectedLoungeIds(loungeData ? loungeData.map((d: any) => d.lounge_id) : []);
     setShowForm(true);
   };
 
