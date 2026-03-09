@@ -346,7 +346,358 @@ const AdminPage = () => {
       <h2 className="font-display text-2xl tracking-wider text-foreground mb-4">
         {editing ? "EVENT BEARBEITEN" : "NEUES EVENT"}
       </h2>
-      {/* Form content rendered via shared function */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Titel *</label>
+          <input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Untertitel</label>
+          <input value={formData.subtitle} onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })} placeholder="z.B. Special Guest: DJ XY" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+
+        {/* Genre dropdown with custom creation */}
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Genre</label>
+          <div className="flex gap-2">
+            <select
+              value={formData.genre}
+              onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+              className="flex-1 px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            >
+              <option value="">Bitte wählen</option>
+              {genres.map((g) => (
+                <option key={g.id} value={g.name}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-1.5 mt-1.5">
+            <input
+              value={newGenre}
+              onChange={(e) => setNewGenre(e.target.value)}
+              placeholder="Neues Genre erstellen..."
+              className="flex-1 px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-xs focus:ring-2 focus:ring-primary focus:outline-none"
+              onKeyDown={(e) => e.key === "Enter" && addGenre()}
+            />
+            <button onClick={addGenre} className="px-2.5 py-1.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-xs">+</button>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Datum *</label>
+          <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Beginn</label>
+          <input value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} placeholder="22:00" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Ende</label>
+          <input value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} placeholder="05:00" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+
+        {/* Areas multi-select */}
+        <div className="md:col-span-2">
+          <label className="text-sm text-foreground mb-2 block">Areas (Räume) – welche Floors sind geöffnet?</label>
+          <div className="flex flex-wrap gap-2">
+            {CLUB_AREAS.map((area) => {
+              const isAlwaysOpen = ALWAYS_OPEN_AREAS.includes(area.id);
+              return (
+                <button
+                  key={area.id}
+                  type="button"
+                  onClick={() => toggleArea(area.id)}
+                  disabled={isAlwaysOpen}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    selectedAreas.includes(area.id)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                  } ${isAlwaysOpen ? "opacity-70 cursor-not-allowed" : ""}`}
+                >
+                  {area.name}
+                  {area.genre && <span className="ml-1 opacity-70">· {area.genre}</span>}
+                  {isAlwaysOpen && <span className="ml-1 opacity-70">· immer offen</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tags multi-select */}
+        <div className="md:col-span-2">
+          <label className="text-sm text-foreground mb-2 block">Tags</label>
+          <div className="flex flex-wrap gap-2">
+            {allTags.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => toggleTag(tag.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  selectedTagIds.includes(tag.id)
+                    ? `${tag.color} border-current`
+                    : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                }`}
+              >
+                {tag.name}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1.5 mt-2">
+            <input
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              placeholder="Neuen Tag erstellen..."
+              className="flex-1 px-3 py-1.5 bg-muted border border-border rounded-md text-foreground text-xs focus:ring-2 focus:ring-primary focus:outline-none"
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), createAndSelectTag())}
+            />
+            <button type="button" onClick={createAndSelectTag} className="px-2.5 py-1.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-xs">+</button>
+          </div>
+        </div>
+
+        {/* Lounges multi-select grouped by area */}
+        <div className="md:col-span-2">
+          <label className="text-sm text-foreground mb-2 block">Lounges – welche Lounges sind für dieses Event buchbar?</label>
+          {(() => {
+            const loungesByArea = CLUB_AREAS.map((area) => ({
+              area,
+              lounges: allLounges.filter((l) => l.area_id === area.id && l.is_active),
+            })).filter((g) => g.lounges.length > 0);
+
+            const toggleLounge = (id: string) => {
+              setSelectedLoungeIds((prev) => prev.includes(id) ? prev.filter((l) => l !== id) : [...prev, id]);
+            };
+
+            const toggleAllInArea = (areaLounges: typeof allLounges) => {
+              const allSelected = areaLounges.every((l) => selectedLoungeIds.includes(l.id));
+              if (allSelected) {
+                setSelectedLoungeIds((prev) => prev.filter((id) => !areaLounges.some((l) => l.id === id)));
+              } else {
+                setSelectedLoungeIds((prev) => [...new Set([...prev, ...areaLounges.map((l) => l.id)])]);
+              }
+            };
+
+            return (
+              <div className="space-y-3">
+                {loungesByArea.map(({ area, lounges: areaLounges }) => {
+                  const selectedCount = areaLounges.filter((l) => selectedLoungeIds.includes(l.id)).length;
+                  return (
+                    <div key={area.id} className="border border-border rounded-lg p-3 bg-muted/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleAllInArea(areaLounges)}
+                          className={`text-xs font-medium px-2 py-1 rounded ${area.color}`}
+                        >
+                          {area.name} ({selectedCount}/{areaLounges.length})
+                        </button>
+                        <span className="text-[10px] text-muted-foreground">Klick = alle an/aus</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {areaLounges.map((lounge) => (
+                          <button
+                            key={lounge.id}
+                            type="button"
+                            onClick={() => toggleLounge(lounge.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                              selectedLoungeIds.includes(lounge.id)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <Sofa size={12} />
+                            {lounge.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {loungesByArea.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Keine aktiven Lounges vorhanden.</p>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Titelbild Upload */}
+        <div className="md:col-span-2">
+          <label className="text-sm text-foreground mb-1 block">Titelbild</label>
+          <div className="flex items-start gap-3">
+            {formData.image_url ? (
+              <div className="relative w-full max-w-lg rounded-md overflow-hidden shrink-0 border border-border" style={{ aspectRatio: '1920/1080' }}>
+                <img src={formData.image_url} alt="Titelbild" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => setFormData({ ...formData, image_url: "" })}
+                  className="absolute top-1 right-1 p-0.5 bg-background/80 rounded-full text-foreground hover:bg-destructive hover:text-destructive-foreground"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : null}
+            <label className="cursor-pointer flex-1">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && uploadEventImage(e.target.files[0])}
+              />
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 transition-colors text-sm cursor-pointer">
+                <Upload size={16} />
+                {uploadingImage ? "Wird hochgeladen..." : "Bild hochladen"}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* Ticket price + VAT */}
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Eintrittspreis (€)</label>
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Abendkasse"
+            value={formData.ticket_price || ""}
+            onChange={(e) => setFormData({ ...formData, ticket_price: Number(e.target.value) })}
+            className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="text-sm text-foreground mb-1 block">MwSt. (%)</label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            value={formData.vat_rate}
+            onChange={(e) => setFormData({ ...formData, vat_rate: Number(e.target.value) })}
+            placeholder="z.B. 19"
+            className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Ticketkontingent</label>
+          <input
+            type="number"
+            placeholder="Ticketkontingent"
+            value={formData.ticket_quantity || ""}
+            onChange={(e) => setFormData({ ...formData, ticket_quantity: Number(e.target.value) })}
+            className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-sm text-foreground mb-1 block">Beschreibung</label>
+          <textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none resize-none" />
+        </div>
+        <div className="md:col-span-2 flex flex-wrap gap-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={formData.has_muttizettel} onChange={(e) => setFormData({ ...formData, has_muttizettel: e.target.checked })} className="accent-primary" />
+            <span className="text-sm text-foreground">Muttizettel erlaubt (U18)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={formData.has_abendkasse} onChange={(e) => setFormData({ ...formData, has_abendkasse: e.target.checked })} className="accent-primary" />
+            <span className="text-sm text-foreground">Abendkasse verfügbar</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })} className="accent-primary" />
+            <span className="text-sm text-foreground">Veröffentlicht</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer" title={!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 ? "Maximal 3 Favoriten möglich" : ""}>
+            <input
+              type="checkbox"
+              checked={formData.is_featured}
+              disabled={!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3}
+              onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+              className="accent-primary"
+            />
+            <span className={`text-sm ${!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 ? "text-muted-foreground" : "text-foreground"}`}>
+              ⭐ Highlight auf Startseite {events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 && !formData.is_featured ? "(max. 3)" : ""}
+            </span>
+          </label>
+        </div>
+
+        {/* Ticketgebühren */}
+        <div className="md:col-span-2 border border-border rounded-lg p-4 bg-muted/30">
+          <label className="flex items-center gap-2 cursor-pointer mb-3">
+            <input type="checkbox" checked={formData.fee_enabled} onChange={(e) => setFormData({ ...formData, fee_enabled: e.target.checked })} className="accent-primary" />
+            <span className="text-sm font-medium text-foreground">Servicegebühr aktivieren</span>
+          </label>
+          {formData.fee_enabled && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Gebührenart</label>
+                <select
+                  value={formData.fee_type}
+                  onChange={(e) => setFormData({ ...formData, fee_type: e.target.value })}
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                >
+                  <option value="per_ticket">Pro Ticket</option>
+                  <option value="per_order">Pro Bestellung</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Berechnungsart</label>
+                <select
+                  value={formData.fee_mode}
+                  onChange={(e) => setFormData({ ...formData, fee_mode: e.target.value })}
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                >
+                  <option value="fixed">Fester Betrag (€)</option>
+                  <option value="percent">Prozentual (%)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {formData.fee_mode === "percent" ? "Prozent (%)" : "Betrag (€)"}
+                </label>
+                <input
+                  type="number"
+                  step={formData.fee_mode === "percent" ? "0.1" : "0.01"}
+                  value={formData.fee_amount || ""}
+                  onChange={(e) => setFormData({ ...formData, fee_amount: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                  placeholder={formData.fee_mode === "percent" ? "z.B. 10" : "z.B. 2.50"}
+                />
+              </div>
+              {/* Preview */}
+              {formData.fee_amount > 0 && formData.ticket_price > 0 && (
+                <div className="md:col-span-3 p-3 bg-background/50 border border-border/50 rounded-md">
+                  <p className="text-xs text-muted-foreground">
+                    Vorschau: Ticketpreis {formData.ticket_price.toFixed(2)}€ + Servicegebühr{" "}
+                    {formData.fee_mode === "percent"
+                      ? `${formData.fee_amount}% = ${(formData.ticket_price * formData.fee_amount / 100).toFixed(2)}€`
+                      : `${formData.fee_amount.toFixed(2)}€`
+                    }
+                    {" "}= <span className="text-foreground font-medium">
+                      {(formData.ticket_price + (formData.fee_mode === "percent" ? formData.ticket_price * formData.fee_amount / 100 : formData.fee_amount)).toFixed(2)}€
+                    </span>
+                    {" "}({formData.fee_type === "per_ticket" ? "pro Ticket" : "pro Bestellung"})
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-3 mt-4">
+        <button onClick={handleSave} className="px-6 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors">
+          {editing ? "SPEICHERN" : "ERSTELLEN"}
+        </button>
+        {!formData.is_published && (
+          <button
+            onClick={() => { setFormData((f) => ({ ...f, is_published: false })); handleSave(); }}
+            className="px-6 py-2 bg-muted text-foreground font-display tracking-wider rounded-md hover:bg-muted/80 transition-colors border border-border"
+          >
+            ALS ENTWURF SPEICHERN
+          </button>
+        )}
+        <button onClick={resetForm} className="px-6 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors">
+          ABBRECHEN
+        </button>
+      </div>
+
+      {/* Ticket Types - only for existing events */}
+      {editing && <AdminTicketTypes eventId={editing.id} />}
     </div>
   );
 
