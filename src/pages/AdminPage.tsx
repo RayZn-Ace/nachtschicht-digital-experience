@@ -341,6 +341,15 @@ const AdminPage = () => {
     fetchEventTagsMap();
   };
 
+  const renderEventForm = () => (
+    <div className="glass-card p-6 mt-3 animate-fade-in">
+      <h2 className="font-display text-2xl tracking-wider text-foreground mb-4">
+        {editing ? "EVENT BEARBEITEN" : "NEUES EVENT"}
+      </h2>
+      {/* Form content rendered via shared function */}
+    </div>
+  );
+
   return (
     <section>
       <div className="max-w-7xl mx-auto">
