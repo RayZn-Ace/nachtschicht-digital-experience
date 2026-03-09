@@ -505,6 +505,72 @@ const AdminPage = () => {
                 </div>
               </div>
 
+              {/* Lounges multi-select grouped by area */}
+              <div className="md:col-span-2">
+                <label className="text-sm text-foreground mb-2 block">Lounges – welche Lounges sind für dieses Event buchbar?</label>
+                {(() => {
+                  const loungesByArea = CLUB_AREAS.map((area) => ({
+                    area,
+                    lounges: allLounges.filter((l) => l.area_id === area.id && l.is_active),
+                  })).filter((g) => g.lounges.length > 0);
+
+                  const toggleLounge = (id: string) => {
+                    setSelectedLoungeIds((prev) => prev.includes(id) ? prev.filter((l) => l !== id) : [...prev, id]);
+                  };
+
+                  const toggleAllInArea = (areaLounges: typeof allLounges) => {
+                    const allSelected = areaLounges.every((l) => selectedLoungeIds.includes(l.id));
+                    if (allSelected) {
+                      setSelectedLoungeIds((prev) => prev.filter((id) => !areaLounges.some((l) => l.id === id)));
+                    } else {
+                      setSelectedLoungeIds((prev) => [...new Set([...prev, ...areaLounges.map((l) => l.id)])]);
+                    }
+                  };
+
+                  return (
+                    <div className="space-y-3">
+                      {loungesByArea.map(({ area, lounges: areaLounges }) => {
+                        const selectedCount = areaLounges.filter((l) => selectedLoungeIds.includes(l.id)).length;
+                        return (
+                          <div key={area.id} className="border border-border rounded-lg p-3 bg-muted/20">
+                            <div className="flex items-center justify-between mb-2">
+                              <button
+                                type="button"
+                                onClick={() => toggleAllInArea(areaLounges)}
+                                className={`text-xs font-medium px-2 py-1 rounded ${area.color}`}
+                              >
+                                {area.name} ({selectedCount}/{areaLounges.length})
+                              </button>
+                              <span className="text-[10px] text-muted-foreground">Klick = alle an/aus</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {areaLounges.map((lounge) => (
+                                <button
+                                  key={lounge.id}
+                                  type="button"
+                                  onClick={() => toggleLounge(lounge.id)}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                    selectedLoungeIds.includes(lounge.id)
+                                      ? "bg-primary text-primary-foreground border-primary"
+                                      : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                                  }`}
+                                >
+                                  <Sofa size={12} />
+                                  {lounge.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {loungesByArea.length === 0 && (
+                        <p className="text-xs text-muted-foreground">Keine aktiven Lounges vorhanden.</p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
               {/* Titelbild Upload */}
               <div className="md:col-span-2">
                 <label className="text-sm text-foreground mb-1 block">Titelbild</label>
