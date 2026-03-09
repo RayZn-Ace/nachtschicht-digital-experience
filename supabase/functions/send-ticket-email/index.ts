@@ -229,7 +229,7 @@ async function generateInvoicePdf(adminClient: any, invoiceId: string): Promise<
       page.drawRectangle({ x: marginLeft, y: y - 4, width: contentWidth, height: 16, color: lightGray });
     }
     page.drawText(`${i + 1}`, { x: colX.pos + 5, y, size: 8, font: fontRegular, color: black });
-    page.drawText(item.description, { x: colX.desc, y, size: 8, font: fontRegular, color: black, maxWidth: colX.qty - colX.desc - 10 });
+    page.drawText(stripEmoji(item.description), { x: colX.desc, y, size: 8, font: fontRegular, color: black, maxWidth: colX.qty - colX.desc - 10 });
     page.drawText(`${item.quantity}`, { x: colX.qty + 10, y, size: 8, font: fontRegular, color: black });
     page.drawText(formatCurrency(Number(item.unit_price)), { x: colX.price, y, size: 8, font: fontRegular, color: black });
     page.drawText(`${Number(item.vat_rate)}%`, { x: colX.vat, y, size: 8, font: fontRegular, color: black });
