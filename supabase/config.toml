@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.mollie-webhook]
 verify_jwt = false
+
+[functions.create-lounge-payment]
+verify_jwt = false
