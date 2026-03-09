@@ -41,6 +41,7 @@ const TicketShopPage = () => {
   const [purchasedTicketIds, setPurchasedTicketIds] = useState<string[]>([]);
   const [ticketPdfLoading, setTicketPdfLoading] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [paymentChecking, setPaymentChecking] = useState(false);
 
   // Step: 1 = select, 2 = checkout
   const [step, setStep] = useState(1);
