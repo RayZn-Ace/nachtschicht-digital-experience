@@ -526,6 +526,7 @@ const AdminPage = () => {
         </div>
 
         {showForm && (
+          <div className="glass-card p-6 mt-6 animate-fade-in">
             <h2 className="font-display text-2xl tracking-wider text-foreground mb-4">
               {editing ? "EVENT BEARBEITEN" : "NEUES EVENT"}
             </h2>
