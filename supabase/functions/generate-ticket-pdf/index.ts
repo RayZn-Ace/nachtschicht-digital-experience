@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     page.drawText(ticketNrText, { x: width - 30 - ticketNrW, y: height - 50, size: 11, font: fontBold, color: rgb(1, 1, 1) });
 
     let yPos = height - 115;
-    page.drawText(event.title || "Event", { x: 30, y: yPos, size: 18, font: fontBold, color: black, maxWidth: width - 60 });
+    page.drawText(stripEmoji(event.title || "Event"), { x: 30, y: yPos, size: 18, font: fontBold, color: black, maxWidth: width - 60 });
 
     if (event.subtitle) {
       yPos -= 20;
