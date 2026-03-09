@@ -96,12 +96,17 @@ Deno.serve(async (req) => {
 
       // Increment discount uses
       if (discount_code_id) {
-        await adminClient.rpc("increment_discount_uses", { code_id: discount_code_id }).catch(() => {
-          // fallback: manual increment
-          adminClient.from("discount_codes").select("uses").eq("id", discount_code_id).single().then(({ data }) => {
-            if (data) adminClient.from("discount_codes").update({ uses: (data as any).uses + 1 }).eq("id", discount_code_id);
-          });
-        });
+        const { data: dc } = await adminClient
+          .from("discount_codes")
+          .select("uses")
+          .eq("id", discount_code_id)
+          .single();
+        if (dc) {
+          await adminClient
+            .from("discount_codes")
+            .update({ uses: (dc as any).uses + 1 })
+            .eq("id", discount_code_id);
+        }
       }
 
       // Fire-and-forget: invoice + email
