@@ -121,7 +121,12 @@ const AdminPage = () => {
     setEventTagsMap(map);
   };
 
-  useEffect(() => { fetchEvents(); fetchGenres(); fetchAllTags(); fetchEventStats(); }, []);
+  const fetchAllLounges = async () => {
+    const { data } = await supabase.from("lounges").select("id, name, area_id, is_active").order("sort_order");
+    if (data) setAllLounges(data as any);
+  };
+
+  useEffect(() => { fetchEvents(); fetchGenres(); fetchAllTags(); fetchEventStats(); fetchAllLounges(); }, []);
   useEffect(() => { if (allTags.length > 0) fetchEventTagsMap(); }, [allTags]);
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
