@@ -445,7 +445,8 @@ const AdminPage = () => {
             const eventTags = eventTagsMap[event.id] || [];
             const stats = eventStats[event.id] || { sold: 0, revenue: 0, checkedIn: 0, totalTickets: 0 };
             return (
-              <div key={event.id} className="glass-card overflow-hidden">
+              <React.Fragment key={event.id}>
+              <div className="glass-card overflow-hidden">
                 <div className="flex items-start gap-3 p-3 sm:p-4">
                   {event.image_url && (
                     <img src={event.image_url} alt={event.title} className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0" />
@@ -520,6 +521,9 @@ const AdminPage = () => {
                   </button>
                 </div>
               </div>
+              {/* Inline edit form for this event */}
+              {showForm && editing?.id === event.id && renderEventForm()}
+              </React.Fragment>
             );
             });
           })()}
