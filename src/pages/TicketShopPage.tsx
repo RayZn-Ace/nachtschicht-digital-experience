@@ -818,7 +818,7 @@ const TicketShopPage = () => {
         )}
 
         {/* Lounge Section */}
-        {event && !soldOut && step !== 3 && (
+        {event && step !== 3 && (
           <EventLoungeSection event={event} />
         )}
       </div>
