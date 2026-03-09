@@ -55,6 +55,7 @@ const AdminPage = () => {
     }
   }, [urlTab]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [eventFilter, setEventFilter] = useState<"published" | "draft" | "past">("published");
   const [editing, setEditing] = useState<Event | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [ticketsEvent, setTicketsEvent] = useState<Event | null>(null);
