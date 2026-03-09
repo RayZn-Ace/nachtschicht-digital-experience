@@ -699,9 +699,11 @@ const TicketShopPage = () => {
                     disabled={totalCount === 0}
                     className="w-full py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
-                    {lang === "de" ? "WEITER ZUR BUCHUNG" : "CONTINUE TO CHECKOUT"}
-              </button>
+                  </button>
+                </>
+              )}
             </div>
+          </ScrollReveal>
           </ScrollReveal>
         ) : (
           /* Step 2: Checkout */
