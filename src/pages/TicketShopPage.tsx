@@ -124,6 +124,11 @@ const TicketShopPage = () => {
   const rawTotal = useGlobalPrice ? globalSubtotal : subtotal;
   const totalCount = useGlobalPrice ? globalQuantity : totalTickets;
 
+  // Insurance calculation
+  const insuranceEnabled = (event as any)?.insurance_enabled ?? false;
+  const insuranceAmountPerTicket = (event as any)?.insurance_amount ?? 0;
+  const totalInsurance = insuranceSelected ? insuranceAmountPerTicket * totalCount : 0;
+
   // Fee calculation
   const eventFee: FeeConfig = {
     fee_enabled: (event as any)?.fee_enabled ?? false,
@@ -156,7 +161,7 @@ const TicketShopPage = () => {
       discount = Math.min(appliedDiscount.discount_value, rawTotal);
     }
   }
-  const finalTotal = Math.max(0, rawTotal - discount + totalFees);
+  const finalTotal = Math.max(0, rawTotal - discount + totalFees + totalInsurance);
 
   const updateCart = (typeId: string, delta: number) => {
     setCart((prev) => {
