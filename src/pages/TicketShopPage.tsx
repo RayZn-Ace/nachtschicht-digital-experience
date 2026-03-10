@@ -43,6 +43,10 @@ const TicketShopPage = () => {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [paymentChecking, setPaymentChecking] = useState(false);
 
+  // Insurance
+  const [insuranceSelected, setInsuranceSelected] = useState(false);
+  const [showInsurancePopup, setShowInsurancePopup] = useState(false);
+
   // Step: 1 = select, 2 = checkout
   const [step, setStep] = useState(1);
 
