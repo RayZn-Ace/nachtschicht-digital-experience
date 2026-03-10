@@ -594,6 +594,17 @@ const TicketShopPage = () => {
                     <Ticket size={22} /> {lang === "de" ? "TICKETS WÄHLEN" : "SELECT TICKETS"}
                   </h2>
 
+                  {event.has_abendkasse && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50 border border-border text-xs text-muted-foreground">
+                      <DoorOpen size={14} className="shrink-0" />
+                      <span>
+                        {lang === "de"
+                          ? "Tickets sind auch an der Abendkasse erhältlich."
+                          : "Tickets are also available at the door."}
+                      </span>
+                    </div>
+                  )}
+
                   {useGlobalPrice ? (
                     /* Global price mode */
                     <div className="flex items-center justify-between p-4 border border-border rounded-lg">
