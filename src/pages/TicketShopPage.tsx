@@ -251,6 +251,8 @@ const TicketShopPage = () => {
           discount_code_id: appliedDiscount?.id || null,
           final_total: finalTotal,
           total_fees: totalFees,
+          total_insurance: totalInsurance,
+          insurance_selected: insuranceSelected,
           discount,
           raw_total: rawTotal,
           use_global_price: useGlobalPrice,
