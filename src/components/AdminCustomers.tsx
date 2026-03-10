@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag, ArrowUpDown, ArrowUp, ArrowDown, Filter, Ticket, Send, FileText, Loader2, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+
+interface TicketDetail {
+  id: string;
+  event_id: string;
+  eventTitle: string;
+  eventDate: string;
+  quantity: number;
+  total_price: number;
+  qr_code: string | null;
+  status: string;
+  created_at: string;
+  ticket_type_name: string | null;
+}
 
 interface UnifiedCustomer {
   email: string;
@@ -20,6 +33,7 @@ interface UnifiedCustomer {
   tags: { id: string; name: string; color: string }[];
   totalSpent: number;
   ticketCount: number;
+  tickets: TicketDetail[];
   eventBreakdown: { eventTitle: string; eventDate: string; amount: number; qty: number }[];
   subscribedAt: string | null;
   createdAt: string | null;
@@ -42,6 +56,8 @@ const AdminCustomers = () => {
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [resendingTicket, setResendingTicket] = useState<string | null>(null);
+  const [downloadingTicket, setDownloadingTicket] = useState<string | null>(null);
 
   const TARGET_FIELDS = [
     { key: "email", label: "E-Mail *", required: true },
@@ -57,26 +73,44 @@ const AdminCustomers = () => {
   const fetchCustomers = async () => {
     setLoading(true);
 
-    // Fetch all data in parallel
-    const [subsRes, profilesRes, ticketsRes, tagsRes, subCatsRes, eventsRes] = await Promise.all([
+    // Fetch all data in parallel – paginate tickets
+    const [subsRes, profilesRes, tagsRes, subCatsRes, eventsRes, ttRes] = await Promise.all([
       supabase.from("newsletter_subscribers").select("*"),
       supabase.from("profiles").select("user_id, email, first_name, last_name, display_name, created_at").eq("is_deleted", false),
-      supabase.from("tickets").select("buyer_email, event_id, total_price, quantity, status").eq("status", "confirmed"),
       supabase.from("event_tags").select("*"),
       supabase.from("newsletter_subscriber_categories").select("subscriber_id, category_id"),
       supabase.from("events").select("id, title, date"),
+      supabase.from("ticket_types").select("id, name"),
     ]);
+
+    // Paginate tickets
+    let allTickets: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data } = await supabase
+        .from("tickets")
+        .select("id, buyer_email, buyer_name, event_id, total_price, quantity, status, qr_code, created_at, ticket_type_id")
+        .eq("status", "confirmed")
+        .range(from, from + pageSize - 1);
+      if (!data || data.length === 0) break;
+      allTickets = allTickets.concat(data);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
 
     const subscribers = subsRes.data || [];
     const profiles = profilesRes.data || [];
-    const tickets = ticketsRes.data || [];
-    const allTags = tagsRes.data || [];
-    setAllTags(allTags.map((t: any) => ({ id: t.id, name: t.name })));
+    const tickets = allTickets;
+    const allTagsData = tagsRes.data || [];
+    setAllTags(allTagsData.map((t: any) => ({ id: t.id, name: t.name })));
     const subCats = subCatsRes.data || [];
     const events = eventsRes.data || [];
+    const ticketTypes = ttRes.data || [];
 
     const eventsMap = new Map(events.map((e: any) => [e.id, { title: e.title, date: e.date }]));
-    const tagMap = new Map(allTags.map((t: any) => [t.id, t]));
+    const tagMap = new Map(allTagsData.map((t: any) => [t.id, t]));
+    const ttMap = new Map(ticketTypes.map((tt: any) => [tt.id, tt.name]));
 
     // Build subscriber tag map
     const subTagMap = new Map<string, { id: string; name: string; color: string }[]>();
@@ -104,6 +138,7 @@ const AdminCustomers = () => {
         tags: subTagMap.get(s.id) || [],
         totalSpent: 0,
         ticketCount: 0,
+        tickets: [],
         eventBreakdown: [],
         subscribedAt: s.subscribed_at,
         createdAt: null,
@@ -132,6 +167,7 @@ const AdminCustomers = () => {
           tags: [],
           totalSpent: 0,
           ticketCount: 0,
+          tickets: [],
           eventBreakdown: [],
           subscribedAt: null,
           createdAt: p.created_at,
@@ -142,11 +178,25 @@ const AdminCustomers = () => {
     // Add ticket data
     tickets.forEach((t: any) => {
       const key = t.buyer_email.toLowerCase();
-      const c = emailMap.get(key);
       const ev = eventsMap.get(t.event_id);
+      const ticketDetail: TicketDetail = {
+        id: t.id,
+        event_id: t.event_id,
+        eventTitle: ev ? (ev as any).title : "Unbekannt",
+        eventDate: ev ? (ev as any).date : "",
+        quantity: t.quantity,
+        total_price: Number(t.total_price),
+        qr_code: t.qr_code,
+        status: t.status,
+        created_at: t.created_at,
+        ticket_type_name: t.ticket_type_id ? (ttMap.get(t.ticket_type_id) || null) : null,
+      };
+
+      const c = emailMap.get(key);
       if (c) {
         c.totalSpent += Number(t.total_price);
         c.ticketCount += t.quantity;
+        c.tickets.push(ticketDetail);
         if (ev) {
           c.eventBreakdown.push({
             eventTitle: (ev as any).title,
@@ -158,7 +208,7 @@ const AdminCustomers = () => {
       } else {
         emailMap.set(key, {
           email: t.buyer_email,
-          name: null,
+          name: t.buyer_name || null,
           subscriberId: null,
           profileUserId: null,
           isRegistered: false,
@@ -166,6 +216,7 @@ const AdminCustomers = () => {
           tags: [],
           totalSpent: Number(t.total_price),
           ticketCount: t.quantity,
+          tickets: [ticketDetail],
           eventBreakdown: ev ? [{ eventTitle: (ev as any).title, eventDate: (ev as any).date, amount: Number(t.total_price), qty: t.quantity }] : [],
           subscribedAt: null,
           createdAt: null,
@@ -194,7 +245,14 @@ const AdminCustomers = () => {
     }
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter((c) => c.email.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q));
+      list = list.filter((c) =>
+        c.email.toLowerCase().includes(q) ||
+        (c.name || "").toLowerCase().includes(q) ||
+        c.tickets.some((t) =>
+          (t.qr_code || "").toLowerCase().includes(q) ||
+          t.id.toLowerCase().includes(q)
+        )
+      );
     }
 
     const dir = sortDir === "asc" ? 1 : -1;
@@ -213,6 +271,45 @@ const AdminCustomers = () => {
     });
   }, [customers, filterType, filterTags, hasTickets, search, sortBy, sortDir]);
 
+  // Resend ticket email
+  const handleResendTicket = async (ticketId: string) => {
+    setResendingTicket(ticketId);
+    try {
+      const { error } = await supabase.functions.invoke("send-ticket-email", {
+        body: { ticket_id: ticketId },
+      });
+      if (error) throw error;
+      toast.success("Ticket-E-Mail erneut gesendet!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Fehler beim Senden: " + (err.message || "Unbekannter Fehler"));
+    }
+    setResendingTicket(null);
+  };
+
+  // Download ticket PDF
+  const handleDownloadTicket = async (ticketId: string, qrCode: string | null) => {
+    setDownloadingTicket(ticketId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
+        body: { ticket_id: ticketId },
+      });
+      if (error) throw error;
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ticket-${qrCode || ticketId}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF heruntergeladen!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("PDF-Download fehlgeschlagen");
+    }
+    setDownloadingTicket(null);
+  };
+
   // CSV Import
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -223,7 +320,6 @@ const AdminCustomers = () => {
       const lines = text.split(/\r?\n/).filter((l) => l.trim());
       if (lines.length < 2) { toast.error("CSV muss mindestens Header + 1 Zeile haben"); return; }
 
-      // Detect delimiter
       const delim = lines[0].includes(";") ? ";" : ",";
       const headers = lines[0].split(delim).map((h) => h.replace(/^"|"$/g, "").trim());
       const rows = lines.slice(1).map((l) => l.split(delim).map((c) => c.replace(/^"|"$/g, "").trim()));
@@ -231,7 +327,6 @@ const AdminCustomers = () => {
       setCsvHeaders(headers);
       setCsvData(rows);
 
-      // Auto-map by guessing
       const mapping: Record<string, string> = {};
       headers.forEach((h, i) => {
         const lower = h.toLowerCase();
@@ -256,7 +351,6 @@ const AdminCustomers = () => {
     const nameIdx = Number(Object.entries(columnMapping).find(([_, v]) => v === "name")?.[0] ?? -1);
     const tagsIdx = Number(Object.entries(columnMapping).find(([_, v]) => v === "tags")?.[0] ?? -1);
 
-    // Get existing tags
     const { data: existingTags } = await supabase.from("event_tags").select("*");
     const tagNameMap = new Map((existingTags || []).map((t: any) => [t.name.toLowerCase(), t.id]));
 
@@ -270,7 +364,6 @@ const AdminCustomers = () => {
       const name = nameIdx >= 0 ? row[nameIdx]?.trim() || null : null;
       const tagStr = tagsIdx >= 0 ? row[tagsIdx]?.trim() || "" : "";
 
-      // Upsert subscriber
       const { data: sub, error } = await supabase
         .from("newsletter_subscribers")
         .upsert({ email, name, is_active: true } as any, { onConflict: "email" })
@@ -279,7 +372,6 @@ const AdminCustomers = () => {
 
       if (error || !sub) { skipped++; continue; }
 
-      // Handle tags
       if (tagStr) {
         const tagNames = tagStr.split(",").map((t) => t.trim()).filter(Boolean);
         for (const tName of tagNames) {
@@ -367,7 +459,7 @@ const AdminCustomers = () => {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Suche nach Name oder E-Mail..."
+            placeholder="Suche nach Name, E-Mail, Ticketnummer oder QR-Code..."
             className="pl-9"
           />
         </div>
@@ -559,6 +651,76 @@ const AdminCustomers = () => {
                             )}
                           </div>
                         </div>
+
+                        {/* Tickets Detail Section */}
+                        {c.tickets.length > 0 && (
+                          <div className="mt-4 p-2">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                              <Ticket size={12} /> Tickets ({c.tickets.length})
+                            </h4>
+                            <div className="space-y-2">
+                              {c.tickets.map((ticket) => (
+                                <div key={ticket.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-background border border-border rounded-lg">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-medium text-foreground truncate">{ticket.eventTitle}</span>
+                                      {ticket.ticket_type_name && (
+                                        <Badge variant="secondary" className="text-[10px]">{ticket.ticket_type_name}</Badge>
+                                      )}
+                                      <Badge variant="outline" className="text-[10px]">{ticket.quantity}× · {ticket.total_price.toFixed(2)}€</Badge>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                      <span>{new Date(ticket.eventDate).toLocaleDateString("de-DE")}</span>
+                                      {ticket.qr_code && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(ticket.qr_code!);
+                                            toast.success("QR-Code kopiert!");
+                                          }}
+                                          className="flex items-center gap-1 hover:text-foreground transition-colors font-mono"
+                                          title="QR-Code kopieren"
+                                        >
+                                          <Copy size={10} />
+                                          {ticket.qr_code}
+                                        </button>
+                                      )}
+                                      <span className="opacity-50" title="Ticket-ID">{ticket.id.slice(0, 8)}...</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2 shrink-0">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-xs h-8"
+                                      disabled={resendingTicket === ticket.id}
+                                      onClick={(e) => { e.stopPropagation(); handleResendTicket(ticket.id); }}
+                                    >
+                                      {resendingTicket === ticket.id
+                                        ? <Loader2 size={12} className="animate-spin mr-1" />
+                                        : <Send size={12} className="mr-1" />
+                                      }
+                                      Erneut senden
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-xs h-8"
+                                      disabled={downloadingTicket === ticket.id}
+                                      onClick={(e) => { e.stopPropagation(); handleDownloadTicket(ticket.id, ticket.qr_code); }}
+                                    >
+                                      {downloadingTicket === ticket.id
+                                        ? <Loader2 size={12} className="animate-spin mr-1" />
+                                        : <FileText size={12} className="mr-1" />
+                                      }
+                                      PDF
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   )}
