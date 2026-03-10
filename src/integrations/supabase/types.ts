@@ -329,6 +329,8 @@ export type Database = {
           image_focus_x: number | null
           image_focus_y: number | null
           image_url: string | null
+          insurance_amount: number
+          insurance_enabled: boolean
           is_featured: boolean
           is_published: boolean | null
           newsletter_banner_url: string | null
@@ -358,6 +360,8 @@ export type Database = {
           image_focus_x?: number | null
           image_focus_y?: number | null
           image_url?: string | null
+          insurance_amount?: number
+          insurance_enabled?: boolean
           is_featured?: boolean
           is_published?: boolean | null
           newsletter_banner_url?: string | null
@@ -387,6 +391,8 @@ export type Database = {
           image_focus_x?: number | null
           image_focus_y?: number | null
           image_url?: string | null
+          insurance_amount?: number
+          insurance_enabled?: boolean
           is_featured?: boolean
           is_published?: boolean | null
           newsletter_banner_url?: string | null

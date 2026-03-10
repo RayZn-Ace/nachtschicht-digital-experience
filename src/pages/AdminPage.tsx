@@ -75,6 +75,7 @@ const AdminPage = () => {
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19,
     has_muttizettel: false, has_abendkasse: false,
     fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0,
+    insurance_enabled: false, insurance_amount: 0,
   });
   const [selectedAreas, setSelectedAreas] = useState<string[]>(ALWAYS_OPEN_AREAS);
 
@@ -146,7 +147,7 @@ const AdminPage = () => {
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const resetForm = () => {
-    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0 });
+    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0, insurance_enabled: false, insurance_amount: 0 });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
     setSelectedTagIds([]);
     setSelectedLoungeIds([]);
@@ -171,6 +172,8 @@ const AdminPage = () => {
       fee_type: (event as any).fee_type ?? "per_ticket",
       fee_mode: (event as any).fee_mode ?? "fixed",
       fee_amount: (event as any).fee_amount ?? 0,
+      insurance_enabled: (event as any).insurance_enabled ?? false,
+      insurance_amount: (event as any).insurance_amount ?? 0,
     });
     // Load existing tag assignments for this event
     const { data } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
@@ -312,6 +315,8 @@ const AdminPage = () => {
       fee_type: (event as any).fee_type ?? "per_ticket",
       fee_mode: (event as any).fee_mode ?? "fixed",
       fee_amount: (event as any).fee_amount ?? 0,
+      insurance_enabled: (event as any).insurance_enabled ?? false,
+      insurance_amount: (event as any).insurance_amount ?? 0,
     };
     const { data, error } = await supabase.from("events").insert(payload as any).select("id").single();
     if (error) { toast.error("Fehler beim Duplizieren: " + error.message); return; }
@@ -684,6 +689,36 @@ const AdminPage = () => {
                       {(formData.ticket_price + (formData.fee_mode === "percent" ? formData.ticket_price * formData.fee_amount / 100 : formData.fee_amount)).toFixed(2)}€
                     </span>
                     {" "}({formData.fee_type === "per_ticket" ? "pro Ticket" : "pro Bestellung"})
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Ticketversicherung */}
+        <div className="md:col-span-2 border border-border rounded-lg p-4 bg-muted/30">
+          <label className="flex items-center gap-2 cursor-pointer mb-3">
+            <input type="checkbox" checked={formData.insurance_enabled} onChange={(e) => setFormData({ ...formData, insurance_enabled: e.target.checked })} className="accent-primary" />
+            <span className="text-sm font-medium text-foreground">Ticketversicherung aktivieren</span>
+          </label>
+          {formData.insurance_enabled && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Betrag pro Ticket (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.insurance_amount || ""}
+                  onChange={(e) => setFormData({ ...formData, insurance_amount: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                  placeholder="z.B. 2.50"
+                />
+              </div>
+              {formData.insurance_amount > 0 && formData.ticket_price > 0 && (
+                <div className="flex items-center">
+                  <p className="text-xs text-muted-foreground">
+                    Vorschau: Ticketpreis {formData.ticket_price.toFixed(2)}€ + Versicherung {formData.insurance_amount.toFixed(2)}€ = <span className="text-foreground font-medium">{(formData.ticket_price + formData.insurance_amount).toFixed(2)}€</span> pro Ticket
                   </p>
                 </div>
               )}
