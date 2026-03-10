@@ -75,6 +75,7 @@ const AdminPage = () => {
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19,
     has_muttizettel: false, has_abendkasse: false,
     fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0,
+    insurance_enabled: false, insurance_amount: 0,
   });
   const [selectedAreas, setSelectedAreas] = useState<string[]>(ALWAYS_OPEN_AREAS);
 
