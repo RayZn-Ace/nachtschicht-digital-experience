@@ -204,11 +204,6 @@ const EventsPage = () => {
                             <DoorOpen size={10} /> {lang === "de" ? "Abendkasse" : "Door Sales"}
                           </span>
                         )}
-                        {event.tickets_sold > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Users size={12} /> {event.tickets_sold} {lang === "de" ? "Gäste" : "guests"}
-                          </span>
-                        )}
                         {!soldOut && remaining <= Math.ceil(event.ticket_quantity * 0.2) && remaining > 0 && (
                           <span className="text-xs text-destructive font-semibold animate-pulse">
                             🔥 {lang === "de" ? `Noch ${remaining} Tickets` : `${remaining} tickets left`}
