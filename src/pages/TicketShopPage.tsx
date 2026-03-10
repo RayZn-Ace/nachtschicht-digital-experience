@@ -704,12 +704,61 @@ const TicketShopPage = () => {
                   )}
 
                   <button
-                    onClick={() => setStep(2)}
+                    onClick={() => {
+                      if (insuranceEnabled && insuranceAmountPerTicket > 0) {
+                        setShowInsurancePopup(true);
+                      } else {
+                        setStep(2);
+                      }
+                    }}
                     disabled={totalCount === 0}
                     className="w-full py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     {lang === "de" ? "WEITER ZUR BUCHUNG" : "CONTINUE TO CHECKOUT"}
                   </button>
+
+                  {/* Insurance Popup */}
+                  {showInsurancePopup && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setShowInsurancePopup(false)}>
+                      <div className="bg-background border border-border rounded-xl p-6 max-w-md w-full mx-4 space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                            <Shield size={24} className="text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-display text-xl tracking-wider text-foreground">
+                              {lang === "de" ? "TICKETVERSICHERUNG" : "TICKET INSURANCE"}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {insuranceAmountPerTicket.toFixed(2).replace(".", ",")}€ {lang === "de" ? "pro Ticket" : "per ticket"}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {lang === "de"
+                            ? "Sichere deine Tickets ab! Bei Krankheit oder unvorhergesehenen Ereignissen erhältst du den vollen Ticketpreis zurück."
+                            : "Protect your tickets! In case of illness or unforeseen events, you'll receive a full refund."}
+                        </p>
+                        <div className="p-3 bg-muted rounded-lg text-sm text-foreground">
+                          {totalCount} {totalCount === 1 ? "Ticket" : "Tickets"} × {insuranceAmountPerTicket.toFixed(2).replace(".", ",")}€ = <span className="font-bold">{(insuranceAmountPerTicket * totalCount).toFixed(2).replace(".", ",")}€</span>
+                        </div>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => { setInsuranceSelected(false); setShowInsurancePopup(false); setStep(2); }}
+                            className="flex-1 py-3 border border-border text-foreground font-display tracking-wider rounded-md hover:bg-muted transition-colors text-sm"
+                          >
+                            {lang === "de" ? "NEIN, DANKE" : "NO, THANKS"}
+                          </button>
+                          <button
+                            onClick={() => { setInsuranceSelected(true); setShowInsurancePopup(false); setStep(2); }}
+                            className="flex-1 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-sm"
+                          >
+                            {lang === "de" ? "JA, ABSICHERN" : "YES, INSURE"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
