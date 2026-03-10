@@ -6,7 +6,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
 import type { Event, TicketType, DiscountCode } from "@/types/database";
 import { toast } from "sonner";
-import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2, ShieldCheck, DoorOpen } from "lucide-react";
+import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2, ShieldCheck, DoorOpen, Shield } from "lucide-react";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import { calcOrderFees, type FeeConfig, type TicketTypeFeeOverride } from "@/lib/fees";
 import ScrollReveal from "@/components/ScrollReveal";
