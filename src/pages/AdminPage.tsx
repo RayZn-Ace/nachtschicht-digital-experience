@@ -313,6 +313,8 @@ const AdminPage = () => {
       fee_type: (event as any).fee_type ?? "per_ticket",
       fee_mode: (event as any).fee_mode ?? "fixed",
       fee_amount: (event as any).fee_amount ?? 0,
+      insurance_enabled: (event as any).insurance_enabled ?? false,
+      insurance_amount: (event as any).insurance_amount ?? 0,
     };
     const { data, error } = await supabase.from("events").insert(payload as any).select("id").single();
     if (error) { toast.error("Fehler beim Duplizieren: " + error.message); return; }
