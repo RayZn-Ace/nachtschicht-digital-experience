@@ -692,7 +692,37 @@ const AdminPage = () => {
                   </p>
                 </div>
               )}
+        </div>
+
+        {/* Ticketversicherung */}
+        <div className="md:col-span-2 border border-border rounded-lg p-4 bg-muted/30">
+          <label className="flex items-center gap-2 cursor-pointer mb-3">
+            <input type="checkbox" checked={formData.insurance_enabled} onChange={(e) => setFormData({ ...formData, insurance_enabled: e.target.checked })} className="accent-primary" />
+            <span className="text-sm font-medium text-foreground">Ticketversicherung aktivieren</span>
+          </label>
+          {formData.insurance_enabled && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Betrag pro Ticket (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.insurance_amount || ""}
+                  onChange={(e) => setFormData({ ...formData, insurance_amount: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                  placeholder="z.B. 2.50"
+                />
+              </div>
+              {formData.insurance_amount > 0 && formData.ticket_price > 0 && (
+                <div className="flex items-center">
+                  <p className="text-xs text-muted-foreground">
+                    Vorschau: Ticketpreis {formData.ticket_price.toFixed(2)}€ + Versicherung {formData.insurance_amount.toFixed(2)}€ = <span className="text-foreground font-medium">{(formData.ticket_price + formData.insurance_amount).toFixed(2)}€</span> pro Ticket
+                  </p>
+                </div>
+              )}
             </div>
+          )}
+        </div>
           )}
         </div>
       </div>
