@@ -465,6 +465,12 @@ const TicketShopPage = () => {
                         <span>{totalFees.toFixed(2)}€</span>
                       </div>
                     )}
+                    {totalInsurance > 0 && (
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1"><Shield size={10} /> {lang === "de" ? "Ticketversicherung" : "Ticket insurance"}</span>
+                        <span>{totalInsurance.toFixed(2)}€</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-sm pt-1 border-t border-border/50">
                       <span className="text-foreground font-semibold">{lang === "de" ? "Gesamt" : "Total"}</span>
                       <span className="text-foreground font-bold">{finalTotal.toFixed(2)}€</span>
