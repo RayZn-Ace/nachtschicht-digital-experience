@@ -147,7 +147,7 @@ const AdminPage = () => {
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const resetForm = () => {
-    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0 });
+    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0, insurance_enabled: false, insurance_amount: 0 });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
     setSelectedTagIds([]);
     setSelectedLoungeIds([]);
