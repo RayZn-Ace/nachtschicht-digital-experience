@@ -172,6 +172,8 @@ const AdminPage = () => {
       fee_type: (event as any).fee_type ?? "per_ticket",
       fee_mode: (event as any).fee_mode ?? "fixed",
       fee_amount: (event as any).fee_amount ?? 0,
+      insurance_enabled: (event as any).insurance_enabled ?? false,
+      insurance_amount: (event as any).insurance_amount ?? 0,
     });
     // Load existing tag assignments for this event
     const { data } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
