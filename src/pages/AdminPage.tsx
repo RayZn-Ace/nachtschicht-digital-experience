@@ -692,6 +692,8 @@ const AdminPage = () => {
                   </p>
                 </div>
               )}
+            </div>
+          )}
         </div>
 
         {/* Ticketversicherung */}
@@ -721,8 +723,6 @@ const AdminPage = () => {
                 </div>
               )}
             </div>
-          )}
-        </div>
           )}
         </div>
       </div>
