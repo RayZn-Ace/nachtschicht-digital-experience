@@ -594,8 +594,8 @@ const TicketShopPage = () => {
                       <DoorOpen size={14} className="shrink-0" />
                       <span>
                         {lang === "de"
-                          ? "Tickets sind auch an der Abendkasse erhältlich."
-                          : "Tickets are also available at the door."}
+                          ? `Tickets sind auch für ${event.ticket_price || 0}€ an der Abendkasse erhältlich.`
+                          : `Tickets are also available at the door for ${event.ticket_price || 0}€.`}
                       </span>
                     </div>
                   )}
