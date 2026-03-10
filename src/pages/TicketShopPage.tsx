@@ -368,11 +368,6 @@ const TicketShopPage = () => {
 
               {/* Social proof & scarcity */}
               <div className="flex items-center gap-4 mt-3">
-                {event.tickets_sold > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Users size={12} /> {event.tickets_sold} {lang === "de" ? "Gäste kommen" : "guests attending"}
-                  </span>
-                )}
                 {!soldOut && remaining <= Math.ceil(event.ticket_quantity * 0.2) && (
                   <span className="text-xs text-destructive font-semibold animate-pulse">
                     🔥 {lang === "de" ? `Nur noch ${remaining} Tickets!` : `Only ${remaining} tickets left!`}
