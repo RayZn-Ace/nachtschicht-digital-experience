@@ -41,7 +41,7 @@ interface Genre {
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["events", "ticketcenter", "albums", "newsletter", "u18", "tracking", "tags", "codes", "lounges", "loungemanage", "drinks", "holidays", "invoiceconfig", "revenue", "controlling", "reports", "applicants", "customers", "lostfound", "csvmigration"] as const;
+  const validTabs = ["events", "ticketcenter", "albums", "newsletter", "u18", "tracking", "tags", "codes", "lounges", "loungemanage", "drinks", "holidays", "invoiceconfig", "revenue", "controlling", "reports", "applicants", "customers", "lostfound", "csvmigration", "usermanagement"] as const;
   type TabType = typeof validTabs[number];
   const urlTab = searchParams.get("tab") as TabType | null;
   const [tab, setTabState] = useState<TabType>(validTabs.includes(urlTab as any) ? urlTab! : "events");
