@@ -39,6 +39,7 @@ export const useUserRoles = (): UseUserRolesReturn => {
   return {
     roles,
     isAdmin: roles.includes("admin"),
+    isScanner: roles.includes("scanner") || roles.includes("admin"),
     loading,
   };
 };

@@ -120,7 +120,8 @@ const vibrate = (pattern: number | number[]) => {
 };
 
 const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { isAdmin, isScanner, loading: rolesLoading } = useUserRoles();
   const [result, setResult] = useState<ScanResult | null>(null);
   const [stats, setStats] = useState({ total: 0, checkedIn: 0 });
   const [manualInput, setManualInput] = useState("");
