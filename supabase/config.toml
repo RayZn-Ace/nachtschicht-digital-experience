@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.create-lounge-payment]
 verify_jwt = false
+
+[functions.sync-outbound]
+verify_jwt = false
