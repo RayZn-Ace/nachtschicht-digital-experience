@@ -754,7 +754,9 @@ const AdminPage = () => {
       <div className="max-w-7xl mx-auto">
 
 
-        {tab === "csvmigration" ? (
+        {tab === "usermanagement" ? (
+          <AdminUserManagement />
+        ) : tab === "csvmigration" ? (
           <AdminCsvMigration />
         ) : tab === "lostfound" ? (
           <AdminLostAndFound />
