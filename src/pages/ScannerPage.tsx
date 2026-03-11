@@ -445,7 +445,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
     toast.info("Offline-Warteschlange geleert");
   };
 
-  if (loading) {
+  if (loading || rolesLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] text-foreground">
         <div className="animate-pulse text-center">
@@ -456,7 +456,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
     );
   }
 
-  if (!user || !isAdmin) return <Navigate to="/login" replace />;
+  if (!user || !isScanner) return <Navigate to="/login" replace />;
 
   const percentage = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0;
 
