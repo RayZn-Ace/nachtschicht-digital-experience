@@ -102,7 +102,7 @@ const AdminUserManagement = () => {
     });
     if (error || data?.error) { toast.error(data?.error || "Fehler"); return; }
     toast.success("Rollen aktualisiert!");
-    fetchUserRoles();
+    fetchUsersAndRoles();
   };
 
   const handleDeleteUser = async (userId: string, email: string) => {
