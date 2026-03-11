@@ -79,7 +79,7 @@ const AdminUserManagement = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    await Promise.all([fetchUsers(), fetchUserRoles(), fetchPermissions(), fetchRolePermissions()]);
+    await Promise.all([fetchUsersAndRoles(), fetchPermissions(), fetchRolePermissions()]);
     setLoading(false);
   };
 
