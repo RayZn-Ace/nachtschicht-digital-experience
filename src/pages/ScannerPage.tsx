@@ -531,22 +531,24 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
           </select>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="glass-card p-3 text-center">
-            <Users size={18} className="mx-auto mb-1 text-primary" />
-            <p className="text-xl font-bold text-foreground">{stats.checkedIn}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Eingecheckt</p>
+        {/* Stats - only for admins */}
+        {isAdmin && (
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="glass-card p-3 text-center">
+              <Users size={18} className="mx-auto mb-1 text-primary" />
+              <p className="text-xl font-bold text-foreground">{stats.checkedIn}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Eingecheckt</p>
+            </div>
+            <div className="glass-card p-3 text-center">
+              <p className="text-xl font-bold text-foreground mt-5">{stats.total}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</p>
+            </div>
+            <div className="glass-card p-3 text-center">
+              <p className="text-xl font-bold text-primary mt-5">{percentage}%</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Quote</p>
+            </div>
           </div>
-          <div className="glass-card p-3 text-center">
-            <p className="text-xl font-bold text-foreground mt-5">{stats.total}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</p>
-          </div>
-          <div className="glass-card p-3 text-center">
-            <p className="text-xl font-bold text-primary mt-5">{percentage}%</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Quote</p>
-          </div>
-        </div>
+        )}
 
         {/* Camera Scanner */}
         <div className="glass-card p-3 mb-3">
