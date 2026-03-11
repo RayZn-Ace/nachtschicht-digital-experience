@@ -16,6 +16,7 @@ const STAFF_PATHS = [...ADMIN_PATHS, ...SCANNER_PATHS];
 const Layout = ({ children }: { children: ReactNode }) => {
   useTracking();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { isScanner } = useUserRoles();
 
