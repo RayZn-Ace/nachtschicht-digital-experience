@@ -180,7 +180,14 @@ const AdminUserManagement = () => {
       name: slug,
       description: newRoleDesc || null,
     } as any);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      if (error.message.includes("duplicate key") || error.message.includes("roles_name_key")) {
+        toast.error(`Die Rolle "${slug}" existiert bereits`);
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
     toast.success("Rolle erstellt!");
     setNewRoleName(""); setNewRoleDesc(""); setShowRoleForm(false);
     fetchRoles();
