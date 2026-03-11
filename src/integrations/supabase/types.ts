@@ -1057,6 +1057,30 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          created_at: string
+          group_name: string
+          id: string
+          key: string
+          label: string
+        }
+        Insert: {
+          created_at?: string
+          group_name?: string
+          id?: string
+          key: string
+          label: string
+        }
+        Update: {
+          created_at?: string
+          group_name?: string
+          id?: string
+          key?: string
+          label?: string
+        }
+        Relationships: []
+      }
       photo_reports: {
         Row: {
           admin_notes: string | null
@@ -1203,6 +1227,35 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          role: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_settings: {
         Row: {
