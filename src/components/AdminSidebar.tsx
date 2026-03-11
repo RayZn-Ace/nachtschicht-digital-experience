@@ -65,6 +65,13 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
       { label: "CSV-Migration", tab: "csvmigration", icon: FileSpreadsheet },
     ],
   },
+  {
+    label: "Verwaltung",
+    icon: Shield,
+    items: [
+      { label: "Benutzer & Rechte", tab: "usermanagement", icon: Shield },
+    ],
+  },
 ];
 
 const AdminSidebar = () => {
