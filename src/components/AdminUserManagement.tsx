@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, Key, Users, Lock, RefreshCw, ChevronDown, ChevronRight, Check } from "lucide-react";
+import { Plus, Trash2, Shield, Key, Users, RefreshCw, ChevronDown, ChevronRight, Check, Edit2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AuthUser {
@@ -24,13 +24,20 @@ interface RolePermission {
   permission_id: string;
 }
 
-const ROLES = ["admin", "user"] as const;
+interface RoleRecord {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  is_system: boolean;
+}
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [userRoles, setUserRoles] = useState<Record<string, string[]>>({});
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
+  const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Create user form
@@ -45,8 +52,18 @@ const AdminUserManagement = () => {
   const [newPermLabel, setNewPermLabel] = useState("");
   const [newPermGroup, setNewPermGroup] = useState("");
 
+  // New role form
+  const [showRoleForm, setShowRoleForm] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleDesc, setNewRoleDesc] = useState("");
+
   // Expanded role in permissions tab
   const [expandedRole, setExpandedRole] = useState<string | null>("admin");
+
+  const fetchRoles = async () => {
+    const { data } = await supabase.from("roles").select("*").order("is_system desc, name");
+    setRoles((data as any) || []);
+  };
 
   const fetchUsersAndRoles = async () => {
     const session = (await supabase.auth.getSession()).data.session;
@@ -58,7 +75,6 @@ const AdminUserManagement = () => {
     if (error) { toast.error("Fehler beim Laden der Benutzer"); return; }
     setUsers(data.users || []);
 
-    // Build roles map from edge function response (bypasses RLS)
     const map: Record<string, string[]> = {};
     (data.roles || []).forEach((r: any) => {
       if (!map[r.user_id]) map[r.user_id] = [];
@@ -79,11 +95,13 @@ const AdminUserManagement = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    await Promise.all([fetchUsersAndRoles(), fetchPermissions(), fetchRolePermissions()]);
+    await Promise.all([fetchUsersAndRoles(), fetchPermissions(), fetchRolePermissions(), fetchRoles()]);
     setLoading(false);
   };
 
   useEffect(() => { loadAll(); }, []);
+
+  const roleNames = roles.map(r => r.name);
 
   const handleCreateUser = async () => {
     if (!newEmail || !newPassword) { toast.error("E-Mail und Passwort sind erforderlich"); return; }
@@ -96,9 +114,9 @@ const AdminUserManagement = () => {
     loadAll();
   };
 
-  const handleUpdateRoles = async (userId: string, roles: string[]) => {
+  const handleUpdateRoles = async (userId: string, updatedRoles: string[]) => {
     const { data, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "update_roles", user_id: userId, roles },
+      body: { action: "update_roles", user_id: userId, roles: updatedRoles },
     });
     if (error || data?.error) { toast.error(data?.error || "Fehler"); return; }
     toast.success("Rollen aktualisiert!");
@@ -155,6 +173,34 @@ const AdminUserManagement = () => {
     fetchRolePermissions();
   };
 
+  const handleCreateRole = async () => {
+    if (!newRoleName) { toast.error("Rollenname ist erforderlich"); return; }
+    const slug = newRoleName.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    const { error } = await supabase.from("roles").insert({
+      name: slug,
+      description: newRoleDesc || null,
+    } as any);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Rolle erstellt!");
+    setNewRoleName(""); setNewRoleDesc(""); setShowRoleForm(false);
+    fetchRoles();
+  };
+
+  const handleDeleteRole = async (role: RoleRecord) => {
+    if (role.is_system) { toast.error("System-Rollen können nicht gelöscht werden"); return; }
+    if (!confirm(`Rolle "${role.name}" wirklich löschen? Alle zugehörigen Berechtigungen und Benutzerzuordnungen werden entfernt.`)) return;
+    // Remove role_permissions for this role
+    await supabase.from("role_permissions").delete().eq("role", role.name);
+    // Remove user assignments for this role via edge function (bypasses RLS)
+    await supabase.functions.invoke("manage-users", {
+      body: { action: "remove_role_from_all_users", role_name: role.name },
+    });
+    // Remove from roles table
+    await supabase.from("roles").delete().eq("id", role.id);
+    toast.success("Rolle gelöscht!");
+    loadAll();
+  };
+
   // Group permissions by group_name
   const permGroups = permissions.reduce<Record<string, Permission[]>>((acc, p) => {
     if (!acc[p.group_name]) acc[p.group_name] = [];
@@ -207,7 +253,7 @@ const AdminUserManagement = () => {
                   value={newRole} onChange={e => setNewRole(e.target.value)}
                   className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm"
                 >
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  {roleNames.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
               <div className="flex gap-2">
@@ -236,21 +282,21 @@ const AdminUserManagement = () => {
                 </thead>
                 <tbody>
                   {users.filter(u => (userRoles[u.id] || []).length > 0).map(u => {
-                    const roles = userRoles[u.id] || [];
+                    const uRoles = userRoles[u.id] || [];
                     return (
                       <tr key={u.id} className="border-b border-border/30 hover:bg-muted/30">
                         <td className="px-4 py-3 text-foreground font-medium">{u.email}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1.5 flex-wrap">
-                            {ROLES.map(role => {
-                              const active = roles.includes(role);
+                            {roleNames.map(role => {
+                              const active = uRoles.includes(role);
                               return (
                                 <button
                                   key={role}
                                   onClick={() => {
                                     const newRoles = active
-                                      ? roles.filter(r => r !== role)
-                                      : [...roles, role];
+                                      ? uRoles.filter(r => r !== role)
+                                      : [...uRoles, role];
                                     handleUpdateRoles(u.id, newRoles);
                                   }}
                                   className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
@@ -302,15 +348,50 @@ const AdminUserManagement = () => {
 
         {/* ── PERMISSIONS TAB ── */}
         <TabsContent value="permissions" className="space-y-4 mt-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="font-display text-xl tracking-wider text-foreground">ROLLEN & BERECHTIGUNGEN</h2>
-            <button
-              onClick={() => setShowPermForm(!showPermForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90"
-            >
-              <Plus size={16} /> Neue Berechtigung
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowRoleForm(!showRoleForm)}
+                className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent/90"
+              >
+                <Plus size={16} /> Neue Rolle
+              </button>
+              <button
+                onClick={() => setShowPermForm(!showPermForm)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90"
+              >
+                <Plus size={16} /> Neue Berechtigung
+              </button>
+            </div>
           </div>
+
+          {/* Create Role Form */}
+          {showRoleForm && (
+            <div className="glass-card p-5 space-y-3 animate-fade-in">
+              <h3 className="text-sm font-semibold text-foreground">Neue Rolle erstellen</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  placeholder="Name (z.B. moderator)" value={newRoleName}
+                  onChange={e => setNewRoleName(e.target.value)}
+                  className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm"
+                />
+                <input
+                  placeholder="Beschreibung (optional)" value={newRoleDesc}
+                  onChange={e => setNewRoleDesc(e.target.value)}
+                  className="px-3 py-2 bg-muted border border-border rounded-md text-foreground text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleCreateRole} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90">
+                  Erstellen
+                </button>
+                <button onClick={() => setShowRoleForm(false)} className="px-4 py-2 bg-muted text-foreground rounded-lg text-sm hover:bg-muted/80">
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          )}
 
           {showPermForm && (
             <div className="glass-card p-5 space-y-3 animate-fade-in">
@@ -344,23 +425,41 @@ const AdminUserManagement = () => {
           )}
 
           {/* Role permission matrix */}
-          {ROLES.map(role => {
-            const isExpanded = expandedRole === role;
+          {roles.map(role => {
+            const isExpanded = expandedRole === role.name;
+            const permCount = rolePermissions.filter(rp => rp.role === role.name).length;
             return (
-              <div key={role} className="glass-card overflow-hidden">
-                <button
-                  onClick={() => setExpandedRole(isExpanded ? null : role)}
-                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Shield size={18} className={role === "admin" ? "text-primary" : "text-muted-foreground"} />
-                    <span className="font-display text-lg tracking-wider text-foreground uppercase">{role}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ({rolePermissions.filter(rp => rp.role === role).length} Rechte)
-                    </span>
-                  </div>
-                  {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                </button>
+              <div key={role.id} className="glass-card overflow-hidden">
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setExpandedRole(isExpanded ? null : role.name)}
+                    className="flex-1 flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Shield size={18} className={role.name === "admin" ? "text-primary" : "text-muted-foreground"} />
+                      <span className="font-display text-lg tracking-wider text-foreground uppercase">{role.name}</span>
+                      {role.description && (
+                        <span className="text-xs text-muted-foreground hidden sm:inline">— {role.description}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        ({permCount} Rechte)
+                      </span>
+                      {role.is_system && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">System</span>
+                      )}
+                    </div>
+                    {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                  </button>
+                  {!role.is_system && (
+                    <button
+                      onClick={() => handleDeleteRole(role)}
+                      className="p-2 mr-3 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                      title="Rolle löschen"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
 
                 {isExpanded && (
                   <div className="border-t border-border/30 px-5 py-4 space-y-4">
@@ -369,11 +468,11 @@ const AdminUserManagement = () => {
                         <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">{group}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                           {perms.map(perm => {
-                            const active = rolePermissions.some(rp => rp.role === role && rp.permission_id === perm.id);
+                            const active = rolePermissions.some(rp => rp.role === role.name && rp.permission_id === perm.id);
                             return (
                               <button
                                 key={perm.id}
-                                onClick={() => toggleRolePermission(role, perm.id)}
+                                onClick={() => toggleRolePermission(role.name, perm.id)}
                                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
                                   active
                                     ? "bg-primary/10 text-primary border border-primary/20"

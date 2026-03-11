@@ -78,12 +78,20 @@ Deno.serve(async (req) => {
         const { user_id, roles } = payload;
         // Delete existing roles
         await supabase.from("user_roles").delete().eq("user_id", user_id);
-        // Insert new roles
+        // Insert new roles (now supports any text role, not just enum)
         if (roles && roles.length > 0) {
           const rows = roles.map((role: string) => ({ user_id, role }));
           const { error } = await supabase.from("user_roles").insert(rows);
           if (error) throw error;
         }
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "remove_role_from_all_users": {
+        const { role_name } = payload;
+        await supabase.from("user_roles").delete().eq("role", role_name);
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

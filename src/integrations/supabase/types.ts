@@ -1257,6 +1257,33 @@ export type Database = {
           },
         ]
       }
+      roles: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           key: string
@@ -1715,17 +1742,17 @@ export type Database = {
       user_roles: {
         Row: {
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
           user_id: string
         }
         Insert: {
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
           user_id: string
         }
         Update: {
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
           user_id?: string
         }
         Relationships: []
@@ -1746,13 +1773,15 @@ export type Database = {
         }[]
       }
       get_tracking_config_public: { Args: never; Returns: Json }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { _role: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
