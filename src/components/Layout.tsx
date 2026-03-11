@@ -17,11 +17,12 @@ const Layout = ({ children }: { children: ReactNode }) => {
   useTracking();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
-  const { isScanner } = useUserRoles();
+  const { isAdmin, user, loading: authLoading } = useAuth();
+  const { isScanner, loading: rolesLoading } = useUserRoles();
 
+  const isStaffPath = STAFF_PATHS.some((p) => pathname.startsWith(p));
   const isAdminArea = isAdmin && ADMIN_PATHS.some((p) => pathname.startsWith(p));
-  const isScannerOnlyArea = !isAdmin && isScanner && STAFF_PATHS.some((p) => pathname.startsWith(p));
+  const isScannerOnlyArea = !isAdmin && isScanner && isStaffPath;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -29,10 +30,10 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
   // Redirect scanner-only users from /admin or /dashboard to /scanner
   useEffect(() => {
-    if (!isAdmin && isScanner && ADMIN_PATHS.some((p) => pathname.startsWith(p))) {
+    if (!authLoading && !rolesLoading && !isAdmin && isScanner && ADMIN_PATHS.some((p) => pathname.startsWith(p))) {
       navigate("/scanner", { replace: true });
     }
-  }, [isAdmin, isScanner, pathname, navigate]);
+  }, [isAdmin, isScanner, pathname, navigate, authLoading, rolesLoading]);
 
   if (isAdminArea) {
     return (
