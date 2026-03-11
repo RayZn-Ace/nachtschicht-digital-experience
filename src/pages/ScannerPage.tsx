@@ -621,15 +621,21 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                       ? "STORNIERT"
                       : "UNGÜLTIG"}
                   </h2>
-                  {result.ticket?.event_title && (
+                  {scanPerms.showEventInfo && result.ticket?.event_title && (
                     <p className="text-sm font-medium bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 inline-block">
                       {result.ticket.event_title}
                     </p>
                   )}
-                  {result.ticket?.buyer_name && (
-                    <p className="text-xs opacity-80">{result.ticket.buyer_name} · {result.ticket.quantity}×</p>
+                  {scanPerms.showGuestName && result.ticket?.buyer_name && (
+                    <p className="text-xs opacity-80">
+                      {result.ticket.buyer_name}
+                      {result.ticket.quantity > 1 ? ` · ${result.ticket.quantity}×` : ""}
+                    </p>
                   )}
-                  {result.ticket?.ticket_type && (
+                  {!scanPerms.showGuestName && result.ticket?.quantity && result.ticket.quantity > 1 && (
+                    <p className="text-xs opacity-80">{result.ticket.quantity}× Tickets</p>
+                  )}
+                  {scanPerms.showTicketType && result.ticket?.ticket_type && (
                     <p className="text-sm font-semibold bg-white/25 backdrop-blur-sm rounded-md px-3 py-1 inline-block">
                       {result.ticket.ticket_type}
                     </p>
@@ -639,7 +645,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
                       Eingecheckt: {new Date(result.ticket.checked_in_at).toLocaleTimeString("de-DE")}
                     </p>
                   )}
-                  {result.status === "wrong_event" && (
+                  {result.status === "wrong_event" && scanPerms.showEventInfo && (
                     <p className="text-xs opacity-80">Ticket gehört nicht zum ausgewählten Event</p>
                   )}
                   {(result.status === "invalid" || result.status === "cancelled") && (
