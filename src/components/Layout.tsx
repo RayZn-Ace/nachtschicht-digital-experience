@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import CookieConsent from "./CookieConsent";
@@ -11,19 +11,28 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 
 const ADMIN_PATHS = ["/dashboard", "/admin"];
 const SCANNER_PATHS = ["/scanner"];
+const STAFF_PATHS = [...ADMIN_PATHS, ...SCANNER_PATHS];
 
 const Layout = ({ children }: { children: ReactNode }) => {
   useTracking();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { isScanner } = useUserRoles();
 
   const isAdminArea = isAdmin && ADMIN_PATHS.some((p) => pathname.startsWith(p));
-  const isScannerArea = isScanner && SCANNER_PATHS.some((p) => pathname.startsWith(p));
+  const isScannerOnlyArea = !isAdmin && isScanner && STAFF_PATHS.some((p) => pathname.startsWith(p));
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
+  // Redirect scanner-only users from /admin or /dashboard to /scanner
+  useEffect(() => {
+    if (!isAdmin && isScanner && ADMIN_PATHS.some((p) => pathname.startsWith(p))) {
+      navigate("/scanner", { replace: true });
+    }
+  }, [isAdmin, isScanner, pathname, navigate]);
 
   if (isAdminArea) {
     return (
@@ -40,7 +49,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
   }
 
   // Scanner-only users get a minimal layout (no full admin sidebar)
-  if (isScannerArea && !isAdminArea) {
+  if (isScannerOnlyArea) {
     return (
       <div className="min-h-dvh flex flex-col">
         <main className="flex-1" role="main">
