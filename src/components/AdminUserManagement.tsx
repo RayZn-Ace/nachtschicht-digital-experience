@@ -239,7 +239,7 @@ const AdminUserManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(u => {
+                  {users.filter(u => (userRoles[u.id] || []).length > 0).map(u => {
                     const roles = userRoles[u.id] || [];
                     return (
                       <tr key={u.id} className="border-b border-border/30 hover:bg-muted/30">
