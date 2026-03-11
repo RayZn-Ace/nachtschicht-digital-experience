@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, forwardRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -119,7 +120,8 @@ const vibrate = (pattern: number | number[]) => {
 };
 
 const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { isAdmin, isScanner, loading: rolesLoading } = useUserRoles();
   const [result, setResult] = useState<ScanResult | null>(null);
   const [stats, setStats] = useState({ total: 0, checkedIn: 0 });
   const [manualInput, setManualInput] = useState("");
@@ -443,7 +445,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
     toast.info("Offline-Warteschlange geleert");
   };
 
-  if (loading) {
+  if (loading || rolesLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] text-foreground">
         <div className="animate-pulse text-center">
@@ -454,7 +456,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
     );
   }
 
-  if (!user || !isAdmin) return <Navigate to="/login" replace />;
+  if (!user || !isScanner) return <Navigate to="/login" replace />;
 
   const percentage = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0;
 
@@ -529,22 +531,24 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
           </select>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="glass-card p-3 text-center">
-            <Users size={18} className="mx-auto mb-1 text-primary" />
-            <p className="text-xl font-bold text-foreground">{stats.checkedIn}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Eingecheckt</p>
+        {/* Stats - only for admins */}
+        {isAdmin && (
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="glass-card p-3 text-center">
+              <Users size={18} className="mx-auto mb-1 text-primary" />
+              <p className="text-xl font-bold text-foreground">{stats.checkedIn}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Eingecheckt</p>
+            </div>
+            <div className="glass-card p-3 text-center">
+              <p className="text-xl font-bold text-foreground mt-5">{stats.total}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</p>
+            </div>
+            <div className="glass-card p-3 text-center">
+              <p className="text-xl font-bold text-primary mt-5">{percentage}%</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Quote</p>
+            </div>
           </div>
-          <div className="glass-card p-3 text-center">
-            <p className="text-xl font-bold text-foreground mt-5">{stats.total}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</p>
-          </div>
-          <div className="glass-card p-3 text-center">
-            <p className="text-xl font-bold text-primary mt-5">{percentage}%</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Quote</p>
-          </div>
-        </div>
+        )}
 
         {/* Camera Scanner */}
         <div className="glass-card p-3 mb-3">
