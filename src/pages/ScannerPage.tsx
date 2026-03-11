@@ -533,8 +533,8 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
           </select>
         </div>
 
-        {/* Stats - only for admins */}
-        {isAdmin && (
+        {/* Stats - only with scanner.stats permission */}
+        {scanPerms.showStats && (
           <div className="grid grid-cols-3 gap-2 mb-4">
             <div className="glass-card p-3 text-center">
               <Users size={18} className="mx-auto mb-1 text-primary" />
