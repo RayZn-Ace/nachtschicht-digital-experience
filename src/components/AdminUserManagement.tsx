@@ -48,7 +48,7 @@ const AdminUserManagement = () => {
   // Expanded role in permissions tab
   const [expandedRole, setExpandedRole] = useState<string | null>("admin");
 
-  const fetchUsers = async () => {
+  const fetchUsersAndRoles = async () => {
     const session = (await supabase.auth.getSession()).data.session;
     if (!session) return;
 
@@ -57,14 +57,10 @@ const AdminUserManagement = () => {
     });
     if (error) { toast.error("Fehler beim Laden der Benutzer"); return; }
     setUsers(data.users || []);
-  };
 
-  const fetchUserRoles = async () => {
-    // We need admin access to see all roles - use the edge function
-    // For now fetch from user_roles table (admin has ALL access)
-    const { data } = await supabase.from("user_roles").select("user_id, role");
+    // Build roles map from edge function response (bypasses RLS)
     const map: Record<string, string[]> = {};
-    (data || []).forEach((r: any) => {
+    (data.roles || []).forEach((r: any) => {
       if (!map[r.user_id]) map[r.user_id] = [];
       map[r.user_id].push(r.role);
     });
