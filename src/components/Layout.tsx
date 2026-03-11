@@ -27,6 +27,13 @@ const Layout = ({ children }: { children: ReactNode }) => {
     window.scrollTo(0, 0);
   }, [pathname]);
 
+  // Redirect scanner-only users from /admin or /dashboard to /scanner
+  useEffect(() => {
+    if (!isAdmin && isScanner && ADMIN_PATHS.some((p) => pathname.startsWith(p))) {
+      navigate("/scanner", { replace: true });
+    }
+  }, [isAdmin, isScanner, pathname, navigate]);
+
   if (isAdminArea) {
     return (
       <div className="flex min-h-dvh">
