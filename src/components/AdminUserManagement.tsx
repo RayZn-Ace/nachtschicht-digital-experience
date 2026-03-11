@@ -61,7 +61,8 @@ const AdminUserManagement = () => {
   const [expandedRole, setExpandedRole] = useState<string | null>("admin");
 
   const fetchRoles = async () => {
-    const { data } = await supabase.from("roles").select("*").order("is_system desc, name");
+    const { data, error } = await supabase.from("roles").select("*").order("is_system", { ascending: false }).order("name");
+    if (error) { console.error("fetchRoles error:", error); }
     setRoles((data as any) || []);
   };
 
