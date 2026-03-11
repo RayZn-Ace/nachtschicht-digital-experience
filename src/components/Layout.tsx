@@ -11,6 +11,7 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 
 const ADMIN_PATHS = ["/dashboard", "/admin"];
 const SCANNER_PATHS = ["/scanner"];
+const STAFF_PATHS = [...ADMIN_PATHS, ...SCANNER_PATHS];
 
 const Layout = ({ children }: { children: ReactNode }) => {
   useTracking();
@@ -19,7 +20,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
   const { isScanner } = useUserRoles();
 
   const isAdminArea = isAdmin && ADMIN_PATHS.some((p) => pathname.startsWith(p));
-  const isScannerArea = isScanner && SCANNER_PATHS.some((p) => pathname.startsWith(p));
+  const isScannerOnlyArea = !isAdmin && isScanner && STAFF_PATHS.some((p) => pathname.startsWith(p));
 
   useEffect(() => {
     window.scrollTo(0, 0);
