@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export type AppRole = "admin" | "user";
+export type AppRole = "admin" | "user" | "scanner";
 
 interface UseUserRolesReturn {
   roles: AppRole[];
   isAdmin: boolean;
+  isScanner: boolean;
   loading: boolean;
 }
 
