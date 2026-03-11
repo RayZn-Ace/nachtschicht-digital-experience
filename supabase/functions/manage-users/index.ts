@@ -49,7 +49,9 @@ Deno.serve(async (req) => {
       case "list_users": {
         const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
         if (error) throw error;
-        return new Response(JSON.stringify({ users: data.users }), {
+        // Also fetch all roles (bypasses RLS with service role)
+        const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+        return new Response(JSON.stringify({ users: data.users, roles: allRoles || [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
