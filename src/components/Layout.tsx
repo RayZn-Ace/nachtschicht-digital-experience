@@ -35,6 +35,15 @@ const Layout = ({ children }: { children: ReactNode }) => {
     }
   }, [isAdmin, isScanner, pathname, navigate, authLoading, rolesLoading]);
 
+  // While roles are loading on staff paths, show minimal loading state (not frontend layout)
+  if (user && (authLoading || rolesLoading) && isStaffPath) {
+    return (
+      <div className="flex items-center justify-center min-h-dvh bg-background text-foreground">
+        Laden...
+      </div>
+    );
+  }
+
   if (isAdminArea) {
     return (
       <div className="flex min-h-dvh">
