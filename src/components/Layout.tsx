@@ -7,15 +7,19 @@ import ChatBot from "./ChatBot";
 import AdminSidebar from "./AdminSidebar";
 import { useTracking } from "@/hooks/useTracking";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
-const ADMIN_PATHS = ["/dashboard", "/admin", "/scanner"];
+const ADMIN_PATHS = ["/dashboard", "/admin"];
+const SCANNER_PATHS = ["/scanner"];
 
 const Layout = ({ children }: { children: ReactNode }) => {
   useTracking();
   const { pathname } = useLocation();
   const { isAdmin } = useAuth();
+  const { isScanner } = useUserRoles();
 
   const isAdminArea = isAdmin && ADMIN_PATHS.some((p) => pathname.startsWith(p));
+  const isScannerArea = isScanner && SCANNER_PATHS.some((p) => pathname.startsWith(p));
 
   useEffect(() => {
     window.scrollTo(0, 0);
