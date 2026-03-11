@@ -191,6 +191,10 @@ const AdminUserManagement = () => {
     if (!confirm(`Rolle "${role.name}" wirklich löschen? Alle zugehörigen Berechtigungen und Benutzerzuordnungen werden entfernt.`)) return;
     // Remove role_permissions for this role
     await supabase.from("role_permissions").delete().eq("role", role.name);
+    // Remove user assignments for this role via edge function (bypasses RLS)
+    await supabase.functions.invoke("manage-users", {
+      body: { action: "remove_role_from_all_users", role_name: role.name },
+    });
     // Remove from roles table
     await supabase.from("roles").delete().eq("id", role.id);
     toast.success("Rolle gelöscht!");
