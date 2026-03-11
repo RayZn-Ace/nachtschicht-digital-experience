@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Calendar, ShoppingCart, Ticket, Tags,
   Image, Mail, FileText, Flag, Sofa, Wine, Sparkles, Users,
   Search, BarChart3, TrendingUp, Receipt, Settings, QrCode,
-  ArrowLeft, LogOut, Menu, X, FileSpreadsheet,
+  ArrowLeft, LogOut, Menu, X, FileSpreadsheet, Shield,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -63,6 +63,13 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
       { label: "Rechnungen", tab: "invoiceconfig", icon: Receipt },
       { label: "Tracking", tab: "tracking", icon: Settings },
       { label: "CSV-Migration", tab: "csvmigration", icon: FileSpreadsheet },
+    ],
+  },
+  {
+    label: "Verwaltung",
+    icon: Shield,
+    items: [
+      { label: "Benutzer & Rechte", tab: "usermanagement", icon: Shield },
     ],
   },
 ];
