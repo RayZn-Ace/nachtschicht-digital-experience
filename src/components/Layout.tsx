@@ -41,7 +41,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
   }
 
   // Scanner-only users get a minimal layout (no full admin sidebar)
-  if (isScannerArea && !isAdminArea) {
+  if (isScannerOnlyArea) {
     return (
       <div className="min-h-dvh flex flex-col">
         <main className="flex-1" role="main">
