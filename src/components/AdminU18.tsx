@@ -358,6 +358,8 @@ const AdminU18 = () => {
         onDelete={handleDelete}
         onDownloadPdf={handleDownloadPdf}
         downloadingPdf={downloadingPdf}
+        onResendEmail={handleResendEmail}
+        resendingEmail={resendingEmail}
       />
     );
   }
