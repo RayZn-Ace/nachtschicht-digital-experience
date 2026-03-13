@@ -25,6 +25,53 @@ function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function fetchWithRetry(
+  label: string,
+  url: string,
+  init: RequestInit,
+  maxAttempts = 3,
+): Promise<Response> {
+  let lastDetails = "unknown error";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(url, init);
+
+      if (response.ok) {
+        return response;
+      }
+
+      const details = await response.text();
+      lastDetails = `status ${response.status}: ${details}`;
+      const retryable = response.status === 429 || response.status >= 500;
+
+      console.warn(`${label} attempt ${attempt} failed: ${lastDetails}`);
+
+      if (!retryable || attempt === maxAttempts) {
+        throw new Error(lastDetails);
+      }
+    } catch (err) {
+      lastDetails = String(err);
+      if (attempt === maxAttempts) {
+        throw err;
+      }
+      console.warn(`${label} attempt ${attempt} exception: ${lastDetails}`);
+    }
+
+    await sleep(500 * attempt);
+  }
+
+  throw new Error(`${label} failed after ${maxAttempts} attempts: ${lastDetails}`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
