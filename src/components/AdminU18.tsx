@@ -98,6 +98,16 @@ const U18Detail = ({
       </button>
       <h3 className="font-display text-xl tracking-wider text-foreground flex-1">{form.minor_name}</h3>
       <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onResendEmail(form.id)}
+        disabled={resendingEmail}
+        className="font-display tracking-wider gap-1.5"
+      >
+        {resendingEmail ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+        Erneut senden
+      </Button>
+      <Button
         variant="default"
         size="sm"
         onClick={() => onDownloadPdf(form.id)}
