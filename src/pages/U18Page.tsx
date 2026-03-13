@@ -230,13 +230,13 @@ const U18Page = () => {
 
     if (error) {
       toast.error("Fehler beim Speichern: " + error.message);
-    } else if (data) {
-      const sendEmailWithRetry = async (formId: string) => {
+    } else {
+      const sendEmailWithRetry = async (currentFormId: string) => {
         const maxAttempts = 3;
 
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           const { error: mailError } = await supabase.functions.invoke("send-u18-email", {
-            body: { form_id: formId },
+            body: { form_id: currentFormId },
           });
 
           if (!mailError) return true;
@@ -250,8 +250,8 @@ const U18Page = () => {
         return false;
       };
 
-      const emailSent = await sendEmailWithRetry(data.id);
-      setSubmittedFormId(data.id);
+      const emailSent = await sendEmailWithRetry(formId);
+      setSubmittedFormId(formId);
 
       if (emailSent) {
         toast.success("Clubzettel wurde erfolgreich erstellt und per E-Mail versendet! 📧");
