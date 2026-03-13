@@ -191,8 +191,10 @@ const U18Page = () => {
     setSubmitting(true);
 
     const selectedEv = events.find((e) => e.id === selectedEvent);
+    const formId = crypto.randomUUID();
 
-    const { data, error } = await supabase.from("u18_forms").insert({
+    const { error } = await supabase.from("u18_forms").insert({
+      id: formId,
       event_id: selectedEvent,
       event_title: selectedEv?.title || "",
       event_date: selectedEv?.date || null,
@@ -224,17 +226,17 @@ const U18Page = () => {
       accept_newsletter: acceptNewsletter,
       parent_signature: !skipSignature ? parentSignature : null,
       supervisor_signature: !skipSignature && !skipSupervisor ? supervisorSignature : null,
-    } as any).select("id").single();
+    } as any);
 
     if (error) {
       toast.error("Fehler beim Speichern: " + error.message);
-    } else if (data) {
-      const sendEmailWithRetry = async (formId: string) => {
+    } else {
+      const sendEmailWithRetry = async (currentFormId: string) => {
         const maxAttempts = 3;
 
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           const { error: mailError } = await supabase.functions.invoke("send-u18-email", {
-            body: { form_id: formId },
+            body: { form_id: currentFormId },
           });
 
           if (!mailError) return true;
@@ -248,8 +250,8 @@ const U18Page = () => {
         return false;
       };
 
-      const emailSent = await sendEmailWithRetry(data.id);
-      setSubmittedFormId(data.id);
+      const emailSent = await sendEmailWithRetry(formId);
+      setSubmittedFormId(formId);
 
       if (emailSent) {
         toast.success("Clubzettel wurde erfolgreich erstellt und per E-Mail versendet! 📧");
