@@ -191,8 +191,10 @@ const U18Page = () => {
     setSubmitting(true);
 
     const selectedEv = events.find((e) => e.id === selectedEvent);
+    const formId = crypto.randomUUID();
 
-    const { data, error } = await supabase.from("u18_forms").insert({
+    const { error } = await supabase.from("u18_forms").insert({
+      id: formId,
       event_id: selectedEvent,
       event_title: selectedEv?.title || "",
       event_date: selectedEv?.date || null,
@@ -224,7 +226,7 @@ const U18Page = () => {
       accept_newsletter: acceptNewsletter,
       parent_signature: !skipSignature ? parentSignature : null,
       supervisor_signature: !skipSignature && !skipSupervisor ? supervisorSignature : null,
-    } as any).select("id").single();
+    } as any);
 
     if (error) {
       toast.error("Fehler beim Speichern: " + error.message);
