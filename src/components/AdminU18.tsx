@@ -477,6 +477,13 @@ const AdminU18 = () => {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button
+                  onClick={(e) => { e.stopPropagation(); handleResendEmail(form.id); }}
+                  className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary"
+                  title="Erneut per E-Mail senden"
+                >
+                  <Mail size={16} />
+                </button>
+                <button
                   onClick={(e) => { e.stopPropagation(); handleDownloadPdf(form.id); }}
                   className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary"
                   title="PDF herunterladen"
