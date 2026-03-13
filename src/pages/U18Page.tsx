@@ -229,17 +229,32 @@ const U18Page = () => {
     if (error) {
       toast.error("Fehler beim Speichern: " + error.message);
     } else if (data) {
+      const sendEmailWithRetry = async (formId: string) => {
+        const maxAttempts = 3;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          const { error: mailError } = await supabase.functions.invoke("send-u18-email", {
+            body: { form_id: formId },
+          });
+
+          if (!mailError) return true;
+
+          console.error(`send-u18-email attempt ${attempt} failed:`, mailError);
+          if (attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+          }
+        }
+
+        return false;
+      };
+
+      const emailSent = await sendEmailWithRetry(data.id);
       setSubmittedFormId(data.id);
 
-      const { error: mailError } = await supabase.functions.invoke("send-u18-email", {
-        body: { form_id: data.id },
-      });
-
-      if (mailError) {
-        console.error("send-u18-email failed:", mailError);
-        toast.warning("Clubzettel erstellt, aber E-Mail-Versand fehlgeschlagen. Bitte PDF jetzt manuell herunterladen.");
-      } else {
+      if (emailSent) {
         toast.success("Clubzettel wurde erfolgreich erstellt und per E-Mail versendet! 📧");
+      } else {
+        toast.warning("Clubzettel erstellt, aber E-Mail-Versand fehlgeschlagen. Bitte PDF jetzt manuell herunterladen.");
       }
     }
     setSubmitting(false);
