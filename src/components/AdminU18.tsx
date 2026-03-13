@@ -221,6 +221,7 @@ const AdminU18 = () => {
   const [eventFilter, setEventFilter] = useState("all");
   const [selectedForm, setSelectedForm] = useState<U18Form | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   const fetchForms = async () => {
     setLoading(true);
