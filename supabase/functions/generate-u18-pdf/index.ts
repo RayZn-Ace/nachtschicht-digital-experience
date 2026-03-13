@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     });
     y -= 18;
 
-    page.drawText(form.event_title || "–", {
+    page.drawText(stripEmoji(form.event_title || "–"), {
       x: 40, y, size: 14, font: fontBold, color: black,
     });
     y -= 16;
