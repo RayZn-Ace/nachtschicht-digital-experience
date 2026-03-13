@@ -230,7 +230,17 @@ const U18Page = () => {
       toast.error("Fehler beim Speichern: " + error.message);
     } else if (data) {
       setSubmittedFormId(data.id);
-      toast.success("Clubzettel wurde erfolgreich erstellt! 🎉");
+
+      const { error: mailError } = await supabase.functions.invoke("send-u18-email", {
+        body: { form_id: data.id },
+      });
+
+      if (mailError) {
+        console.error("send-u18-email failed:", mailError);
+        toast.warning("Clubzettel erstellt, aber E-Mail-Versand fehlgeschlagen. Bitte PDF jetzt manuell herunterladen.");
+      } else {
+        toast.success("Clubzettel wurde erfolgreich erstellt und per E-Mail versendet! 📧");
+      }
     }
     setSubmitting(false);
   };
