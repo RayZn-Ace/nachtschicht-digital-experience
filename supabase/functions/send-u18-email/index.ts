@@ -25,6 +25,53 @@ function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function fetchWithRetry(
+  label: string,
+  url: string,
+  init: RequestInit,
+  maxAttempts = 3,
+): Promise<Response> {
+  let lastDetails = "unknown error";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(url, init);
+
+      if (response.ok) {
+        return response;
+      }
+
+      const details = await response.text();
+      lastDetails = `status ${response.status}: ${details}`;
+      const retryable = response.status === 429 || response.status >= 500;
+
+      console.warn(`${label} attempt ${attempt} failed: ${lastDetails}`);
+
+      if (!retryable || attempt === maxAttempts) {
+        throw new Error(lastDetails);
+      }
+    } catch (err) {
+      lastDetails = String(err);
+      if (attempt === maxAttempts) {
+        throw err;
+      }
+      console.warn(`${label} attempt ${attempt} exception: ${lastDetails}`);
+    }
+
+    await sleep(500 * attempt);
+  }
+
+  throw new Error(`${label} failed after ${maxAttempts} attempts: ${lastDetails}`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -64,24 +111,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    const pdfRes = await fetch(`${supabaseUrl}/functions/v1/generate-u18-pdf`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({ form_id }),
-    });
-
-    if (!pdfRes.ok) {
-      const details = await pdfRes.text();
-      console.error("generate-u18-pdf call failed:", details);
-      return new Response(JSON.stringify({ error: "PDF generation failed", details }), {
-        status: 500,
+    const recipient = (form.email || "").trim().toLowerCase();
+    if (!isValidEmail(recipient)) {
+      return new Response(JSON.stringify({ error: "Invalid recipient email" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log("send-u18-email start", { form_id, recipient });
+
+    const pdfRes = await fetchWithRetry(
+      "generate-u18-pdf",
+      `${supabaseUrl}/functions/v1/generate-u18-pdf`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({ form_id }),
+      },
+      3,
+    );
 
     const pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
     const shortId = form.id.slice(0, 8).toUpperCase();
@@ -98,17 +151,20 @@ Deno.serve(async (req) => {
     const parentName = escapeHtml(form.parent_name || "Gast");
     const safeEventTitle = escapeHtml(eventTitle);
 
-    const emailRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${resendApiKey}`,
-      },
-      body: JSON.stringify({
-        from: "Nachtschicht <tickets@nachtschicht-kaiserslautern.app>",
-        to: [form.email],
-        subject: `Dein Clubzettel für ${eventTitle}`,
-        html: `
+    const emailRes = await fetchWithRetry(
+      "resend-email",
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: "Nachtschicht <tickets@nachtschicht-kaiserslautern.app>",
+          to: [recipient],
+          subject: `Dein Clubzettel für ${eventTitle}`,
+          html: `
           <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; background: #0f0f13; color: #ffffff; padding: 32px; border-radius: 12px;">
             <div style="text-align: center; margin-bottom: 28px;">
               <h1 style="font-size: 28px; letter-spacing: 4px; margin: 0;">NACHTSCHICHT</h1>
@@ -141,25 +197,20 @@ Deno.serve(async (req) => {
             </div>
           </div>
         `,
-        attachments: [
-          {
-            filename: `clubzettel-${shortId}.pdf`,
-            content: uint8ToBase64(pdfBytes),
-          },
-        ],
-      }),
-    });
-
-    if (!emailRes.ok) {
-      const errBody = await emailRes.text();
-      console.error("Resend error:", errBody);
-      return new Response(JSON.stringify({ error: "Email sending failed", details: errBody }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+          attachments: [
+            {
+              filename: `clubzettel-${shortId}.pdf`,
+              content: uint8ToBase64(pdfBytes),
+            },
+          ],
+        }),
+      },
+      3,
+    );
 
     const result = await emailRes.json();
+    console.log("send-u18-email success", { form_id, recipient, email_id: result.id });
+
     return new Response(JSON.stringify({ success: true, email_id: result.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
