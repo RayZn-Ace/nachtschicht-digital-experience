@@ -80,12 +80,16 @@ const U18Detail = ({
   onDelete,
   onDownloadPdf,
   downloadingPdf,
+  onResendEmail,
+  resendingEmail,
 }: {
   form: U18Form;
   onBack: () => void;
   onDelete: (id: string) => void;
   onDownloadPdf: (id: string) => void;
   downloadingPdf: boolean;
+  onResendEmail: (id: string) => void;
+  resendingEmail: boolean;
 }) => (
   <div className="space-y-6">
     <div className="flex items-center gap-3 flex-wrap">
