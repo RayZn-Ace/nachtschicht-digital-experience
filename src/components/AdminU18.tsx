@@ -280,6 +280,21 @@ const AdminU18 = () => {
     }
   };
 
+  const handleResendEmail = async (formId: string) => {
+    setResendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-u18-email", {
+        body: { form_id: formId },
+      });
+      if (error) throw error;
+      toast.success("Clubzettel wurde erneut per E-Mail versendet! 📧");
+    } catch (err: any) {
+      toast.error("E-Mail-Versand fehlgeschlagen: " + (err.message || "Unbekannter Fehler"));
+    } finally {
+      setResendingEmail(false);
+    }
+  };
+
   // Unique events for filter
   const eventOptions = useMemo(() => {
     const map = new Map<string, string>();
