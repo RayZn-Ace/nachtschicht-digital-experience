@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, FileText, CalendarDays, Users, Trash2, Download, ArrowLeft, Loader2 } from "lucide-react";
+import { Search, FileText, CalendarDays, Users, Trash2, Download, ArrowLeft, Loader2, Mail } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -80,12 +80,16 @@ const U18Detail = ({
   onDelete,
   onDownloadPdf,
   downloadingPdf,
+  onResendEmail,
+  resendingEmail,
 }: {
   form: U18Form;
   onBack: () => void;
   onDelete: (id: string) => void;
   onDownloadPdf: (id: string) => void;
   downloadingPdf: boolean;
+  onResendEmail: (id: string) => void;
+  resendingEmail: boolean;
 }) => (
   <div className="space-y-6">
     <div className="flex items-center gap-3 flex-wrap">
@@ -93,6 +97,16 @@ const U18Detail = ({
         <ArrowLeft size={16} /> Zurück
       </button>
       <h3 className="font-display text-xl tracking-wider text-foreground flex-1">{form.minor_name}</h3>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onResendEmail(form.id)}
+        disabled={resendingEmail}
+        className="font-display tracking-wider gap-1.5"
+      >
+        {resendingEmail ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+        Erneut senden
+      </Button>
       <Button
         variant="default"
         size="sm"
@@ -207,6 +221,7 @@ const AdminU18 = () => {
   const [eventFilter, setEventFilter] = useState("all");
   const [selectedForm, setSelectedForm] = useState<U18Form | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   const fetchForms = async () => {
     setLoading(true);
@@ -262,6 +277,21 @@ const AdminU18 = () => {
       toast.error(err.message || "PDF konnte nicht heruntergeladen werden.");
     } finally {
       setDownloadingPdf(false);
+    }
+  };
+
+  const handleResendEmail = async (formId: string) => {
+    setResendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-u18-email", {
+        body: { form_id: formId },
+      });
+      if (error) throw error;
+      toast.success("Clubzettel wurde erneut per E-Mail versendet! 📧");
+    } catch (err: any) {
+      toast.error("E-Mail-Versand fehlgeschlagen: " + (err.message || "Unbekannter Fehler"));
+    } finally {
+      setResendingEmail(false);
     }
   };
 
@@ -328,6 +358,8 @@ const AdminU18 = () => {
         onDelete={handleDelete}
         onDownloadPdf={handleDownloadPdf}
         downloadingPdf={downloadingPdf}
+        onResendEmail={handleResendEmail}
+        resendingEmail={resendingEmail}
       />
     );
   }
@@ -444,6 +476,13 @@ const AdminU18 = () => {
                 <p className="text-muted-foreground text-xs">{form.email} · {formatDateTime(form.created_at)}</p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleResendEmail(form.id); }}
+                  className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary"
+                  title="Erneut per E-Mail senden"
+                >
+                  <Mail size={16} />
+                </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDownloadPdf(form.id); }}
                   className="p-2 hover:bg-primary/20 rounded-md transition-colors text-primary"
