@@ -43,6 +43,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    console.log("Form loaded:", {
+      id: form.id,
+      has_signature: form.has_signature,
+      has_supervisor_signature: form.has_supervisor_signature,
+      parent_sig_len: form.parent_signature?.length || 0,
+      supervisor_sig_len: form.supervisor_signature?.length || 0,
+    });
+
     // Create PDF
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595, 842]); // A4
