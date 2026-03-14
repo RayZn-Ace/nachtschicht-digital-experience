@@ -303,7 +303,7 @@ const AdminLiveCheckin = () => {
                 ))}
                 {filteredTickets.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="py-8 text-center text-muted-foreground">
                       {search ? "Keine Tickets gefunden" : "Keine Tickets vorhanden"}
                     </td>
                   </tr>
