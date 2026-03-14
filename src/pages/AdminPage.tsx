@@ -253,6 +253,7 @@ const AdminPage = () => {
       ...formData,
       subtitle: formData.subtitle || null,
       end_time: formData.end_time || null,
+      end_date: formData.end_date || null,
       areas: formatAreas(selectedAreas),
       date: new Date(formData.date).toISOString(),
       ticket_price: Number(formData.ticket_price),
