@@ -7,10 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Camera, CameraOff, CheckCircle, XCircle, AlertTriangle,
-  Users, Keyboard, ScanLine, RotateCcw, WifiOff, Wifi, CloudUpload, Trash2
+  Users, Keyboard, ScanLine, RotateCcw, WifiOff, Wifi, CloudUpload, Trash2,
+  Sofa, CreditCard, Phone, Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TicketResult {
   id: string;
