@@ -80,6 +80,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
     showGuestEmail: perms["scanner.guest_email"] ?? false,
     showTicketType: perms["scanner.ticket_type"] ?? false,
     showEventInfo: perms["scanner.event_info"] ?? false,
+    showLounges: perms["scanner.lounges"] ?? false,
     loading,
   };
 };
