@@ -502,11 +502,37 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
   return (
     <section className="pb-6 pt-4 px-4 md:section-padding" ref={ref}>
       <div className="container mx-auto max-w-lg">
-        <div className="text-center mb-4">
-          <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground">
-            TICKET <span className="text-gradient">SCANNER</span>
-          </h1>
-        </div>
+        {/* Tab header if lounges permission */}
+        {scanPerms.showLounges ? (
+          <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4">
+            <button
+              onClick={() => setScannerTab("scan")}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-display tracking-wider transition-all ${
+                scannerTab === "scan"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ScanLine size={16} /> SCANNER
+            </button>
+            <button
+              onClick={() => setScannerTab("lounges")}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-display tracking-wider transition-all ${
+                scannerTab === "lounges"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sofa size={16} /> LOUNGES
+            </button>
+          </div>
+        ) : (
+          <div className="text-center mb-4">
+            <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground">
+              TICKET <span className="text-gradient">SCANNER</span>
+            </h1>
+          </div>
+        )}
 
         {/* Online/Offline indicator */}
         <div className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-sm font-medium ${
