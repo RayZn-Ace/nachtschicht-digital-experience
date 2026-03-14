@@ -35,6 +35,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
         "scanner.guest_email": true,
         "scanner.ticket_type": true,
         "scanner.event_info": true,
+        "scanner.lounges": true,
       });
       setLoading(false);
       return;
