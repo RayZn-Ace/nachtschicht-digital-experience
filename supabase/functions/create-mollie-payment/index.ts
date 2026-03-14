@@ -46,53 +46,73 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Helper: create individual ticket rows (one per unit) instead of one row with quantity > 1
+    function buildIndividualInserts(
+      baseFields: Record<string, any>,
+      quantity: number,
+      totalPrice: number,
+      feeAmount: number,
+      ticketTypeId?: string,
+    ) {
+      const pricePerTicket = +(totalPrice / quantity).toFixed(2);
+      const feePerTicket = +(feeAmount / quantity).toFixed(2);
+      const inserts = [];
+      for (let i = 0; i < quantity; i++) {
+        inserts.push({
+          ...baseFields,
+          ticket_type_id: ticketTypeId || null,
+          quantity: 1,
+          total_price: pricePerTicket,
+          fee_amount: feePerTicket,
+          qr_code: `TKT-${crypto.randomUUID()}`,
+        });
+      }
+      return inserts;
+    }
+
     // For free tickets, create directly as confirmed
     if (final_total <= 0) {
-      const qrCode = `TKT-${crypto.randomUUID()}`;
-      let ticketIds: string[] = [];
+      let inserts: any[] = [];
 
       if (use_global_price) {
-        const { data, error } = await adminClient.from("tickets").insert({
-          event_id,
-          user_id: user_id || null,
-          quantity: global_quantity,
-          total_price: 0,
-          fee_amount: 0,
-          buyer_email: guest_email,
-          buyer_name: guest_name,
-          buyer_phone: guest_phone || null,
-          qr_code: qrCode,
-          discount_code_id: discount_code_id || null,
-          status: "confirmed",
-        }).select("id");
-        if (error) throw error;
-        if (data) ticketIds = data.map((t: any) => t.id);
+        inserts = buildIndividualInserts(
+          {
+            event_id,
+            user_id: user_id || null,
+            buyer_email: guest_email,
+            buyer_name: guest_name,
+            buyer_phone: guest_phone || null,
+            discount_code_id: discount_code_id || null,
+            status: "confirmed",
+          },
+          global_quantity,
+          0,
+          0,
+        );
       } else {
-        const inserts = Object.entries(cart as Record<string, { quantity: number; price: number; ticket_type_id: string }>)
-          .filter(([_, item]) => item.quantity > 0)
-          .map(([_, item]) => {
-            const ticketSubtotal = item.price * item.quantity;
-            const ticketDiscount = discount && raw_total > 0 ? discount * (ticketSubtotal / raw_total) : 0;
-            const ticketFee = raw_total > 0 ? total_fees * (ticketSubtotal / raw_total) : 0;
-            return {
+        for (const [_, item] of Object.entries(cart as Record<string, { quantity: number; price: number; ticket_type_id: string }>)) {
+          if (item.quantity <= 0) continue;
+          inserts.push(...buildIndividualInserts(
+            {
               event_id,
               user_id: user_id || null,
-              ticket_type_id: item.ticket_type_id,
-              quantity: item.quantity,
-              total_price: 0,
-              fee_amount: 0,
               buyer_email: guest_email,
               buyer_name: guest_name,
               buyer_phone: guest_phone || null,
-              qr_code: `TKT-${crypto.randomUUID()}`,
               discount_code_id: discount_code_id || null,
               status: "confirmed",
-            };
-          });
-        const { data, error } = await adminClient.from("tickets").insert(inserts).select("id");
-        if (error) throw error;
-        if (data) ticketIds = data.map((t: any) => t.id);
+            },
+            item.quantity,
+            0,
+            0,
+            item.ticket_type_id,
+          ));
+        }
       }
+
+      const { data, error } = await adminClient.from("tickets").insert(inserts).select("id");
+      if (error) throw error;
+      const ticketIds = data?.map((t: any) => t.id) || [];
 
       // Increment discount uses
       if (discount_code_id) {
@@ -123,57 +143,57 @@ Deno.serve(async (req) => {
         }).catch(console.error);
       }
 
-      return new Response(JSON.stringify({ success: true, free: true, ticket_ids: ticketIds, qr_code: qrCode }), {
+      return new Response(JSON.stringify({ success: true, free: true, ticket_ids: ticketIds }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Paid tickets: create as pending, then create Mollie payment
-    let ticketIds: string[] = [];
-    const qrCode = `TKT-${crypto.randomUUID()}`;
+    let inserts: any[] = [];
 
     if (use_global_price) {
-      const { data, error } = await adminClient.from("tickets").insert({
-        event_id,
-        user_id: user_id || null,
-        quantity: global_quantity,
-        total_price: final_total,
-        fee_amount: total_fees || 0,
-        buyer_email: guest_email,
-        buyer_name: guest_name,
-        buyer_phone: guest_phone || null,
-        qr_code: qrCode,
-        discount_code_id: discount_code_id || null,
-        status: "pending",
-      }).select("id");
-      if (error) throw error;
-      if (data) ticketIds = data.map((t: any) => t.id);
+      inserts = buildIndividualInserts(
+        {
+          event_id,
+          user_id: user_id || null,
+          buyer_email: guest_email,
+          buyer_name: guest_name,
+          buyer_phone: guest_phone || null,
+          discount_code_id: discount_code_id || null,
+          status: "pending",
+        },
+        global_quantity,
+        final_total,
+        total_fees || 0,
+      );
     } else {
-      const inserts = Object.entries(cart as Record<string, { quantity: number; price: number; ticket_type_id: string }>)
-        .filter(([_, item]) => item.quantity > 0)
-        .map(([_, item]) => {
-          const ticketSubtotal = item.price * item.quantity;
-          const ticketDiscount = discount && raw_total > 0 ? discount * (ticketSubtotal / raw_total) : 0;
-          const ticketFee = raw_total > 0 ? total_fees * (ticketSubtotal / raw_total) : 0;
-          return {
+      for (const [_, item] of Object.entries(cart as Record<string, { quantity: number; price: number; ticket_type_id: string }>)) {
+        if (item.quantity <= 0) continue;
+        const ticketSubtotal = item.price * item.quantity;
+        const ticketDiscount = discount && raw_total > 0 ? discount * (ticketSubtotal / raw_total) : 0;
+        const ticketFee = raw_total > 0 ? total_fees * (ticketSubtotal / raw_total) : 0;
+        const totalForType = +(ticketSubtotal - ticketDiscount + ticketFee).toFixed(2);
+        inserts.push(...buildIndividualInserts(
+          {
             event_id,
             user_id: user_id || null,
-            ticket_type_id: item.ticket_type_id,
-            quantity: item.quantity,
-            total_price: +(ticketSubtotal - ticketDiscount + ticketFee).toFixed(2),
-            fee_amount: +ticketFee.toFixed(2),
             buyer_email: guest_email,
             buyer_name: guest_name,
             buyer_phone: guest_phone || null,
-            qr_code: `TKT-${crypto.randomUUID()}`,
             discount_code_id: discount_code_id || null,
             status: "pending",
-          };
-        });
-      const { data, error } = await adminClient.from("tickets").insert(inserts).select("id");
-      if (error) throw error;
-      if (data) ticketIds = data.map((t: any) => t.id);
+          },
+          item.quantity,
+          totalForType,
+          +ticketFee.toFixed(2),
+          item.ticket_type_id,
+        ));
+      }
     }
+
+    const { data, error } = await adminClient.from("tickets").insert(inserts).select("id");
+    if (error) throw error;
+    const ticketIds = data?.map((t: any) => t.id) || [];
 
     // Fetch event title for Mollie description
     const { data: eventData } = await adminClient.from("events").select("title").eq("id", event_id).single();

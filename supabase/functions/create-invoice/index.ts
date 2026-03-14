@@ -221,32 +221,42 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create line items
+    // Aggregate tickets by type for line items (since each ticket is now an individual row)
     const lineItems: any[] = [];
     let sortIdx = 0;
 
+    const typeGroups: Record<string, { quantity: number; totalPrice: number; totalFee: number; typeName: string }> = {};
     tickets.forEach((t: any) => {
+      const typeKey = t.ticket_type_id || "__global__";
       const typeName = t.ticket_type_id
         ? ticketTypeMap[t.ticket_type_id] || "Ticket"
         : "Eintrittskarte";
-      const ticketFee = Number(t.fee_amount || 0);
-      const ticketBrutto = Number(t.total_price) - ticketFee;
+      if (!typeGroups[typeKey]) {
+        typeGroups[typeKey] = { quantity: 0, totalPrice: 0, totalFee: 0, typeName };
+      }
+      typeGroups[typeKey].quantity += t.quantity;
+      typeGroups[typeKey].totalPrice += Number(t.total_price) - Number(t.fee_amount || 0);
+      typeGroups[typeKey].totalFee += Number(t.fee_amount || 0);
+    });
+
+    for (const group of Object.values(typeGroups)) {
+      const ticketBrutto = group.totalPrice;
       const ticketNetto = +(ticketBrutto / (1 + vatRate / 100)).toFixed(2);
       const ticketVat = +(ticketBrutto - ticketNetto).toFixed(2);
-      const unitPriceBrutto = t.quantity > 0 ? +(ticketBrutto / t.quantity).toFixed(2) : 0;
+      const unitPriceBrutto = group.quantity > 0 ? +(ticketBrutto / group.quantity).toFixed(2) : 0;
       const unitPriceNetto = +(unitPriceBrutto / (1 + vatRate / 100)).toFixed(2);
 
       lineItems.push({
         invoice_id: invoice.id,
-        description: `${event.title} – ${typeName}`,
-        quantity: t.quantity,
+        description: `${event.title} – ${group.typeName}`,
+        quantity: group.quantity,
         unit_price: unitPriceNetto,
         vat_rate: vatRate,
         vat_amount: ticketVat,
         line_total: ticketBrutto,
         sort_order: sortIdx++,
       });
-    });
+    }
 
     // Add fee as separate line item if any
     if (totalFees > 0) {
