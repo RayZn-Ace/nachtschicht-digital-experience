@@ -38,6 +38,7 @@ const TicketShopPage = () => {
   // Contact info
   const [guestPhone, setGuestPhone] = useState("");
   const [purchasedQrCode, setPurchasedQrCode] = useState<string>("");
+  const [purchasedTickets, setPurchasedTickets] = useState<{ id: string; qr_code: string }[]>([]);
   const [purchasedTicketIds, setPurchasedTicketIds] = useState<string[]>([]);
   const [ticketPdfLoading, setTicketPdfLoading] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
@@ -84,6 +85,7 @@ const TicketShopPage = () => {
         const allConfirmed = data?.every((t: any) => t.status === "confirmed");
         if (allConfirmed && data && data.length > 0) {
           setPurchasedQrCode(data[0].qr_code || "");
+          setPurchasedTickets(data.map((t: any) => ({ id: t.id, qr_code: t.qr_code || "" })));
           setPurchasedTicketIds(ids);
           setStep(3);
           setPaymentChecking(false);
@@ -273,8 +275,19 @@ const TicketShopPage = () => {
 
       // Free ticket – no Mollie redirect needed
       if (result.free) {
-        setPurchasedQrCode(result.qr_code || "");
-        setPurchasedTicketIds(result.ticket_ids || []);
+        const ids = result.ticket_ids || [];
+        setPurchasedTicketIds(ids);
+        // Fetch all ticket QR codes
+        if (ids.length > 0) {
+          const { data: ticketData } = await supabase
+            .from("tickets")
+            .select("id, qr_code")
+            .in("id", ids);
+          if (ticketData && ticketData.length > 0) {
+            setPurchasedQrCode(ticketData[0].qr_code || "");
+            setPurchasedTickets(ticketData.map((t: any) => ({ id: t.id, qr_code: t.qr_code || "" })));
+          }
+        }
         toast.success(lang === "de" ? "Ticket erfolgreich gebucht! 🎉" : "Ticket booked successfully! 🎉");
         setStep(3);
         setBuying(false);
@@ -392,36 +405,51 @@ const TicketShopPage = () => {
                   <CheckCircle2 size={36} className="text-green-400" />
                 </div>
                 <h2 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-1">
-                  {lang === "de" ? "TICKET GEBUCHT!" : "TICKET BOOKED!"}
+                  {purchasedTickets.length > 1
+                    ? (lang === "de" ? "TICKETS GEBUCHT!" : "TICKETS BOOKED!")
+                    : (lang === "de" ? "TICKET GEBUCHT!" : "TICKET BOOKED!")}
                 </h2>
                 <p className="text-muted-foreground text-sm">
-                  {lang === "de"
-                    ? "Zeige diesen QR-Code am Eingang vor."
-                    : "Show this QR code at the entrance."}
+                  {purchasedTickets.length > 1
+                    ? (lang === "de"
+                      ? `${purchasedTickets.length} Tickets – zeige den jeweiligen QR-Code am Eingang vor.`
+                      : `${purchasedTickets.length} tickets – show the respective QR code at the entrance.`)
+                    : (lang === "de"
+                      ? "Zeige diesen QR-Code am Eingang vor."
+                      : "Show this QR code at the entrance.")}
                 </p>
               </div>
 
-              {/* QR Code */}
-              <div className="flex flex-col items-center gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-lg">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(purchasedQrCode)}&bgcolor=FFFFFF&color=000000`}
-                    alt="Ticket QR Code"
-                    className="w-[220px] h-[220px]"
-                  />
-                </div>
-                <span className="font-mono text-xs text-muted-foreground tracking-widest select-all">
-                  {purchasedQrCode}
-                </span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(purchasedQrCode);
-                    toast.success(lang === "de" ? "Code kopiert!" : "Code copied!");
-                  }}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Copy size={12} /> {lang === "de" ? "Code kopieren" : "Copy code"}
-                </button>
+              {/* QR Codes – one per ticket */}
+              <div className={`${purchasedTickets.length > 1 ? "grid grid-cols-1 sm:grid-cols-2 gap-6" : "flex flex-col items-center gap-4"}`}>
+                {(purchasedTickets.length > 0 ? purchasedTickets : [{ id: "", qr_code: purchasedQrCode }]).map((ticket, idx) => (
+                  <div key={ticket.id || idx} className="flex flex-col items-center gap-3">
+                    {purchasedTickets.length > 1 && (
+                      <span className="text-xs font-display tracking-wider text-muted-foreground">
+                        TICKET {idx + 1}/{purchasedTickets.length}
+                      </span>
+                    )}
+                    <div className="bg-white p-4 rounded-xl shadow-lg">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticket.qr_code)}&bgcolor=FFFFFF&color=000000`}
+                        alt={`Ticket ${idx + 1} QR Code`}
+                        className={purchasedTickets.length > 1 ? "w-[160px] h-[160px]" : "w-[220px] h-[220px]"}
+                      />
+                    </div>
+                    <span className="font-mono text-[10px] text-muted-foreground tracking-widest select-all">
+                      {ticket.qr_code}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(ticket.qr_code);
+                        toast.success(lang === "de" ? "Code kopiert!" : "Code copied!");
+                      }}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Copy size={12} /> {lang === "de" ? "Code kopieren" : "Copy code"}
+                    </button>
+                  </div>
+                ))}
               </div>
 
               {/* Ticket Details */}
@@ -477,8 +505,8 @@ const TicketShopPage = () => {
               {/* Info */}
               <p className="text-xs text-muted-foreground text-center">
                 {lang === "de"
-                  ? "Eine Bestätigung wurde an deine E-Mail gesendet. Speichere diesen QR-Code als Screenshot."
-                  : "A confirmation has been sent to your email. Save this QR code as a screenshot."}
+                  ? "Eine Bestätigung wurde an deine E-Mail gesendet. Speichere die QR-Codes als Screenshot."
+                  : "A confirmation has been sent to your email. Save the QR codes as a screenshot."}
               </p>
 
               {/* Actions */}
@@ -489,17 +517,21 @@ const TicketShopPage = () => {
                     if (purchasedTicketIds.length === 0) return;
                     setTicketPdfLoading(true);
                     try {
-                      const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
-                        body: { ticket_id: purchasedTicketIds[0] },
-                      });
-                      if (error) throw error;
-                      const blob = new Blob([data], { type: "application/pdf" });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement("a");
-                      link.href = url;
-                      link.download = `ticket-${purchasedQrCode}.pdf`;
-                      link.click();
-                      URL.revokeObjectURL(url);
+                      // Download PDF for each ticket
+                      for (let i = 0; i < purchasedTicketIds.length; i++) {
+                        const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
+                          body: { ticket_id: purchasedTicketIds[i] },
+                        });
+                        if (error) throw error;
+                        const blob = new Blob([data], { type: "application/pdf" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        const shortId = purchasedTicketIds[i].slice(0, 8).toUpperCase();
+                        link.download = `ticket-${shortId}.pdf`;
+                        link.click();
+                        URL.revokeObjectURL(url);
+                      }
                     } catch (err) {
                       console.error(err);
                       toast.error(lang === "de" ? "Ticket-PDF Download fehlgeschlagen" : "Ticket PDF download failed");
