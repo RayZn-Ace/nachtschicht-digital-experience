@@ -301,6 +301,7 @@ const AdminPage = () => {
       subtitle: (event as any).subtitle || null,
       description: event.description || null,
       date: event.date,
+      end_date: (event as any).end_date || null,
       time: event.time,
       end_time: (event as any).end_time || null,
       genre: event.genre || null,
