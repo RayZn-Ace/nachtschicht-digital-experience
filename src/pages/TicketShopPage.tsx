@@ -38,6 +38,7 @@ const TicketShopPage = () => {
   // Contact info
   const [guestPhone, setGuestPhone] = useState("");
   const [purchasedQrCode, setPurchasedQrCode] = useState<string>("");
+  const [purchasedTickets, setPurchasedTickets] = useState<{ id: string; qr_code: string }[]>([]);
   const [purchasedTicketIds, setPurchasedTicketIds] = useState<string[]>([]);
   const [ticketPdfLoading, setTicketPdfLoading] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
