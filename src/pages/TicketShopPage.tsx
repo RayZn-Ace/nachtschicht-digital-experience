@@ -405,36 +405,51 @@ const TicketShopPage = () => {
                   <CheckCircle2 size={36} className="text-green-400" />
                 </div>
                 <h2 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-1">
-                  {lang === "de" ? "TICKET GEBUCHT!" : "TICKET BOOKED!"}
+                  {purchasedTickets.length > 1
+                    ? (lang === "de" ? "TICKETS GEBUCHT!" : "TICKETS BOOKED!")
+                    : (lang === "de" ? "TICKET GEBUCHT!" : "TICKET BOOKED!")}
                 </h2>
                 <p className="text-muted-foreground text-sm">
-                  {lang === "de"
-                    ? "Zeige diesen QR-Code am Eingang vor."
-                    : "Show this QR code at the entrance."}
+                  {purchasedTickets.length > 1
+                    ? (lang === "de"
+                      ? `${purchasedTickets.length} Tickets – zeige den jeweiligen QR-Code am Eingang vor.`
+                      : `${purchasedTickets.length} tickets – show the respective QR code at the entrance.`)
+                    : (lang === "de"
+                      ? "Zeige diesen QR-Code am Eingang vor."
+                      : "Show this QR code at the entrance.")}
                 </p>
               </div>
 
-              {/* QR Code */}
-              <div className="flex flex-col items-center gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-lg">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(purchasedQrCode)}&bgcolor=FFFFFF&color=000000`}
-                    alt="Ticket QR Code"
-                    className="w-[220px] h-[220px]"
-                  />
-                </div>
-                <span className="font-mono text-xs text-muted-foreground tracking-widest select-all">
-                  {purchasedQrCode}
-                </span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(purchasedQrCode);
-                    toast.success(lang === "de" ? "Code kopiert!" : "Code copied!");
-                  }}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Copy size={12} /> {lang === "de" ? "Code kopieren" : "Copy code"}
-                </button>
+              {/* QR Codes – one per ticket */}
+              <div className={`${purchasedTickets.length > 1 ? "grid grid-cols-1 sm:grid-cols-2 gap-6" : "flex flex-col items-center gap-4"}`}>
+                {(purchasedTickets.length > 0 ? purchasedTickets : [{ id: "", qr_code: purchasedQrCode }]).map((ticket, idx) => (
+                  <div key={ticket.id || idx} className="flex flex-col items-center gap-3">
+                    {purchasedTickets.length > 1 && (
+                      <span className="text-xs font-display tracking-wider text-muted-foreground">
+                        TICKET {idx + 1}/{purchasedTickets.length}
+                      </span>
+                    )}
+                    <div className="bg-white p-4 rounded-xl shadow-lg">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticket.qr_code)}&bgcolor=FFFFFF&color=000000`}
+                        alt={`Ticket ${idx + 1} QR Code`}
+                        className={purchasedTickets.length > 1 ? "w-[160px] h-[160px]" : "w-[220px] h-[220px]"}
+                      />
+                    </div>
+                    <span className="font-mono text-[10px] text-muted-foreground tracking-widest select-all">
+                      {ticket.qr_code}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(ticket.qr_code);
+                        toast.success(lang === "de" ? "Code kopiert!" : "Code copied!");
+                      }}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Copy size={12} /> {lang === "de" ? "Code kopieren" : "Copy code"}
+                    </button>
+                  </div>
+                ))}
               </div>
 
               {/* Ticket Details */}
