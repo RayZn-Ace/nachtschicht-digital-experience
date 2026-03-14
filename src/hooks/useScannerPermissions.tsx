@@ -10,6 +10,7 @@ export interface ScannerPermissions {
   showGuestEmail: boolean;
   showTicketType: boolean;
   showEventInfo: boolean;
+  showLounges: boolean;
   loading: boolean;
 }
 
@@ -34,6 +35,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
         "scanner.guest_email": true,
         "scanner.ticket_type": true,
         "scanner.event_info": true,
+        "scanner.lounges": true,
       });
       setLoading(false);
       return;
@@ -57,8 +59,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
       const { data: permData } = await supabase
         .from("permissions")
         .select("key")
-        .in("id", permIds)
-        .like("key", "scanner.%");
+        .in("id", permIds);
 
       const map: Record<string, boolean> = {};
       (permData || []).forEach((p) => {
@@ -78,6 +79,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
     showGuestEmail: perms["scanner.guest_email"] ?? false,
     showTicketType: perms["scanner.ticket_type"] ?? false,
     showEventInfo: perms["scanner.event_info"] ?? false,
+    showLounges: perms["scanner.lounges"] ?? false,
     loading,
   };
 };

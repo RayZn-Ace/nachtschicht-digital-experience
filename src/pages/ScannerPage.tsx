@@ -7,10 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Camera, CameraOff, CheckCircle, XCircle, AlertTriangle,
-  Users, Keyboard, ScanLine, RotateCcw, WifiOff, Wifi, CloudUpload, Trash2
+  Users, Keyboard, ScanLine, RotateCcw, WifiOff, Wifi, CloudUpload, Trash2,
+  Sofa, CreditCard, Phone, Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TicketResult {
   id: string;
@@ -136,6 +138,10 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
   const [queue, setQueue] = useState<QueuedCheckIn[]>(loadQueue);
   const [syncing, setSyncing] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scannerTab, setScannerTab] = useState<"scan" | "lounges">("scan");
+  const [loungeBookings, setLoungeBookings] = useState<any[]>([]);
+  const [loungesMap, setLoungesMap] = useState<Record<string, string>>({});
+  const [loungeLoading, setLoungeLoading] = useState(false);
 
   const scannerRef = useRef<any>(null);
   const videoRef = useRef<HTMLDivElement>(null);
@@ -174,6 +180,36 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
       console.error("fetchStats error:", err);
     }
   }, [selectedEvent]);
+
+  // Fetch lounge bookings for scanner
+  const fetchLoungeBookings = useCallback(async () => {
+    if (!scanPerms.showLounges) return;
+    setLoungeLoading(true);
+    try {
+      let query = supabase.from("lounge_bookings").select("*").order("created_at", { ascending: false });
+      if (selectedEvent !== "all") {
+        query = query.eq("event_id", selectedEvent);
+      }
+      const { data } = await query;
+      setLoungeBookings(data || []);
+
+      // Fetch lounge names
+      const { data: lounges } = await supabase.from("lounges").select("id, name");
+      if (lounges) {
+        const map: Record<string, string> = {};
+        lounges.forEach((l: any) => { map[l.id] = l.name; });
+        setLoungesMap(map);
+      }
+    } catch (err) {
+      console.error("fetchLoungeBookings error:", err);
+    } finally {
+      setLoungeLoading(false);
+    }
+  }, [selectedEvent, scanPerms.showLounges]);
+
+  useEffect(() => {
+    if (scannerTab === "lounges") fetchLoungeBookings();
+  }, [scannerTab, fetchLoungeBookings]);
 
   // Auto-sync queue
   const syncQueue = useCallback(async () => {
@@ -466,12 +502,40 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
   return (
     <section className="pb-6 pt-4 px-4 md:section-padding" ref={ref}>
       <div className="container mx-auto max-w-lg">
-        <div className="text-center mb-4">
-          <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground">
-            TICKET <span className="text-gradient">SCANNER</span>
-          </h1>
-        </div>
+        {/* Tab header if lounges permission */}
+        {scanPerms.showLounges ? (
+          <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4">
+            <button
+              onClick={() => setScannerTab("scan")}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-display tracking-wider transition-all ${
+                scannerTab === "scan"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ScanLine size={16} /> SCANNER
+            </button>
+            <button
+              onClick={() => setScannerTab("lounges")}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-display tracking-wider transition-all ${
+                scannerTab === "lounges"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sofa size={16} /> LOUNGES
+            </button>
+          </div>
+        ) : (
+          <div className="text-center mb-4">
+            <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground">
+              TICKET <span className="text-gradient">SCANNER</span>
+            </h1>
+          </div>
+        )}
 
+        {scannerTab === "scan" ? (
+        <>
         {/* Online/Offline indicator */}
         <div className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-sm font-medium ${
           isOnline
@@ -716,6 +780,125 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
             </form>
           )}
         </div>
+        </>
+        ) : (
+        /* LOUNGES TAB */
+        <div className="space-y-3">
+          {/* Event filter for lounges */}
+          <div>
+            <select
+              value={selectedEvent}
+              onChange={(e) => setSelectedEvent(e.target.value)}
+              className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm min-h-[44px]"
+            >
+              <option value="all">Alle Events</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} – {new Date(ev.date).toLocaleDateString("de-DE")}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {loungeLoading ? (
+            <div className="text-center py-12 text-muted-foreground animate-pulse">
+              <Sofa size={32} className="mx-auto mb-2 text-primary" />
+              Lade Buchungen...
+            </div>
+          ) : loungeBookings.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Sofa size={32} className="mx-auto mb-2 opacity-50" />
+              <p>Keine Lounge-Buchungen gefunden.</p>
+            </div>
+          ) : (
+            loungeBookings.map((b: any) => {
+              const statusColors: Record<string, string> = {
+                confirmed: "bg-green-500/20 text-green-400",
+                pending: "bg-yellow-500/20 text-yellow-400",
+                cancelled: "bg-destructive/20 text-destructive",
+                rejected: "bg-destructive/20 text-destructive",
+              };
+              const statusLabels: Record<string, string> = {
+                confirmed: "Bestätigt",
+                pending: "Ausstehend",
+                cancelled: "Storniert",
+                rejected: "Abgelehnt",
+              };
+              const eventInfo = events.find((e) => e.id === b.event_id);
+              return (
+                <div key={b.id} className="glass-card p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-sm tracking-wider text-foreground truncate">
+                        {loungesMap[b.lounge_id] || "Lounge"}
+                      </h3>
+                      {eventInfo && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {eventInfo.title} · {new Date(eventInfo.date).toLocaleDateString("de-DE")}
+                        </p>
+                      )}
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColors[b.status] || "bg-muted text-muted-foreground"}`}>
+                      {statusLabels[b.status] || b.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Users size={12} className="text-muted-foreground shrink-0" />
+                      <span className="truncate">{b.user_name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Users size={12} className="text-muted-foreground shrink-0" />
+                      <span>{b.guest_count} Gäste</span>
+                    </div>
+                    {b.user_phone && (
+                      <div className="flex items-center gap-1.5 text-foreground">
+                        <Phone size={12} className="text-muted-foreground shrink-0" />
+                        <a href={`tel:${b.user_phone}`} className="text-primary underline truncate">{b.user_phone}</a>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Mail size={12} className="text-muted-foreground shrink-0" />
+                      <span className="truncate">{b.user_email}</span>
+                    </div>
+                  </div>
+
+                  {/* Payment info */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                    <CreditCard size={14} className="text-muted-foreground" />
+                    <span className="text-xs font-medium text-foreground">
+                      Anzahlung: {b.deposit_amount?.toFixed(2)} €
+                    </span>
+                    {b.deposit_paid ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium ml-auto">
+                        Bezahlt ✓
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-medium ml-auto">
+                        Offen
+                      </span>
+                    )}
+                  </div>
+
+                  {b.booking_type && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {b.booking_type === "guaranteed" ? "Garantierte Buchung" : "Unverbindliche Anfrage"}
+                      {b.arrival_time && ` · Ankunft: ${b.arrival_time}`}
+                    </div>
+                  )}
+
+                  {b.message && (
+                    <p className="text-xs text-muted-foreground italic bg-muted/50 rounded px-2 py-1">
+                      „{b.message}"
+                    </p>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+        )}
       </div>
     </section>
   );
