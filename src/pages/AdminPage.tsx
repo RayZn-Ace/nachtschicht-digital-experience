@@ -39,7 +39,7 @@ const isEventPast = (e: any, now: Date): boolean => {
   if (e.end_date) {
     effectiveEndDate = e.end_date;
   } else {
-    const startDate = e.date.split("T")[0];
+    const startDate = e.date.split(/[T ]/)[0];
     const endTime = e.end_time || e.time || "23:59";
     const startTime = e.time || "22:00";
     // If end_time is earlier than start_time (e.g. 05:00 vs 22:00), event goes past midnight
