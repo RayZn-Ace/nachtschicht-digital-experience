@@ -409,6 +409,10 @@ const AdminPage = () => {
           <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
         </div>
         <div>
+          <label className="text-sm text-foreground mb-1 block">Enddatum <span className="text-muted-foreground text-xs">(falls mehrtägig)</span></label>
+          <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+        <div>
           <label className="text-sm text-foreground mb-1 block">Beginn</label>
           <input value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} placeholder="22:00" className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
         </div>
