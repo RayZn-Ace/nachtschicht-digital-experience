@@ -181,6 +181,36 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
     }
   }, [selectedEvent]);
 
+  // Fetch lounge bookings for scanner
+  const fetchLoungeBookings = useCallback(async () => {
+    if (!scanPerms.showLounges) return;
+    setLoungeLoading(true);
+    try {
+      let query = supabase.from("lounge_bookings").select("*").order("created_at", { ascending: false });
+      if (selectedEvent !== "all") {
+        query = query.eq("event_id", selectedEvent);
+      }
+      const { data } = await query;
+      setLoungeBookings(data || []);
+
+      // Fetch lounge names
+      const { data: lounges } = await supabase.from("lounges").select("id, name");
+      if (lounges) {
+        const map: Record<string, string> = {};
+        lounges.forEach((l: any) => { map[l.id] = l.name; });
+        setLoungesMap(map);
+      }
+    } catch (err) {
+      console.error("fetchLoungeBookings error:", err);
+    } finally {
+      setLoungeLoading(false);
+    }
+  }, [selectedEvent, scanPerms.showLounges]);
+
+  useEffect(() => {
+    if (scannerTab === "lounges") fetchLoungeBookings();
+  }, [scannerTab, fetchLoungeBookings]);
+
   // Auto-sync queue
   const syncQueue = useCallback(async () => {
     const currentQueue = loadQueue();
