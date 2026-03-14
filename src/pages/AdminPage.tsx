@@ -39,7 +39,7 @@ const isEventPast = (e: any, now: Date): boolean => {
   if (e.end_date) {
     effectiveEndDate = e.end_date;
   } else {
-    const startDate = e.date.split("T")[0];
+    const startDate = e.date.split(/[T ]/)[0];
     const endTime = e.end_time || e.time || "23:59";
     const startTime = e.time || "22:00";
     // If end_time is earlier than start_time (e.g. 05:00 vs 22:00), event goes past midnight
@@ -185,7 +185,7 @@ const AdminPage = () => {
     const areas = parseAreas(event.areas);
     setSelectedAreas([...new Set([...areas, ...ALWAYS_OPEN_AREAS])]);
     setFormData({
-      title: event.title, subtitle: (event as any).subtitle || "", description: event.description || "", date: event.date.split("T")[0],
+      title: event.title, subtitle: (event as any).subtitle || "", description: event.description || "", date: event.date.split(/[T ]/)[0],
       end_date: (event as any).end_date || "",
       time: event.time, end_time: (event as any).end_time || "", genre: event.genre || "", areas: event.areas || "",
       image_url: event.image_url || "", ticket_price: event.ticket_price,

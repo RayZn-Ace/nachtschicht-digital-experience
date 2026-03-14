@@ -88,7 +88,7 @@ const EventsPage = () => {
             if (e.end_date) {
               effectiveEndDate = e.end_date;
             } else {
-              const startDate = (e.date || '').split("T")[0];
+              const startDate = (e.date || '').split(/[T ]/)[0];
               const endTime = e.end_time || e.time || "23:59";
               const startTime = e.time || "22:00";
               if (endTime < startTime) {
