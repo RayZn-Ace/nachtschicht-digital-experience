@@ -28,6 +28,7 @@ import AdminLostAndFound from "@/components/AdminLostAndFound";
 import AdminCsvMigration from "@/components/AdminCsvMigration";
 import AdminLoungeManagement from "@/components/AdminLoungeManagement";
 import AdminUserManagement from "@/components/AdminUserManagement";
+import AdminLiveCheckin from "@/components/AdminLiveCheckin";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ALWAYS_OPEN_AREAS = ["openair", "bistro"];
@@ -65,7 +66,7 @@ interface Genre {
 const AdminPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["events", "ticketcenter", "albums", "newsletter", "u18", "tracking", "tags", "codes", "lounges", "loungemanage", "drinks", "holidays", "invoiceconfig", "revenue", "controlling", "reports", "applicants", "customers", "lostfound", "csvmigration", "usermanagement"] as const;
+  const validTabs = ["events", "ticketcenter", "livecheckin", "albums", "newsletter", "u18", "tracking", "tags", "codes", "lounges", "loungemanage", "drinks", "holidays", "invoiceconfig", "revenue", "controlling", "reports", "applicants", "customers", "lostfound", "csvmigration", "usermanagement"] as const;
   type TabType = typeof validTabs[number];
   const urlTab = searchParams.get("tab") as TabType | null;
   const [tab, setTabState] = useState<TabType>(validTabs.includes(urlTab as any) ? urlTab! : "events");
@@ -813,6 +814,8 @@ const AdminPage = () => {
           <AdminLoungeManagement />
         ) : tab === "ticketcenter" ? (
           <AdminTicketCenter />
+        ) : tab === "livecheckin" ? (
+          <AdminLiveCheckin />
         ) : tab === "codes" ? (
           <AdminDiscountCodes />
         ) : tab === "tags" ? (
