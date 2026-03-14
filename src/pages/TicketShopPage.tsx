@@ -517,17 +517,21 @@ const TicketShopPage = () => {
                     if (purchasedTicketIds.length === 0) return;
                     setTicketPdfLoading(true);
                     try {
-                      const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
-                        body: { ticket_id: purchasedTicketIds[0] },
-                      });
-                      if (error) throw error;
-                      const blob = new Blob([data], { type: "application/pdf" });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement("a");
-                      link.href = url;
-                      link.download = `ticket-${purchasedQrCode}.pdf`;
-                      link.click();
-                      URL.revokeObjectURL(url);
+                      // Download PDF for each ticket
+                      for (let i = 0; i < purchasedTicketIds.length; i++) {
+                        const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
+                          body: { ticket_id: purchasedTicketIds[i] },
+                        });
+                        if (error) throw error;
+                        const blob = new Blob([data], { type: "application/pdf" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        const shortId = purchasedTicketIds[i].slice(0, 8).toUpperCase();
+                        link.download = `ticket-${shortId}.pdf`;
+                        link.click();
+                        URL.revokeObjectURL(url);
+                      }
                     } catch (err) {
                       console.error(err);
                       toast.error(lang === "de" ? "Ticket-PDF Download fehlgeschlagen" : "Ticket PDF download failed");
