@@ -780,6 +780,125 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
             </form>
           )}
         </div>
+        </>
+        ) : (
+        /* LOUNGES TAB */
+        <div className="space-y-3">
+          {/* Event filter for lounges */}
+          <div>
+            <select
+              value={selectedEvent}
+              onChange={(e) => setSelectedEvent(e.target.value)}
+              className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm min-h-[44px]"
+            >
+              <option value="all">Alle Events</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} – {new Date(ev.date).toLocaleDateString("de-DE")}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {loungeLoading ? (
+            <div className="text-center py-12 text-muted-foreground animate-pulse">
+              <Sofa size={32} className="mx-auto mb-2 text-primary" />
+              Lade Buchungen...
+            </div>
+          ) : loungeBookings.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Sofa size={32} className="mx-auto mb-2 opacity-50" />
+              <p>Keine Lounge-Buchungen gefunden.</p>
+            </div>
+          ) : (
+            loungeBookings.map((b: any) => {
+              const statusColors: Record<string, string> = {
+                confirmed: "bg-green-500/20 text-green-400",
+                pending: "bg-yellow-500/20 text-yellow-400",
+                cancelled: "bg-destructive/20 text-destructive",
+                rejected: "bg-destructive/20 text-destructive",
+              };
+              const statusLabels: Record<string, string> = {
+                confirmed: "Bestätigt",
+                pending: "Ausstehend",
+                cancelled: "Storniert",
+                rejected: "Abgelehnt",
+              };
+              const eventInfo = events.find((e) => e.id === b.event_id);
+              return (
+                <div key={b.id} className="glass-card p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-sm tracking-wider text-foreground truncate">
+                        {loungesMap[b.lounge_id] || "Lounge"}
+                      </h3>
+                      {eventInfo && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {eventInfo.title} · {new Date(eventInfo.date).toLocaleDateString("de-DE")}
+                        </p>
+                      )}
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColors[b.status] || "bg-muted text-muted-foreground"}`}>
+                      {statusLabels[b.status] || b.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Users size={12} className="text-muted-foreground shrink-0" />
+                      <span className="truncate">{b.user_name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Users size={12} className="text-muted-foreground shrink-0" />
+                      <span>{b.guest_count} Gäste</span>
+                    </div>
+                    {b.user_phone && (
+                      <div className="flex items-center gap-1.5 text-foreground">
+                        <Phone size={12} className="text-muted-foreground shrink-0" />
+                        <a href={`tel:${b.user_phone}`} className="text-primary underline truncate">{b.user_phone}</a>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Mail size={12} className="text-muted-foreground shrink-0" />
+                      <span className="truncate">{b.user_email}</span>
+                    </div>
+                  </div>
+
+                  {/* Payment info */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                    <CreditCard size={14} className="text-muted-foreground" />
+                    <span className="text-xs font-medium text-foreground">
+                      Anzahlung: {b.deposit_amount?.toFixed(2)} €
+                    </span>
+                    {b.deposit_paid ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium ml-auto">
+                        Bezahlt ✓
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-medium ml-auto">
+                        Offen
+                      </span>
+                    )}
+                  </div>
+
+                  {b.booking_type && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {b.booking_type === "guaranteed" ? "Garantierte Buchung" : "Unverbindliche Anfrage"}
+                      {b.arrival_time && ` · Ankunft: ${b.arrival_time}`}
+                    </div>
+                  )}
+
+                  {b.message && (
+                    <p className="text-xs text-muted-foreground italic bg-muted/50 rounded px-2 py-1">
+                      „{b.message}"
+                    </p>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+        )}
       </div>
     </section>
   );
