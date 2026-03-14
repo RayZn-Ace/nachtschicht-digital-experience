@@ -903,7 +903,7 @@ const AdminPage = () => {
                       <p className="text-muted-foreground text-xs italic truncate mt-0.5">{(event as any).subtitle}</p>
                     )}
                     <p className="text-muted-foreground text-xs mt-1">
-                      {new Date(event.date).toLocaleDateString("de-DE")} · {event.time}{(event as any).end_time ? `–${(event as any).end_time}` : ""} · {event.genre} · {event.ticket_price}€
+                      {new Date(event.date).toLocaleDateString("de-DE")}{(event as any).end_date ? ` – ${new Date((event as any).end_date).toLocaleDateString("de-DE")}` : ""} · {event.time}{(event as any).end_time ? `–${(event as any).end_time}` : ""} · {event.genre} · {event.ticket_price}€
                     </p>
                   </div>
                 </div>
