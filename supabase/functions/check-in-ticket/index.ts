@@ -40,16 +40,15 @@ Deno.serve(async (req) => {
     const userId = claimsData.user.id;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check admin role
+    // Check admin or scanner role
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
+      .in("role", ["admin", "scanner"]);
 
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
+    if (!roleData || roleData.length === 0) {
+      return new Response(JSON.stringify({ error: "Scanner access required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
