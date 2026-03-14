@@ -821,8 +821,7 @@ const AdminPage = () => {
           ]).map(({ key, label }) => {
             const now = new Date();
             const count = events.filter((e) => {
-              const eventDate = new Date(e.date);
-              const isPast = eventDate < now;
+              const isPast = isEventPast(e, now);
               if (key === "past") return isPast;
               if (key === "published") return !isPast && e.is_published;
               return !isPast && !e.is_published;
@@ -847,8 +846,7 @@ const AdminPage = () => {
           {(() => {
             const now = new Date();
             const filtered = events.filter((e) => {
-              const eventDate = new Date(e.date);
-              const isPast = eventDate < now;
+              const isPast = isEventPast(e, now);
               if (eventFilter === "past") return isPast;
               if (eventFilter === "published") return !isPast && e.is_published;
               return !isPast && !e.is_published;
