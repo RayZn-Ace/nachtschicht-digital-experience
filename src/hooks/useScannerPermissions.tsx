@@ -10,6 +10,7 @@ export interface ScannerPermissions {
   showGuestEmail: boolean;
   showTicketType: boolean;
   showEventInfo: boolean;
+  showLounges: boolean;
   loading: boolean;
 }
 
