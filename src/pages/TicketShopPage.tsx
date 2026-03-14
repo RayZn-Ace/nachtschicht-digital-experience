@@ -505,8 +505,8 @@ const TicketShopPage = () => {
               {/* Info */}
               <p className="text-xs text-muted-foreground text-center">
                 {lang === "de"
-                  ? "Eine Bestätigung wurde an deine E-Mail gesendet. Speichere diesen QR-Code als Screenshot."
-                  : "A confirmation has been sent to your email. Save this QR code as a screenshot."}
+                  ? "Eine Bestätigung wurde an deine E-Mail gesendet. Speichere die QR-Codes als Screenshot."
+                  : "A confirmation has been sent to your email. Save the QR codes as a screenshot."}
               </p>
 
               {/* Actions */}
