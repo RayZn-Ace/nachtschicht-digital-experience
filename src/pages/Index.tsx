@@ -81,8 +81,29 @@ const Index = () => {
         supabase.from("events").select("*").eq("is_published", true).order("date", { ascending: true }).limit(3),
         supabase.from("events").select("*").eq("is_published", true).filter("is_featured", "eq", true).order("date", { ascending: true }).limit(3),
       ]);
-      if (eventsRes.data) setEvents(eventsRes.data as any);
-      if (featuredRes.data) setFeaturedEvents(featuredRes.data as any);
+      const now = new Date();
+      const filterUpcoming = (data: any[]) => data.filter((e: any) => {
+        let effectiveEndDate: string;
+        if (e.end_date) {
+          effectiveEndDate = e.end_date;
+        } else {
+          const startDate = (e.date || '').split("T")[0];
+          const endTime = e.end_time || e.time || "23:59";
+          const startTime = e.time || "22:00";
+          if (endTime < startTime) {
+            const nextDay = new Date(startDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            effectiveEndDate = nextDay.toISOString().split("T")[0];
+          } else {
+            effectiveEndDate = startDate;
+          }
+        }
+        const endTime = e.end_time || "23:59";
+        const endDateTime = new Date(`${effectiveEndDate}T${endTime}:00`);
+        return endDateTime >= now;
+      });
+      if (eventsRes.data) setEvents(filterUpcoming(eventsRes.data as any));
+      if (featuredRes.data) setFeaturedEvents(filterUpcoming(featuredRes.data as any));
     };
     fetchAll();
   }, []);
