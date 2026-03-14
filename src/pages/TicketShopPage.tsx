@@ -275,8 +275,19 @@ const TicketShopPage = () => {
 
       // Free ticket – no Mollie redirect needed
       if (result.free) {
-        setPurchasedQrCode(result.qr_code || "");
-        setPurchasedTicketIds(result.ticket_ids || []);
+        const ids = result.ticket_ids || [];
+        setPurchasedTicketIds(ids);
+        // Fetch all ticket QR codes
+        if (ids.length > 0) {
+          const { data: ticketData } = await supabase
+            .from("tickets")
+            .select("id, qr_code")
+            .in("id", ids);
+          if (ticketData && ticketData.length > 0) {
+            setPurchasedQrCode(ticketData[0].qr_code || "");
+            setPurchasedTickets(ticketData.map((t: any) => ({ id: t.id, qr_code: t.qr_code || "" })));
+          }
+        }
         toast.success(lang === "de" ? "Ticket erfolgreich gebucht! 🎉" : "Ticket booked successfully! 🎉");
         setStep(3);
         setBuying(false);
