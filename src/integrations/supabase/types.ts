@@ -317,6 +317,7 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          end_date: string | null
           end_time: string | null
           fee_amount: number
           fee_enabled: boolean
@@ -348,6 +349,7 @@ export type Database = {
           created_at?: string
           date: string
           description?: string | null
+          end_date?: string | null
           end_time?: string | null
           fee_amount?: number
           fee_enabled?: boolean
@@ -379,6 +381,7 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          end_date?: string | null
           end_time?: string | null
           fee_amount?: number
           fee_enabled?: boolean
