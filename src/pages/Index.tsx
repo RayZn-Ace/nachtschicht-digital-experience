@@ -102,8 +102,8 @@ const Index = () => {
         const endDateTime = new Date(`${effectiveEndDate}T${endTime}:00`);
         return endDateTime >= now;
       });
-      if (eventsRes.data) setEvents(filterUpcoming(eventsRes.data as any));
-      if (featuredRes.data) setFeaturedEvents(filterUpcoming(featuredRes.data as any));
+      if (eventsRes.data) setEvents(filterUpcoming(eventsRes.data as any).slice(0, 3));
+      if (featuredRes.data) setFeaturedEvents(filterUpcoming(featuredRes.data as any).slice(0, 3));
     };
     fetchAll();
   }, []);
