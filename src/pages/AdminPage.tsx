@@ -32,6 +32,30 @@ import AdminUserManagement from "@/components/AdminUserManagement";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ALWAYS_OPEN_AREAS = ["openair", "bistro"];
 
+/** Determine if an event is truly past, considering end_date/end_time that may extend into the next day */
+const isEventPast = (e: any, now: Date): boolean => {
+  // Use end_date if available, otherwise check if end_time implies next day
+  let effectiveEndDate: string;
+  if (e.end_date) {
+    effectiveEndDate = e.end_date;
+  } else {
+    const startDate = e.date.split("T")[0];
+    const endTime = e.end_time || e.time || "23:59";
+    const startTime = e.time || "22:00";
+    // If end_time is earlier than start_time (e.g. 05:00 vs 22:00), event goes past midnight
+    if (endTime < startTime) {
+      const nextDay = new Date(startDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      effectiveEndDate = nextDay.toISOString().split("T")[0];
+    } else {
+      effectiveEndDate = startDate;
+    }
+  }
+  const endTime = e.end_time || "23:59";
+  const endDateTime = new Date(`${effectiveEndDate}T${endTime}:00`);
+  return endDateTime < now;
+};
+
 interface Genre {
   id: string;
   name: string;
@@ -72,7 +96,7 @@ const AdminPage = () => {
   const [allLounges, setAllLounges] = useState<{ id: string; name: string; area_id: string; is_active: boolean }[]>([]);
   const [selectedLoungeIds, setSelectedLoungeIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
-    title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
+    title: "", subtitle: "", description: "", date: "", end_date: "", time: "22:00", end_time: "", genre: "", areas: "" as string,
     image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19,
     has_muttizettel: false, has_abendkasse: false,
     fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0,
@@ -148,7 +172,7 @@ const AdminPage = () => {
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const resetForm = () => {
-    setFormData({ title: "", subtitle: "", description: "", date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0, insurance_enabled: false, insurance_amount: 0 });
+    setFormData({ title: "", subtitle: "", description: "", date: "", end_date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0, insurance_enabled: false, insurance_amount: 0 });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
     setSelectedTagIds([]);
     setSelectedLoungeIds([]);
@@ -162,6 +186,7 @@ const AdminPage = () => {
     setSelectedAreas([...new Set([...areas, ...ALWAYS_OPEN_AREAS])]);
     setFormData({
       title: event.title, subtitle: (event as any).subtitle || "", description: event.description || "", date: event.date.split("T")[0],
+      end_date: (event as any).end_date || "",
       time: event.time, end_time: (event as any).end_time || "", genre: event.genre || "", areas: event.areas || "",
       image_url: event.image_url || "", ticket_price: event.ticket_price,
       ticket_quantity: event.ticket_quantity, is_published: event.is_published,
@@ -252,6 +277,7 @@ const AdminPage = () => {
       ...formData,
       subtitle: formData.subtitle || null,
       end_time: formData.end_time || null,
+      end_date: formData.end_date || null,
       areas: formatAreas(selectedAreas),
       date: new Date(formData.date).toISOString(),
       ticket_price: Number(formData.ticket_price),
@@ -299,6 +325,7 @@ const AdminPage = () => {
       subtitle: (event as any).subtitle || null,
       description: event.description || null,
       date: event.date,
+      end_date: (event as any).end_date || null,
       time: event.time,
       end_time: (event as any).end_time || null,
       genre: event.genre || null,
@@ -404,6 +431,10 @@ const AdminPage = () => {
         <div>
           <label className="text-sm text-foreground mb-1 block">Datum *</label>
           <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-sm text-foreground mb-1 block">Enddatum <span className="text-muted-foreground text-xs">(falls mehrtägig)</span></label>
+          <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" />
         </div>
         <div>
           <label className="text-sm text-foreground mb-1 block">Beginn</label>
@@ -814,8 +845,7 @@ const AdminPage = () => {
           ]).map(({ key, label }) => {
             const now = new Date();
             const count = events.filter((e) => {
-              const eventDate = new Date(e.date);
-              const isPast = eventDate < now;
+              const isPast = isEventPast(e, now);
               if (key === "past") return isPast;
               if (key === "published") return !isPast && e.is_published;
               return !isPast && !e.is_published;
@@ -840,8 +870,7 @@ const AdminPage = () => {
           {(() => {
             const now = new Date();
             const filtered = events.filter((e) => {
-              const eventDate = new Date(e.date);
-              const isPast = eventDate < now;
+              const isPast = isEventPast(e, now);
               if (eventFilter === "past") return isPast;
               if (eventFilter === "published") return !isPast && e.is_published;
               return !isPast && !e.is_published;
@@ -874,7 +903,7 @@ const AdminPage = () => {
                       <p className="text-muted-foreground text-xs italic truncate mt-0.5">{(event as any).subtitle}</p>
                     )}
                     <p className="text-muted-foreground text-xs mt-1">
-                      {new Date(event.date).toLocaleDateString("de-DE")} · {event.time}{(event as any).end_time ? `–${(event as any).end_time}` : ""} · {event.genre} · {event.ticket_price}€
+                      {new Date(event.date).toLocaleDateString("de-DE")}{(event as any).end_date ? ` – ${new Date((event as any).end_date).toLocaleDateString("de-DE")}` : ""} · {event.time}{(event as any).end_time ? `–${(event as any).end_time}` : ""} · {event.genre} · {event.ticket_price}€
                     </p>
                   </div>
                 </div>

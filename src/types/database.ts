@@ -5,6 +5,7 @@ export interface Event {
   subtitle: string | null;
   description: string | null;
   date: string;
+  end_date: string | null;
   time: string;
   end_time: string | null;
   genre: string | null;
