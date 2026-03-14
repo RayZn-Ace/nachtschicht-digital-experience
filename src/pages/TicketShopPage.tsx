@@ -85,6 +85,7 @@ const TicketShopPage = () => {
         const allConfirmed = data?.every((t: any) => t.status === "confirmed");
         if (allConfirmed && data && data.length > 0) {
           setPurchasedQrCode(data[0].qr_code || "");
+          setPurchasedTickets(data.map((t: any) => ({ id: t.id, qr_code: t.qr_code || "" })));
           setPurchasedTicketIds(ids);
           setStep(3);
           setPaymentChecking(false);
