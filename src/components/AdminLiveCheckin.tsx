@@ -253,6 +253,7 @@ const AdminLiveCheckin = () => {
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground text-xs uppercase tracking-wider">
                   <th className="pb-2 pr-3">Status</th>
+                  <th className="pb-2 pr-3">Ticket-Nr.</th>
                   <th className="pb-2 pr-3">Name</th>
                   <th className="pb-2 pr-3">E-Mail</th>
                   <th className="pb-2 pr-3">Typ</th>
@@ -271,6 +272,7 @@ const AdminLiveCheckin = () => {
                         <Clock size={18} className="text-amber-500" />
                       )}
                     </td>
+                    <td className="py-2.5 pr-3 text-muted-foreground font-mono text-xs">{t.qr_code || t.id.slice(0, 8)}</td>
                     <td className="py-2.5 pr-3 font-medium text-foreground">{t.buyer_name || "–"}</td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{t.buyer_email}</td>
                     <td className="py-2.5 pr-3">
@@ -301,7 +303,7 @@ const AdminLiveCheckin = () => {
                 ))}
                 {filteredTickets.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="py-8 text-center text-muted-foreground">
                       {search ? "Keine Tickets gefunden" : "Keine Tickets vorhanden"}
                     </td>
                   </tr>
