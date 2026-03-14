@@ -59,8 +59,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
       const { data: permData } = await supabase
         .from("permissions")
         .select("key")
-        .in("id", permIds)
-        .like("key", "scanner.%");
+        .in("id", permIds);
 
       const map: Record<string, boolean> = {};
       (permData || []).forEach((p) => {
