@@ -78,8 +78,8 @@ const Index = () => {
   useEffect(() => {
     const fetchAll = async () => {
       const [eventsRes, featuredRes] = await Promise.all([
-        supabase.from("events").select("*").eq("is_published", true).order("date", { ascending: true }).limit(3),
-        supabase.from("events").select("*").eq("is_published", true).filter("is_featured", "eq", true).order("date", { ascending: true }).limit(3),
+        supabase.from("events").select("*").eq("is_published", true).order("date", { ascending: true }).limit(20),
+        supabase.from("events").select("*").eq("is_published", true).filter("is_featured", "eq", true).order("date", { ascending: true }).limit(20),
       ]);
       const now = new Date();
       const filterUpcoming = (data: any[]) => data.filter((e: any) => {
