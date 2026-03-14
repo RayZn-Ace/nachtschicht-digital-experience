@@ -138,6 +138,10 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
   const [queue, setQueue] = useState<QueuedCheckIn[]>(loadQueue);
   const [syncing, setSyncing] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scannerTab, setScannerTab] = useState<"scan" | "lounges">("scan");
+  const [loungeBookings, setLoungeBookings] = useState<any[]>([]);
+  const [loungesMap, setLoungesMap] = useState<Record<string, string>>({});
+  const [loungeLoading, setLoungeLoading] = useState(false);
 
   const scannerRef = useRef<any>(null);
   const videoRef = useRef<HTMLDivElement>(null);
