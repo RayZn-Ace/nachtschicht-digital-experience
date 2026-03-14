@@ -32,6 +32,30 @@ import AdminUserManagement from "@/components/AdminUserManagement";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ALWAYS_OPEN_AREAS = ["openair", "bistro"];
 
+/** Determine if an event is truly past, considering end_date/end_time that may extend into the next day */
+const isEventPast = (e: any, now: Date): boolean => {
+  // Use end_date if available, otherwise check if end_time implies next day
+  let effectiveEndDate: string;
+  if (e.end_date) {
+    effectiveEndDate = e.end_date;
+  } else {
+    const startDate = e.date.split("T")[0];
+    const endTime = e.end_time || e.time || "23:59";
+    const startTime = e.time || "22:00";
+    // If end_time is earlier than start_time (e.g. 05:00 vs 22:00), event goes past midnight
+    if (endTime < startTime) {
+      const nextDay = new Date(startDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      effectiveEndDate = nextDay.toISOString().split("T")[0];
+    } else {
+      effectiveEndDate = startDate;
+    }
+  }
+  const endTime = e.end_time || "23:59";
+  const endDateTime = new Date(`${effectiveEndDate}T${endTime}:00`);
+  return endDateTime < now;
+};
+
 interface Genre {
   id: string;
   name: string;
