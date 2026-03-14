@@ -27,6 +27,7 @@ const ADMIN_CATEGORIES: AdminCategory[] = [
     items: [
       { label: "Events", tab: "events", icon: Calendar },
       { label: "Ticketcenter", tab: "ticketcenter", icon: ShoppingCart },
+      { label: "Live Check-in", tab: "livecheckin", icon: QrCode },
       { label: "Lounge-Buchungen", tab: "lounges", icon: Sofa },
       { label: "Rabattcodes", tab: "codes", icon: Ticket },
       { label: "Tags", tab: "tags", icon: Tags },

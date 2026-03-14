@@ -814,6 +814,8 @@ const AdminPage = () => {
           <AdminLoungeManagement />
         ) : tab === "ticketcenter" ? (
           <AdminTicketCenter />
+        ) : tab === "livecheckin" ? (
+          <AdminLiveCheckin />
         ) : tab === "codes" ? (
           <AdminDiscountCodes />
         ) : tab === "tags" ? (
