@@ -185,7 +185,7 @@ const AdminPage = () => {
     const areas = parseAreas(event.areas);
     setSelectedAreas([...new Set([...areas, ...ALWAYS_OPEN_AREAS])]);
     setFormData({
-      title: event.title, subtitle: (event as any).subtitle || "", description: event.description || "", date: event.date.split("T")[0],
+      title: event.title, subtitle: (event as any).subtitle || "", description: event.description || "", date: event.date.split(/[T ]/)[0],
       end_date: (event as any).end_date || "",
       time: event.time, end_time: (event as any).end_time || "", genre: event.genre || "", areas: event.areas || "",
       image_url: event.image_url || "", ticket_price: event.ticket_price,
