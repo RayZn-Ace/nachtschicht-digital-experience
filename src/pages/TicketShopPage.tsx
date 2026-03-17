@@ -340,7 +340,7 @@ const TicketShopPage = () => {
               </div>
             )}
             <div className="p-5">
-              <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-2">{tr(event.title)}</h1>
+              <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-2 leading-tight">{tr(event.title)}</h1>
               <div className="flex items-center gap-4 text-muted-foreground text-sm mb-2">
                 <span className="flex items-center gap-1">
                   <Calendar size={14} />
