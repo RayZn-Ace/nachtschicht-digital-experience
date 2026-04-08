@@ -216,7 +216,7 @@ const AdminLoungeBookings = () => {
           >
             {f === "all" ? "ALLE" : STATUS_MAP[f]?.label.toUpperCase()}
             {f !== "all" && (
-              <span className="ml-1.5 opacity-70">({bookings.filter((b) => b.status === f).length})</span>
+              <span className="ml-1.5 opacity-70">({timeFiltered.filter((b) => b.status === f).length})</span>
             )}
           </button>
         ))}
