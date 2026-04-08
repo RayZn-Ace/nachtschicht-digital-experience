@@ -39,6 +39,8 @@ const AdminLoungeBookings = () => {
   const [events, setEvents] = useState<Record<string, string>>({});
   const [lounges, setLounges] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
+  const [timeFilter, setTimeFilter] = useState<"all" | "upcoming" | "past">("all");
+  const [eventDates, setEventDates] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
 
@@ -46,15 +48,17 @@ const AdminLoungeBookings = () => {
     setLoading(true);
     const [bookingsRes, eventsRes, loungesRes] = await Promise.all([
       supabase.from("lounge_bookings").select("*").order("created_at", { ascending: false }),
-      supabase.from("events").select("id, title"),
+      supabase.from("events").select("id, title, date"),
       supabase.from("lounges").select("id, name"),
     ]);
 
     if (bookingsRes.data) setBookings(bookingsRes.data as any);
     if (eventsRes.data) {
       const map: Record<string, string> = {};
-      eventsRes.data.forEach((e: any) => (map[e.id] = e.title));
+      const dateMap: Record<string, string> = {};
+      eventsRes.data.forEach((e: any) => { map[e.id] = e.title; dateMap[e.id] = e.date; });
       setEvents(map);
+      setEventDates(dateMap);
     }
     if (loungesRes.data) {
       const map: Record<string, string> = {};
@@ -136,13 +140,20 @@ const AdminLoungeBookings = () => {
     fetchData();
   };
 
-  const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
+  const today = new Date().toISOString().split("T")[0];
+  const timeFiltered = timeFilter === "all" ? bookings : bookings.filter((b) => {
+    const eventDate = eventDates[b.event_id] || "";
+    const dateStr = eventDate.replace(/[ T].*/, "");
+    if (timeFilter === "upcoming") return dateStr >= today;
+    return dateStr < today;
+  });
+  const filtered = filter === "all" ? timeFiltered : timeFiltered.filter((b) => b.status === filter);
 
   // Stats
-  const totalDeposits = bookings.filter(b => b.booking_type === "guaranteed").reduce((s, b) => s + b.deposit_amount, 0);
-  const totalGuests = bookings.filter(b => b.status !== "rejected" && b.status !== "cancelled").reduce((s, b) => s + b.guest_count, 0);
-  const guaranteedCount = bookings.filter(b => b.booking_type === "guaranteed" && b.status !== "rejected" && b.status !== "cancelled").length;
-  const nonBindingCount = bookings.filter(b => b.booking_type === "non_binding" && b.status !== "rejected" && b.status !== "cancelled").length;
+  const totalDeposits = timeFiltered.filter(b => b.booking_type === "guaranteed").reduce((s, b) => s + b.deposit_amount, 0);
+  const totalGuests = timeFiltered.filter(b => b.status !== "rejected" && b.status !== "cancelled").reduce((s, b) => s + b.guest_count, 0);
+  const guaranteedCount = timeFiltered.filter(b => b.booking_type === "guaranteed" && b.status !== "rejected" && b.status !== "cancelled").length;
+  const nonBindingCount = timeFiltered.filter(b => b.booking_type === "non_binding" && b.status !== "rejected" && b.status !== "cancelled").length;
 
   if (loading) return <p className="text-muted-foreground text-center py-12">Laden...</p>;
 
@@ -150,8 +161,8 @@ const AdminLoungeBookings = () => {
     <div>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="glass-card p-3 text-center">
-          <p className="text-xl font-bold text-foreground">{bookings.length}</p>
+      <div className="glass-card p-3 text-center">
+          <p className="text-xl font-bold text-foreground">{timeFiltered.length}</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</p>
         </div>
         <div className="glass-card p-3 text-center">
@@ -168,7 +179,32 @@ const AdminLoungeBookings = () => {
         </div>
       </div>
 
-      {/* Filter */}
+      {/* Time Filter */}
+      <div className="flex gap-2 mb-3 flex-wrap">
+        {([
+          { key: "all", label: "ALLE" },
+          { key: "upcoming", label: "ZUKÜNFTIG" },
+          { key: "past", label: "VERGANGEN" },
+        ] as const).map((t) => {
+          const count = t.key === "all" ? bookings.length : bookings.filter((b) => {
+            const d = (eventDates[b.event_id] || "").replace(/[ T].*/, "");
+            return t.key === "upcoming" ? d >= today : d < today;
+          }).length;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTimeFilter(t.key)}
+              className={`px-4 py-1.5 text-xs font-display tracking-wider rounded-md transition-colors ${
+                timeFilter === t.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label} <span className="ml-1.5 opacity-70">({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Status Filter */}
       <div className="flex gap-2 mb-4 flex-wrap">
         {(["all", "pending", "confirmed", "rejected"] as const).map((f) => (
           <button
@@ -180,7 +216,7 @@ const AdminLoungeBookings = () => {
           >
             {f === "all" ? "ALLE" : STATUS_MAP[f]?.label.toUpperCase()}
             {f !== "all" && (
-              <span className="ml-1.5 opacity-70">({bookings.filter((b) => b.status === f).length})</span>
+              <span className="ml-1.5 opacity-70">({timeFiltered.filter((b) => b.status === f).length})</span>
             )}
           </button>
         ))}
