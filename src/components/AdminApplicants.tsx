@@ -226,9 +226,27 @@ const AdminApplicants = () => {
                     )}
 
                     {app.photo_url && (
-                      <a href={app.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
-                        📷 Bewerbungsfoto ansehen
-                      </a>
+                      <div className="space-y-2">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Bewerbungsfoto</p>
+                        <div className="flex items-start gap-3">
+                          <a href={app.photo_url} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={app.photo_url}
+                              alt={`Foto von ${app.first_name} ${app.last_name}`}
+                              className="w-32 h-32 object-cover rounded-md border border-border hover:opacity-80 transition-opacity cursor-pointer"
+                            />
+                          </a>
+                          <a
+                            href={app.photo_url}
+                            download={`${app.first_name}_${app.last_name}_foto`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs px-3 py-1.5 rounded-md bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            ⬇ Herunterladen
+                          </a>
+                        </div>
+                      </div>
                     )}
 
                     {/* Status actions */}
