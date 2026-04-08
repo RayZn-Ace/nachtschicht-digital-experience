@@ -150,10 +150,10 @@ const AdminLoungeBookings = () => {
   const filtered = filter === "all" ? timeFiltered : timeFiltered.filter((b) => b.status === filter);
 
   // Stats
-  const totalDeposits = bookings.filter(b => b.booking_type === "guaranteed").reduce((s, b) => s + b.deposit_amount, 0);
-  const totalGuests = bookings.filter(b => b.status !== "rejected" && b.status !== "cancelled").reduce((s, b) => s + b.guest_count, 0);
-  const guaranteedCount = bookings.filter(b => b.booking_type === "guaranteed" && b.status !== "rejected" && b.status !== "cancelled").length;
-  const nonBindingCount = bookings.filter(b => b.booking_type === "non_binding" && b.status !== "rejected" && b.status !== "cancelled").length;
+  const totalDeposits = timeFiltered.filter(b => b.booking_type === "guaranteed").reduce((s, b) => s + b.deposit_amount, 0);
+  const totalGuests = timeFiltered.filter(b => b.status !== "rejected" && b.status !== "cancelled").reduce((s, b) => s + b.guest_count, 0);
+  const guaranteedCount = timeFiltered.filter(b => b.booking_type === "guaranteed" && b.status !== "rejected" && b.status !== "cancelled").length;
+  const nonBindingCount = timeFiltered.filter(b => b.booking_type === "non_binding" && b.status !== "rejected" && b.status !== "cancelled").length;
 
   if (loading) return <p className="text-muted-foreground text-center py-12">Laden...</p>;
 
