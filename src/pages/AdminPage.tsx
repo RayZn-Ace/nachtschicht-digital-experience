@@ -102,6 +102,7 @@ const AdminPage = () => {
     has_muttizettel: false, has_abendkasse: false,
     fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0,
     insurance_enabled: false, insurance_amount: 0,
+    external_ticket_url: "",
   });
   const [selectedAreas, setSelectedAreas] = useState<string[]>(ALWAYS_OPEN_AREAS);
 
