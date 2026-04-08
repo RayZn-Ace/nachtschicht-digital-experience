@@ -161,8 +161,8 @@ const AdminLoungeBookings = () => {
     <div>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="glass-card p-3 text-center">
-          <p className="text-xl font-bold text-foreground">{bookings.length}</p>
+      <div className="glass-card p-3 text-center">
+          <p className="text-xl font-bold text-foreground">{timeFiltered.length}</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</p>
         </div>
         <div className="glass-card p-3 text-center">
