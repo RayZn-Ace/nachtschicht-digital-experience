@@ -593,6 +593,28 @@ const TicketShopPage = () => {
               </div>
             </div>
           </ScrollReveal>
+        ) : (event as any).external_ticket_url ? (
+          /* External ticket shop */
+          <ScrollReveal>
+            <div className="glass-card p-6 space-y-5 animate-fade-in text-center">
+              <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center justify-center gap-2">
+                <Ticket size={22} /> {lang === "de" ? "TICKETS" : "TICKETS"}
+              </h2>
+              <p className="text-muted-foreground">
+                {lang === "de"
+                  ? "Tickets für dieses Event sind über einen externen Anbieter erhältlich."
+                  : "Tickets for this event are available through an external provider."}
+              </p>
+              <a
+                href={(event as any).external_ticket_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-lg"
+              >
+                {lang === "de" ? "TICKETS HIER KAUFEN" : "BUY TICKETS HERE"} →
+              </a>
+            </div>
+          </ScrollReveal>
         ) : step === 1 ? (
           /* Step 1: Select tickets */
           <ScrollReveal>
