@@ -58,7 +58,14 @@ const TicketShopPage = () => {
         supabase.from("events").select("*").eq("id", eventId).eq("is_published", true).single(),
         supabase.from("ticket_types").select("*").eq("event_id", eventId).eq("is_active", true).order("sort_order"),
       ]);
-      if (eventRes.data) setEvent(eventRes.data as unknown as Event);
+      if (eventRes.data) {
+        const ev = eventRes.data as any;
+        if (ev.external_ticket_url) {
+          window.location.href = ev.external_ticket_url;
+          return;
+        }
+        setEvent(ev as unknown as Event);
+      }
       if (typesRes.data) setTicketTypes(typesRes.data as unknown as TicketType[]);
       setLoading(false);
     };
