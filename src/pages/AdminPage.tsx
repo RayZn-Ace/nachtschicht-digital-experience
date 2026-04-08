@@ -173,7 +173,7 @@ const AdminPage = () => {
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const resetForm = () => {
-    setFormData({ title: "", subtitle: "", description: "", date: "", end_date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0, insurance_enabled: false, insurance_amount: 0 });
+    setFormData({ title: "", subtitle: "", description: "", date: "", end_date: "", time: "22:00", end_time: "", genre: "", areas: "", image_url: "", ticket_price: 0, ticket_quantity: 200, is_published: false, is_featured: false, vat_rate: 19, has_muttizettel: false, has_abendkasse: false, fee_enabled: false, fee_type: "per_ticket", fee_mode: "fixed", fee_amount: 0, insurance_enabled: false, insurance_amount: 0, external_ticket_url: "" });
     setSelectedAreas(ALWAYS_OPEN_AREAS);
     setSelectedTagIds([]);
     setSelectedLoungeIds([]);
@@ -201,6 +201,7 @@ const AdminPage = () => {
       fee_amount: (event as any).fee_amount ?? 0,
       insurance_enabled: (event as any).insurance_enabled ?? false,
       insurance_amount: (event as any).insurance_amount ?? 0,
+      external_ticket_url: (event as any).external_ticket_url || "",
     });
     // Load existing tag assignments for this event
     const { data } = await supabase.from("event_tag_assignments").select("tag_id").eq("event_id", event.id);
@@ -279,6 +280,7 @@ const AdminPage = () => {
       subtitle: formData.subtitle || null,
       end_time: formData.end_time || null,
       end_date: formData.end_date || null,
+      external_ticket_url: formData.external_ticket_url?.trim() || null,
       areas: formatAreas(selectedAreas),
       date: new Date(formData.date).toISOString(),
       ticket_price: Number(formData.ticket_price),
@@ -346,6 +348,7 @@ const AdminPage = () => {
       fee_amount: (event as any).fee_amount ?? 0,
       insurance_enabled: (event as any).insurance_enabled ?? false,
       insurance_amount: (event as any).insurance_amount ?? 0,
+      external_ticket_url: (event as any).external_ticket_url || null,
     };
     const { data, error } = await supabase.from("events").insert(payload as any).select("id").single();
     if (error) { toast.error("Fehler beim Duplizieren: " + error.message); return; }
@@ -757,6 +760,18 @@ const AdminPage = () => {
               )}
             </div>
           )}
+        </div>
+
+        {/* Externer Ticketshop */}
+        <div className="md:col-span-2">
+          <label className="text-sm text-foreground mb-1 block">Externer Ticketshop (URL)</label>
+          <input
+            value={formData.external_ticket_url || ""}
+            onChange={(e) => setFormData({ ...formData, external_ticket_url: e.target.value })}
+            placeholder="https://www.eventim.de/event/..."
+            className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Wenn gesetzt, wird der Nutzer zum externen Shop weitergeleitet statt zum internen Ticketshop.</p>
         </div>
       </div>
       <div className="flex gap-3 mt-4">
