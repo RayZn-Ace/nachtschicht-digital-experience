@@ -11,6 +11,7 @@ import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import { calcOrderFees, type FeeConfig, type TicketTypeFeeOverride } from "@/lib/fees";
 import ScrollReveal from "@/components/ScrollReveal";
 import EventLoungeSection from "@/components/EventLoungeSection";
+import RichTextContent from "@/components/RichTextContent";
 
 const TicketShopPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -357,7 +358,7 @@ const TicketShopPage = () => {
                   })}
                 </div>
               )}
-              {event.description && <p className="text-muted-foreground text-sm">{tr(event.description)}</p>}
+              {event.description && <RichTextContent html={tr(event.description)} className="text-sm text-muted-foreground [&_h1]:text-2xl [&_h1]:font-display [&_h1]:text-foreground [&_h2]:text-xl [&_h2]:font-display [&_h2]:text-foreground [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:text-foreground [&_mark]:bg-accent [&_mark]:text-accent-foreground" />}
 
               {/* Event info badges */}
               {(event.has_muttizettel || event.has_abendkasse) && (

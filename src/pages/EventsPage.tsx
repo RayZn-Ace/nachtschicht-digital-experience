@@ -9,6 +9,7 @@ import type { Event } from "@/types/database";
 import ScrollReveal from "@/components/ScrollReveal";
 import { EventSkeletonCard } from "@/components/SkeletonCard";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
+import RichTextContent from "@/components/RichTextContent";
 
 const EventsPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -212,7 +213,7 @@ const EventsPage = () => {
                       )}
 
                       {event.description && (
-                        <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{tr(event.description)}</p>
+                        <RichTextContent html={tr(event.description)} className="mb-3 line-clamp-3 text-sm text-muted-foreground [&_p]:inline [&_h1]:inline [&_h2]:inline [&_ul]:inline [&_ol]:inline" />
                       )}
 
                       {/* Info badges */}
