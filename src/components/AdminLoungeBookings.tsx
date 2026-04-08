@@ -39,7 +39,7 @@ const AdminLoungeBookings = () => {
   const [events, setEvents] = useState<Record<string, string>>({});
   const [lounges, setLounges] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
-  const [timeFilter, setTimeFilter] = useState<"all" | "upcoming" | "past">("all");
+  const [timeFilter, setTimeFilter] = useState<"all" | "upcoming" | "past">("upcoming");
   const [eventDates, setEventDates] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
