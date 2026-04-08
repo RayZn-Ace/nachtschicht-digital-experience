@@ -29,6 +29,7 @@ import AdminCsvMigration from "@/components/AdminCsvMigration";
 import AdminLoungeManagement from "@/components/AdminLoungeManagement";
 import AdminUserManagement from "@/components/AdminUserManagement";
 import AdminLiveCheckin from "@/components/AdminLiveCheckin";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ALWAYS_OPEN_AREAS = ["openair", "bistro"];
@@ -641,7 +642,7 @@ const AdminPage = () => {
         </div>
         <div className="md:col-span-2">
           <label className="text-sm text-foreground mb-1 block">Beschreibung</label>
-          <textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none resize-none" />
+          <RichTextEditor content={formData.description} onChange={(html) => setFormData({ ...formData, description: html })} />
         </div>
         <div className="md:col-span-2 flex flex-wrap gap-6">
           <label className="flex items-center gap-2 cursor-pointer">

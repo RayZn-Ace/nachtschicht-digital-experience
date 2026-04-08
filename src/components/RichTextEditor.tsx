@@ -1,177 +1,140 @@
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEffect } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import TextStyle from "@tiptap/extension-text-style";
+import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
-import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Heading1, Heading2, Heading3, Undo, Redo, Palette, Highlighter, Minus } from "lucide-react";
+import FontFamily from "@tiptap/extension-font-family";
+import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Heading1, Heading2, Palette, Undo, Redo } from "lucide-react";
 
 interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
-  placeholder?: string;
 }
 
-const MenuButton = ({ onClick, active, children, title }: { onClick: () => void; active?: boolean; children: React.ReactNode; title?: string }) => (
+const COLORS = ["#ffffff", "#f8fafc", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899"];
+const FONT_FAMILIES = ["inherit", "Arial", "Georgia", "Verdana", "Trebuchet MS", "Courier New"];
+
+const FontSize = TextStyle.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      fontSize: {
+        default: null,
+        parseHTML: (element) => element.style.fontSize || null,
+        renderHTML: (attributes) => {
+          if (!attributes.fontSize) return {};
+          return { style: `font-size: ${attributes.fontSize}` };
+        },
+      },
+    };
+  },
+});
+
+const ToolbarButton = ({ active, onClick, title, children }: { active?: boolean; onClick: () => void; title: string; children: React.ReactNode }) => (
   <button
     type="button"
     onClick={onClick}
     title={title}
-    className={`p-1.5 rounded transition-colors ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+    className={`inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:bg-muted"}`}
   >
     {children}
   </button>
 );
 
-const COLORS = ["#ffffff", "#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"];
-const FONT_SIZES = [
-  { label: "Klein", value: "0.875em" },
-  { label: "Normal", value: "1em" },
-  { label: "Groß", value: "1.25em" },
-  { label: "Sehr groß", value: "1.5em" },
-  { label: "Riesig", value: "2em" },
-];
-
-const RichTextEditor = ({ content, onChange, placeholder }: RichTextEditorProps) => {
+export default function RichTextEditor({ content, onChange }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
+      StarterKit.configure({ heading: { levels: [1, 2] } }),
       Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      FontSize,
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      FontFamily.configure({ types: ["textStyle"] }),
     ],
-    content: content || "",
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
+    content,
     editorProps: {
       attributes: {
-        class: "prose prose-invert prose-sm max-w-none focus:outline-none min-h-[120px] px-4 py-3 text-foreground",
+        class: "min-h-[220px] w-full px-4 py-3 text-sm text-foreground focus:outline-none",
       },
     },
+    onUpdate: ({ editor: nextEditor }) => onChange(nextEditor.getHTML()),
   });
+
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content || "<p></p>", false);
+    }
+  }, [content, editor]);
 
   if (!editor) return null;
 
   return (
-    <div className="border border-border rounded-md bg-muted overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/80">
-        {/* Font size */}
+    <div className="overflow-hidden rounded-md border border-border bg-muted">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-background/70 p-2">
         <select
-          value=""
-          onChange={(e) => {
-            if (e.target.value) {
-              editor.chain().focus().setMark("textStyle", { fontSize: e.target.value }).run();
-            }
-          }}
-          className="h-7 px-1.5 text-xs bg-background border border-border rounded text-foreground focus:outline-none"
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground"
+          defaultValue="inherit"
+          onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
         >
-          <option value="">Größe</option>
-          {FONT_SIZES.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
+          {FONT_FAMILIES.map((font) => (
+            <option key={font} value={font}>{font === "inherit" ? "Schriftart" : font}</option>
           ))}
         </select>
 
-        <div className="w-px h-5 bg-border mx-1" />
+        <select
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground"
+          defaultValue=""
+          onChange={(e) => {
+            if (!e.target.value) return;
+            editor.chain().focus().setMark("textStyle", { fontSize: e.target.value }).run();
+          }}
+        >
+          <option value="">Größe</option>
+          <option value="14px">Klein</option>
+          <option value="16px">Normal</option>
+          <option value="18px">Mittel</option>
+          <option value="22px">Groß</option>
+          <option value="28px">XL</option>
+        </select>
 
-        <MenuButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Fett">
-          <Bold size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Kursiv">
-          <Italic size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Unterstrichen">
-          <UnderlineIcon size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Durchgestrichen">
-          <Strikethrough size={14} />
-        </MenuButton>
+        <div className="h-6 w-px bg-border" />
+        <ToolbarButton title="Fett" onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")}><Bold size={14} /></ToolbarButton>
+        <ToolbarButton title="Kursiv" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")}><Italic size={14} /></ToolbarButton>
+        <ToolbarButton title="Unterstrichen" onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")}><UnderlineIcon size={14} /></ToolbarButton>
+        <ToolbarButton title="Durchgestrichen" onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")}><Strikethrough size={14} /></ToolbarButton>
+        <ToolbarButton title="H1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive("heading", { level: 1 })}><Heading1 size={14} /></ToolbarButton>
+        <ToolbarButton title="H2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })}><Heading2 size={14} /></ToolbarButton>
+        <ToolbarButton title="Liste" onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")}><List size={14} /></ToolbarButton>
+        <ToolbarButton title="Nummeriert" onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")}><ListOrdered size={14} /></ToolbarButton>
+        <ToolbarButton title="Links" onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })}><AlignLeft size={14} /></ToolbarButton>
+        <ToolbarButton title="Zentriert" onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })}><AlignCenter size={14} /></ToolbarButton>
+        <ToolbarButton title="Rechts" onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })}><AlignRight size={14} /></ToolbarButton>
+        <ToolbarButton title="Rückgängig" onClick={() => editor.chain().focus().undo().run()}><Undo size={14} /></ToolbarButton>
+        <ToolbarButton title="Wiederholen" onClick={() => editor.chain().focus().redo().run()}><Redo size={14} /></ToolbarButton>
 
-        <div className="w-px h-5 bg-border mx-1" />
-
-        <MenuButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive("heading", { level: 1 })} title="Überschrift 1">
-          <Heading1 size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="Überschrift 2">
-          <Heading2 size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="Überschrift 3">
-          <Heading3 size={14} />
-        </MenuButton>
-
-        <div className="w-px h-5 bg-border mx-1" />
-
-        <MenuButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Aufzählung">
-          <List size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Nummerierung">
-          <ListOrdered size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Trennlinie">
-          <Minus size={14} />
-        </MenuButton>
-
-        <div className="w-px h-5 bg-border mx-1" />
-
-        <MenuButton onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Links">
-          <AlignLeft size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Zentriert">
-          <AlignCenter size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Rechts">
-          <AlignRight size={14} />
-        </MenuButton>
-
-        <div className="w-px h-5 bg-border mx-1" />
-
-        {/* Color picker */}
-        <div className="relative group">
-          <MenuButton onClick={() => {}} title="Textfarbe">
-            <Palette size={14} />
-          </MenuButton>
-          <div className="absolute top-full left-0 mt-1 p-1.5 bg-background border border-border rounded-md shadow-lg hidden group-hover:flex gap-1 z-50">
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => editor.chain().focus().setColor(c).run()}
-                className="w-5 h-5 rounded-full border border-border hover:scale-110 transition-transform"
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
+        <div className="ml-auto flex items-center gap-1">
+          <Palette size={14} className="text-muted-foreground" />
+          {COLORS.map((color) => (
+            <button
+              key={color}
+              type="button"
+              onClick={() => editor.chain().focus().setColor(color).run()}
+              className="h-6 w-6 rounded-full border border-border"
+              style={{ backgroundColor: color }}
+              title={color}
+            />
+          ))}
         </div>
-
-        {/* Highlight */}
-        <div className="relative group">
-          <MenuButton onClick={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive("highlight")} title="Markieren">
-            <Highlighter size={14} />
-          </MenuButton>
-        </div>
-
-        <div className="w-px h-5 bg-border mx-1" />
-
-        <MenuButton onClick={() => editor.chain().focus().undo().run()} title="Rückgängig">
-          <Undo size={14} />
-        </MenuButton>
-        <MenuButton onClick={() => editor.chain().focus().redo().run()} title="Wiederholen">
-          <Redo size={14} />
-        </MenuButton>
       </div>
 
-      {/* Editor */}
-      <div className="resize-y overflow-auto min-h-[150px] max-h-[600px]">
+      <div className="resize-y overflow-auto bg-background min-h-[220px] max-h-[640px]">
         <EditorContent editor={editor} />
       </div>
     </div>
   );
-};
-
-export default RichTextEditor;
+}
