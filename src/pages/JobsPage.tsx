@@ -59,7 +59,8 @@ const JobsPage = () => {
       const ext = photoFile.name.split(".").pop();
       const path = `applicants/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, photoFile, { upsert: true });
-      if (!uploadErr) photoUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
+      if (uploadErr) { console.error("Photo upload error:", uploadErr); toast.error("Foto konnte nicht hochgeladen werden"); }
+      else photoUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
     }
     const { error } = await supabase.from("job_applications").insert({ first_name: firstName, last_name: lastName, age: Number(age), email, phone, positions: selectedJobs, photo_url: photoUrl, message: message || null } as any);
     if (error) { toast.error(t("jobs.error")); } else { toast.success(t("jobs.success")); setFirstName(""); setLastName(""); setAge(""); setEmail(""); setPhone(""); setMessage(""); setPhotoFile(null); setSelectedJobs([]); setAgreed(false); }
