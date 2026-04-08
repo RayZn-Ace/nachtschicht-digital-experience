@@ -839,6 +839,8 @@ const AdminPage = () => {
           </button>
         </div>
 
+        {showForm && !editing && renderEventForm()}
+
         {/* Event filter tabs */}
         <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4">
           {([
@@ -971,7 +973,6 @@ const AdminPage = () => {
           })()}
         </div>
 
-        {showForm && !editing && renderEventForm()}
         </>
         )}
       </div>
