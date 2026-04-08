@@ -163,7 +163,7 @@ const EventsPage = () => {
                 <ScrollReveal key={event.id} delay={i * 0.1}>
                   <article
                     className="glass-card overflow-hidden hover-lift group cursor-pointer"
-                    onClick={() => (event as any).external_ticket_url ? window.open((event as any).external_ticket_url, '_blank') : navigate(`/tickets/${event.id}`)}
+                    onClick={() => navigate(`/tickets/${event.id}`)}
                   >
                     <div className="relative aspect-video overflow-hidden">
                       <img
@@ -237,7 +237,7 @@ const EventsPage = () => {
                       <div className="flex items-center gap-2">
                         <span
                           className="px-4 py-2.5 bg-primary text-primary-foreground font-display tracking-wider rounded-md text-sm min-h-[44px] inline-flex items-center"
-                          onClick={(e) => { e.stopPropagation(); (event as any).external_ticket_url ? window.open((event as any).external_ticket_url, '_blank') : navigate(`/tickets/${event.id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/tickets/${event.id}`); }}
                         >
                           {soldOut ? (lang === "de" ? "AUSVERKAUFT" : "SOLD OUT") : "TICKETS"}
                         </span>
