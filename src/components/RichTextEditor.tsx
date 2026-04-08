@@ -33,6 +33,24 @@ const FontSize = TextStyle.extend({
   },
 });
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const textToHtml = (text: string) => {
+  const normalized = text.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return "<p></p>";
+
+  return normalized
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`)
+    .join("");
+};
+
 const ToolbarButton = ({ active, onClick, title, children }: { active?: boolean; onClick: () => void; title: string; children: React.ReactNode }) => (
   <button
     type="button"
@@ -60,6 +78,14 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
     editorProps: {
       attributes: {
         class: "min-h-[220px] w-full px-4 py-3 text-sm text-foreground focus:outline-none",
+      },
+      handlePaste: (_view, event) => {
+        const text = event.clipboardData?.getData("text/plain");
+        if (!text) return false;
+
+        event.preventDefault();
+        editor?.chain().focus().insertContent(textToHtml(text)).run();
+        return true;
       },
     },
     onUpdate: ({ editor: nextEditor }) => onChange(nextEditor.getHTML()),
