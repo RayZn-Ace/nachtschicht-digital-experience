@@ -319,6 +319,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           end_time: string | null
+          external_ticket_url: string | null
           fee_amount: number
           fee_enabled: boolean
           fee_mode: string
@@ -351,6 +352,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           end_time?: string | null
+          external_ticket_url?: string | null
           fee_amount?: number
           fee_enabled?: boolean
           fee_mode?: string
@@ -383,6 +385,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           end_time?: string | null
+          external_ticket_url?: string | null
           fee_amount?: number
           fee_enabled?: boolean
           fee_mode?: string
