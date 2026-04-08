@@ -179,7 +179,32 @@ const AdminLoungeBookings = () => {
         </div>
       </div>
 
-      {/* Filter */}
+      {/* Time Filter */}
+      <div className="flex gap-2 mb-3 flex-wrap">
+        {([
+          { key: "all", label: "ALLE" },
+          { key: "upcoming", label: "ZUKÜNFTIG" },
+          { key: "past", label: "VERGANGEN" },
+        ] as const).map((t) => {
+          const count = t.key === "all" ? bookings.length : bookings.filter((b) => {
+            const d = (eventDates[b.event_id] || "").replace(/[ T].*/, "");
+            return t.key === "upcoming" ? d >= today : d < today;
+          }).length;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTimeFilter(t.key)}
+              className={`px-4 py-1.5 text-xs font-display tracking-wider rounded-md transition-colors ${
+                timeFilter === t.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label} <span className="ml-1.5 opacity-70">({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Status Filter */}
       <div className="flex gap-2 mb-4 flex-wrap">
         {(["all", "pending", "confirmed", "rejected"] as const).map((f) => (
           <button
