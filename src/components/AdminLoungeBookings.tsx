@@ -140,7 +140,14 @@ const AdminLoungeBookings = () => {
     fetchData();
   };
 
-  const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
+  const today = new Date().toISOString().split("T")[0];
+  const timeFiltered = timeFilter === "all" ? bookings : bookings.filter((b) => {
+    const eventDate = eventDates[b.event_id] || "";
+    const dateStr = eventDate.replace(/[ T].*/, "");
+    if (timeFilter === "upcoming") return dateStr >= today;
+    return dateStr < today;
+  });
+  const filtered = filter === "all" ? timeFiltered : timeFiltered.filter((b) => b.status === filter);
 
   // Stats
   const totalDeposits = bookings.filter(b => b.booking_type === "guaranteed").reduce((s, b) => s + b.deposit_amount, 0);
