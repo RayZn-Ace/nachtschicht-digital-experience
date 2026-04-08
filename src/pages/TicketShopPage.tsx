@@ -967,7 +967,7 @@ const TicketShopPage = () => {
                 {event && step !== 3 && <EventLoungeSection event={event} />}
               </div>
 
-              <aside className="hidden lg:block sticky top-6 self-start">
+              <aside className="hidden lg:block sticky top-24 self-start">
                 {renderTicketPanel()}
               </aside>
             </div>
