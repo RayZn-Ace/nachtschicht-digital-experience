@@ -55,8 +55,10 @@ const AdminLoungeBookings = () => {
     if (bookingsRes.data) setBookings(bookingsRes.data as any);
     if (eventsRes.data) {
       const map: Record<string, string> = {};
-      eventsRes.data.forEach((e: any) => (map[e.id] = e.title));
+      const dateMap: Record<string, string> = {};
+      eventsRes.data.forEach((e: any) => { map[e.id] = e.title; dateMap[e.id] = e.date; });
       setEvents(map);
+      setEventDates(dateMap);
     }
     if (loungesRes.data) {
       const map: Record<string, string> = {};
