@@ -48,7 +48,7 @@ const AdminLoungeBookings = () => {
     setLoading(true);
     const [bookingsRes, eventsRes, loungesRes] = await Promise.all([
       supabase.from("lounge_bookings").select("*").order("created_at", { ascending: false }),
-      supabase.from("events").select("id, title"),
+      supabase.from("events").select("id, title, date"),
       supabase.from("lounges").select("id, name"),
     ]);
 
