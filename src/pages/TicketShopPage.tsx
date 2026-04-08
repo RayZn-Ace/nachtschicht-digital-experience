@@ -325,84 +325,383 @@ const TicketShopPage = () => {
   const soldOut = remaining <= 0;
   const eventAreas = parseAreas(event.areas);
 
+  const renderTicketPanel = () => {
+    if (soldOut) {
+      return (
+        <div className="glass-card p-8 text-center">
+          <p className="text-2xl font-display text-destructive tracking-wider">{lang === "de" ? "AUSVERKAUFT" : "SOLD OUT"}</p>
+        </div>
+      );
+    }
+
+    if ((event as any).external_ticket_url) {
+      return (
+        <ScrollReveal>
+          <div className="glass-card p-6 space-y-5 animate-fade-in text-center">
+            <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center justify-center gap-2">
+              <Ticket size={22} /> TICKETS
+            </h2>
+            <p className="text-muted-foreground">
+              {lang === "de"
+                ? "Tickets für dieses Event sind über einen externen Anbieter erhältlich."
+                : "Tickets for this event are available through an external provider."}
+            </p>
+            <a
+              href={(event as any).external_ticket_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-lg"
+            >
+              {lang === "de" ? "TICKETS HIER KAUFEN" : "BUY TICKETS HERE"} →
+            </a>
+          </div>
+        </ScrollReveal>
+      );
+    }
+
+    if (step === 1) {
+      return (
+        <ScrollReveal>
+          <div className="glass-card p-5 space-y-4 animate-fade-in">
+            {useGlobalPrice && event.has_abendkasse ? (
+              <>
+                <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center gap-2">
+                  <DoorOpen size={22} /> {lang === "de" ? "ABENDKASSE" : "BOX OFFICE"}
+                </h2>
+                <div className="p-4 border border-border rounded-lg">
+                  <p className="text-muted-foreground text-sm">
+                    {lang === "de"
+                      ? "Für dieses Event gibt es keinen Online-Vorverkauf. Tickets sind nur an der Abendkasse erhältlich."
+                      : "No online presale for this event. Tickets are available at the door only."}
+                  </p>
+                  {event.ticket_price > 0 && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-foreground font-medium">{lang === "de" ? "Eintrittspreis:" : "Entry price:"}</span>
+                      <span className="text-primary font-bold text-xl">{event.ticket_price}€</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center gap-2">
+                  <Ticket size={22} /> {lang === "de" ? "TICKETS WÄHLEN" : "SELECT TICKETS"}
+                </h2>
+
+                {event.has_abendkasse && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50 border border-border text-xs text-muted-foreground">
+                    <DoorOpen size={14} className="shrink-0" />
+                    <span>
+                      {lang === "de"
+                        ? `Tickets sind auch für ${event.ticket_price || 0}€ an der Abendkasse erhältlich.`
+                        : `Tickets are also available at the door for ${event.ticket_price || 0}€.`}
+                    </span>
+                  </div>
+                )}
+
+                {useGlobalPrice ? (
+                  <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div>
+                      <p className="font-medium text-foreground">{lang === "de" ? "Eintrittskarte" : "Entry Ticket"}</p>
+                      <p className="text-primary font-bold text-lg">{event.ticket_price}€</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => updateCart("global", -1)} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-muted">
+                        <Minus size={16} />
+                      </button>
+                      <span className="text-lg font-bold text-foreground w-8 text-center">{globalQuantity}</span>
+                      <button onClick={() => updateCart("global", 1)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90">
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {ticketTypes.map((tt) => {
+                      const ttRemaining = tt.quantity - tt.sold;
+                      const ttSoldOut = ttRemaining <= 0;
+                      return (
+                        <div key={tt.id} className={`flex items-center justify-between p-4 border border-border rounded-lg ${ttSoldOut ? 'opacity-50' : ''}`}>
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">{tr(tt.name)}</p>
+                            {tt.description && <p className="text-xs text-muted-foreground">{tr(tt.description)}</p>}
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-primary font-bold text-lg">{tt.price}€</span>
+                              {ttRemaining <= 10 && !ttSoldOut && (
+                                <span className="text-xs text-destructive">
+                                  {lang === "de" ? `Noch ${ttRemaining}` : `${ttRemaining} left`}
+                                </span>
+                              )}
+                              {ttSoldOut && <span className="text-xs text-destructive font-bold">{lang === "de" ? "Ausverkauft" : "Sold out"}</span>}
+                            </div>
+                          </div>
+                          {!ttSoldOut && (
+                            <div className="flex items-center gap-3">
+                              <button onClick={() => updateCart(tt.id, -1)} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-muted">
+                                <Minus size={16} />
+                              </button>
+                              <span className="text-lg font-bold text-foreground w-8 text-center">{cart[tt.id] || 0}</span>
+                              <button
+                                onClick={() => updateCart(tt.id, 1)}
+                                disabled={(cart[tt.id] || 0) >= ttRemaining}
+                                className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-50"
+                              >
+                                <Plus size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                      placeholder={lang === "de" ? "Rabattcode eingeben" : "Enter discount code"}
+                      className="w-full pl-9 pr-4 py-2.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none font-mono"
+                      onKeyDown={(e) => e.key === "Enter" && applyDiscount()}
+                    />
+                  </div>
+                  <button
+                    onClick={applyDiscount}
+                    disabled={discountLoading}
+                    className="px-4 py-2.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-sm"
+                  >
+                    {lang === "de" ? "EINLÖSEN" : "APPLY"}
+                  </button>
+                </div>
+
+                {appliedDiscount && (
+                  <div className="flex items-center gap-2 text-green-400 text-sm">
+                    <Tag size={14} />
+                    {appliedDiscount.discount_type === "percent" ? `${appliedDiscount.discount_value}%` : `${appliedDiscount.discount_value}€`} Rabatt mit "{appliedDiscount.code}"
+                    <button onClick={() => { setAppliedDiscount(null); setDiscountCode(""); }} className="text-muted-foreground hover:text-foreground ml-auto text-xs">✕</button>
+                  </div>
+                )}
+
+                {totalCount > 0 && (
+                  <div className="border-t border-border pt-4 space-y-1">
+                    {(discount > 0 || totalFees > 0 || totalInsurance > 0) && (
+                      <>
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>{lang === "de" ? "Zwischensumme" : "Subtotal"}</span>
+                          <span>{rawTotal.toFixed(2)}€</span>
+                        </div>
+                        {discount > 0 && (
+                          <div className="flex justify-between text-sm text-green-400">
+                            <span>{lang === "de" ? "Rabatt" : "Discount"}</span>
+                            <span>-{discount.toFixed(2)}€</span>
+                          </div>
+                        )}
+                        {totalFees > 0 && (
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
+                            <span>{totalFees.toFixed(2)}€</span>
+                          </div>
+                        )}
+                        {totalInsurance > 0 && (
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1"><Shield size={12} /> {lang === "de" ? "Ticketversicherung" : "Ticket insurance"}</span>
+                            <span>{totalInsurance.toFixed(2)}€</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <div className="flex justify-between text-lg font-bold text-foreground">
+                      <span>{totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}</span>
+                      <span>{finalTotal.toFixed(2)}€</span>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    if (insuranceEnabled && insuranceAmountPerTicket > 0) {
+                      setShowInsurancePopup(true);
+                    } else {
+                      setStep(2);
+                    }
+                  }}
+                  disabled={totalCount === 0}
+                  className="w-full py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {lang === "de" ? "WEITER ZUR BUCHUNG" : "CONTINUE TO CHECKOUT"}
+                </button>
+
+                {showInsurancePopup && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setShowInsurancePopup(false)}>
+                    <div className="bg-background border border-border rounded-xl p-6 max-w-md w-full mx-4 space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                          <Shield size={24} className="text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-display text-xl tracking-wider text-foreground">
+                            {lang === "de" ? "TICKETVERSICHERUNG" : "TICKET INSURANCE"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {insuranceAmountPerTicket.toFixed(2).replace(".", ",")}€ {lang === "de" ? "pro Ticket" : "per ticket"}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {lang === "de"
+                          ? "Sichere deine Tickets ab! Bei Krankheit oder unvorhergesehenen Ereignissen erhältst du den vollen Ticketpreis zurück."
+                          : "Protect your tickets! In case of illness or unforeseen events, you'll receive a full refund."}
+                      </p>
+                      <div className="p-3 bg-muted rounded-lg text-sm text-foreground">
+                        {totalCount} {totalCount === 1 ? "Ticket" : "Tickets"} × {insuranceAmountPerTicket.toFixed(2).replace(".", ",")}€ = <span className="font-bold">{(insuranceAmountPerTicket * totalCount).toFixed(2).replace(".", ",")}€</span>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setInsuranceSelected(false); setShowInsurancePopup(false); setStep(2); }}
+                          className="flex-1 py-3 border border-border text-foreground font-display tracking-wider rounded-md hover:bg-muted transition-colors text-sm"
+                        >
+                          {lang === "de" ? "NEIN, DANKE" : "NO, THANKS"}
+                        </button>
+                        <button
+                          onClick={() => { setInsuranceSelected(true); setShowInsurancePopup(false); setStep(2); }}
+                          className="flex-1 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-sm"
+                        >
+                          {lang === "de" ? "JA, ABSICHERN" : "YES, INSURE"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ScrollReveal>
+      );
+    }
+
+    return (
+      <ScrollReveal>
+        <div className="glass-card p-5 space-y-4 animate-fade-in">
+          <h2 className="font-display text-2xl tracking-wider text-foreground">
+            {lang === "de" ? "DEINE DATEN" : "YOUR DETAILS"}
+          </h2>
+
+          <div>
+            <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Name *" : "Name *"}</label>
+            <input
+              type="text"
+              required
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              placeholder={lang === "de" ? "Vorname" : "First name"}
+            />
+          </div>
+
+          {!user && (
+            <div>
+              <label className="text-sm text-foreground mb-1 block">E-Mail *</label>
+              <input
+                type="email"
+                required
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                placeholder="deine@email.de"
+              />
+            </div>
+          )}
+
+          {user && (
+            <div className="p-3 bg-muted rounded-md text-sm text-foreground">
+              {lang === "de" ? "Eingeloggt als" : "Logged in as"}: <strong>{user.email}</strong>
+            </div>
+          )}
+
+          <div>
+            <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Handynummer *" : "Phone number *"}</label>
+            <input
+              type="tel"
+              value={guestPhone}
+              onChange={(e) => setGuestPhone(e.target.value)}
+              className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              placeholder="+49 170 1234567"
+            />
+          </div>
+
+          <div className="border border-border rounded-lg p-4 space-y-2">
+            <h3 className="font-display text-sm tracking-wider text-muted-foreground">
+              {lang === "de" ? "BESTELLÜBERSICHT" : "ORDER SUMMARY"}
+            </h3>
+            {useGlobalPrice ? (
+              <div className="flex justify-between text-sm text-foreground">
+                <span>{globalQuantity}× {lang === "de" ? "Eintrittskarte" : "Entry Ticket"}</span>
+                <span>{(globalQuantity * (event?.ticket_price || 0)).toFixed(2)}€</span>
+              </div>
+            ) : (
+              ticketTypes.filter((tt) => (cart[tt.id] || 0) > 0).map((tt) => (
+                <div key={tt.id} className="flex justify-between text-sm text-foreground">
+                  <span>{cart[tt.id]}× {tr(tt.name)}</span>
+                  <span>{(cart[tt.id] * tt.price).toFixed(2)}€</span>
+                </div>
+              ))
+            )}
+            {discount > 0 && (
+              <div className="flex justify-between text-sm text-green-400">
+                <span>{lang === "de" ? "Rabatt" : "Discount"} ({appliedDiscount?.code})</span>
+                <span>-{discount.toFixed(2)}€</span>
+              </div>
+            )}
+            {totalFees > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
+                <span>{totalFees.toFixed(2)}€</span>
+              </div>
+            )}
+            {totalInsurance > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span className="flex items-center gap-1"><Shield size={12} /> {lang === "de" ? "Ticketversicherung" : "Ticket insurance"}</span>
+                <span>{totalInsurance.toFixed(2)}€</span>
+              </div>
+            )}
+            <div className="border-t border-border pt-2 flex justify-between font-bold text-foreground">
+              <span>Total</span>
+              <span>{finalTotal.toFixed(2)}€</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(1)}
+              className="flex-1 py-3 border border-border text-foreground font-display tracking-wider rounded-md hover:bg-muted"
+            >
+              {lang === "de" ? "ZURÜCK" : "BACK"}
+            </button>
+            <button
+              onClick={handlePurchase}
+              disabled={buying || (!user && !guestEmail) || !guestName.trim()}
+              className="flex-1 py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {buying ? <><Loader2 size={18} className="animate-spin" /> {lang === "de" ? "WIRD VERARBEITET..." : "PROCESSING..."}</> : lang === "de" ? (finalTotal > 0 ? "JETZT BEZAHLEN" : "JETZT BUCHEN") : (finalTotal > 0 ? "PAY NOW" : "BOOK NOW")}
+            </button>
+          </div>
+        </div>
+      </ScrollReveal>
+    );
+  };
+
   return (
     <section className="section-padding">
-      <div className="container mx-auto max-w-2xl">
-        {/* Back */}
+      <div className="container mx-auto max-w-6xl">
         <button onClick={() => navigate("/events")} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowLeft size={18} /> {lang === "de" ? "Zurück zu Events" : "Back to events"}
         </button>
 
-        {/* Event Header */}
-        <ScrollReveal>
-          <div className="glass-card overflow-hidden mb-6">
-            {event.image_url && (
-              <div className="relative h-40 sm:h-48 md:h-64 overflow-hidden">
-                <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
-              </div>
-            )}
-            <div className="p-5">
-              <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-2 leading-tight">{tr(event.title)}</h1>
-              <div className="flex items-center gap-4 text-muted-foreground text-sm mb-2">
-                <span className="flex items-center gap-1">
-                  <Calendar size={14} />
-                  {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })} – {event.time}
-                </span>
-              </div>
-              {eventAreas.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {eventAreas.map((aId) => {
-                    const area = CLUB_AREAS.find((a) => a.id === aId);
-                    return area ? <span key={aId} className={`text-xs px-2 py-0.5 rounded-full font-medium ${area.color}`}>{area.name}</span> : null;
-                  })}
-                </div>
-              )}
-              {event.description && <RichTextContent html={tr(event.description)} className="text-sm text-muted-foreground [&_h1]:text-2xl [&_h1]:font-display [&_h1]:text-foreground [&_h2]:text-xl [&_h2]:font-display [&_h2]:text-foreground [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:text-foreground [&_mark]:bg-accent [&_mark]:text-accent-foreground" />}
-
-              {/* Event info badges */}
-              {(event.has_muttizettel || event.has_abendkasse) && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {event.has_abendkasse && (
-                    <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-accent/50 text-accent-foreground font-medium">
-                      <DoorOpen size={13} />
-                      {lang === "de" ? "Abendkasse verfügbar" : "Available at the door"}
-                    </span>
-                  )}
-                  {event.has_muttizettel && (
-                    <a
-                      href={`/u18?event=${eventId}`}
-                      onClick={(e) => { e.stopPropagation(); }}
-                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-primary/15 text-primary font-medium hover:bg-primary/25 transition-colors"
-                    >
-                      <ShieldCheck size={13} />
-                      {lang === "de" ? "Muttizettel erlaubt" : "Parental consent allowed"}
-                    </a>
-                  )}
-                </div>
-              )}
-
-              {/* Social proof & scarcity */}
-              <div className="flex items-center gap-4 mt-3">
-                {!soldOut && remaining <= Math.ceil(event.ticket_quantity * 0.2) && (
-                  <span className="text-xs text-destructive font-semibold animate-pulse">
-                    🔥 {lang === "de" ? `Nur noch ${remaining} Tickets!` : `Only ${remaining} tickets left!`}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {soldOut ? (
-          <div className="glass-card p-8 text-center">
-            <p className="text-2xl font-display text-destructive tracking-wider">{lang === "de" ? "AUSVERKAUFT" : "SOLD OUT"}</p>
-          </div>
-        ) : step === 3 ? (
-          /* Success – Confirmation with QR Code */
+        {step === 3 ? (
           <ScrollReveal>
             <div className="glass-card p-6 md:p-10 animate-fade-in space-y-6">
-              {/* Header */}
               <div className="text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-4">
                   <CheckCircle2 size={36} className="text-green-400" />
@@ -423,7 +722,6 @@ const TicketShopPage = () => {
                 </p>
               </div>
 
-              {/* QR Codes – one per ticket */}
               <div className={`${purchasedTickets.length > 1 ? "grid grid-cols-1 sm:grid-cols-2 gap-6" : "flex flex-col items-center gap-4"}`}>
                 {(purchasedTickets.length > 0 ? purchasedTickets : [{ id: "", qr_code: purchasedQrCode }]).map((ticket, idx) => (
                   <div key={ticket.id || idx} className="flex flex-col items-center gap-3">
@@ -455,23 +753,15 @@ const TicketShopPage = () => {
                 ))}
               </div>
 
-              {/* Ticket Details */}
               <div className="border border-border rounded-lg p-4 space-y-2">
-                <h3 className="font-display text-lg tracking-wider text-foreground">
-                  {tr(event.title)}
-                </h3>
+                <h3 className="font-display text-lg tracking-wider text-foreground">{tr(event.title)}</h3>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar size={14} />
-                  {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", {
-                    weekday: "long", day: "2-digit", month: "long", year: "numeric"
-                  })} – {event.time}
+                  {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })} – {event.time}
                 </div>
-                {/* Ticket categories breakdown */}
                 {useGlobalPrice ? (
                   <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
-                    <span className="text-muted-foreground">
-                      {totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}
-                    </span>
+                    <span className="text-muted-foreground">{totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}</span>
                     <span className="text-foreground font-bold">{finalTotal.toFixed(2)}€</span>
                   </div>
                 ) : (
@@ -485,34 +775,19 @@ const TicketShopPage = () => {
                         <span className="text-foreground font-medium">{(tt.price * cart[tt.id]).toFixed(2)}€</span>
                       </div>
                     ))}
-                    {totalFees > 0 && (
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
-                        <span>{totalFees.toFixed(2)}€</span>
-                      </div>
-                    )}
-                    {totalInsurance > 0 && (
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Shield size={10} /> {lang === "de" ? "Ticketversicherung" : "Ticket insurance"}</span>
-                        <span>{totalInsurance.toFixed(2)}€</span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between text-sm pt-1 border-t border-border/50">
-                      <span className="text-foreground font-semibold">{lang === "de" ? "Gesamt" : "Total"}</span>
-                      <span className="text-foreground font-bold">{finalTotal.toFixed(2)}€</span>
-                    </div>
+                    {totalFees > 0 && <div className="flex items-center justify-between text-xs text-muted-foreground"><span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span><span>{totalFees.toFixed(2)}€</span></div>}
+                    {totalInsurance > 0 && <div className="flex items-center justify-between text-xs text-muted-foreground"><span className="flex items-center gap-1"><Shield size={10} /> {lang === "de" ? "Ticketversicherung" : "Ticket insurance"}</span><span>{totalInsurance.toFixed(2)}€</span></div>}
+                    <div className="flex items-center justify-between text-sm pt-1 border-t border-border/50"><span className="text-foreground font-semibold">{lang === "de" ? "Gesamt" : "Total"}</span><span className="text-foreground font-bold">{finalTotal.toFixed(2)}€</span></div>
                   </div>
                 )}
               </div>
 
-              {/* Info */}
               <p className="text-xs text-muted-foreground text-center">
                 {lang === "de"
                   ? "Eine Bestätigung wurde an deine E-Mail gesendet. Speichere die QR-Codes als Screenshot."
                   : "A confirmation has been sent to your email. Save the QR codes as a screenshot."}
               </p>
 
-              {/* Actions */}
               <div className="flex flex-col gap-3 justify-center">
                 <button
                   disabled={ticketPdfLoading}
@@ -520,7 +795,6 @@ const TicketShopPage = () => {
                     if (purchasedTicketIds.length === 0) return;
                     setTicketPdfLoading(true);
                     try {
-                      // Download PDF for each ticket
                       for (let i = 0; i < purchasedTicketIds.length; i++) {
                         const { data, error } = await supabase.functions.invoke("generate-ticket-pdf", {
                           body: { ticket_id: purchasedTicketIds[i] },
@@ -552,12 +826,7 @@ const TicketShopPage = () => {
                     if (purchasedTicketIds.length === 0) return;
                     setInvoiceLoading(true);
                     try {
-                      // Find invoice by ticket_id
-                      const { data: inv } = await supabase
-                        .from("invoices")
-                        .select("id, invoice_number")
-                        .eq("ticket_id", purchasedTicketIds[0])
-                        .maybeSingle();
+                      const { data: inv } = await supabase.from("invoices").select("id, invoice_number").eq("ticket_id", purchasedTicketIds[0]).maybeSingle();
                       if (!inv) {
                         toast.error(lang === "de" ? "Rechnung wird noch erstellt – bitte versuche es gleich nochmal." : "Invoice is still being created – please try again shortly.");
                         setInvoiceLoading(false);
@@ -594,397 +863,115 @@ const TicketShopPage = () => {
               </div>
             </div>
           </ScrollReveal>
-        ) : (event as any).external_ticket_url ? (
-          /* External ticket shop */
-          <ScrollReveal>
-            <div className="glass-card p-6 space-y-5 animate-fade-in text-center">
-              <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center justify-center gap-2">
-                <Ticket size={22} /> {lang === "de" ? "TICKETS" : "TICKETS"}
-              </h2>
-              <p className="text-muted-foreground">
-                {lang === "de"
-                  ? "Tickets für dieses Event sind über einen externen Anbieter erhältlich."
-                  : "Tickets for this event are available through an external provider."}
-              </p>
-              <a
-                href={(event as any).external_ticket_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-lg"
-              >
-                {lang === "de" ? "TICKETS HIER KAUFEN" : "BUY TICKETS HERE"} →
-              </a>
-            </div>
-          </ScrollReveal>
-        ) : step === 1 ? (
-          /* Step 1: Select tickets */
-          <ScrollReveal>
-            <div className="glass-card p-5 space-y-4 animate-fade-in">
-              {/* Abendkasse-only mode: no ticket types, only door price */}
-              {useGlobalPrice && event.has_abendkasse ? (
-                <>
-                  <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center gap-2">
-                    <DoorOpen size={22} /> {lang === "de" ? "ABENDKASSE" : "BOX OFFICE"}
-                  </h2>
-                  <div className="p-4 border border-border rounded-lg">
-                    <p className="text-muted-foreground text-sm">
-                      {lang === "de"
-                        ? "Für dieses Event gibt es keinen Online-Vorverkauf. Tickets sind nur an der Abendkasse erhältlich."
-                        : "No online presale for this event. Tickets are available at the door only."}
-                    </p>
-                    {event.ticket_price > 0 && (
-                      <div className="mt-3 flex items-center gap-2">
-                        <span className="text-foreground font-medium">{lang === "de" ? "Eintrittspreis:" : "Entry price:"}</span>
-                        <span className="text-primary font-bold text-xl">{event.ticket_price}€</span>
-                      </div>
-                    )}
+        ) : (
+          <>
+            <ScrollReveal>
+              <div className="glass-card overflow-hidden mb-6">
+                {event.image_url && (
+                  <div className="relative h-40 sm:h-48 md:h-72 overflow-hidden">
+                    <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
                   </div>
-                </>
-              ) : (
-                <>
-                  <h2 className="font-display text-2xl tracking-wider text-foreground flex items-center gap-2">
-                    <Ticket size={22} /> {lang === "de" ? "TICKETS WÄHLEN" : "SELECT TICKETS"}
-                  </h2>
+                )}
+              </div>
+            </ScrollReveal>
 
-                  {event.has_abendkasse && (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50 border border-border text-xs text-muted-foreground">
-                      <DoorOpen size={14} className="shrink-0" />
-                      <span>
-                        {lang === "de"
-                          ? `Tickets sind auch für ${event.ticket_price || 0}€ an der Abendkasse erhältlich.`
-                          : `Tickets are also available at the door for ${event.ticket_price || 0}€.`}
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8 items-start">
+              <div className="space-y-6 min-w-0">
+                <ScrollReveal>
+                  <div className="glass-card p-5">
+                    <h1 className="font-display text-3xl md:text-4xl tracking-wider text-foreground mb-2 leading-tight">{tr(event.title)}</h1>
+                    <div className="flex items-center gap-4 text-muted-foreground text-sm mb-2">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={14} />
+                        {new Date(event.date).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })} – {event.time}
                       </span>
                     </div>
-                  )}
-
-                  {useGlobalPrice ? (
-                    /* Global price mode */
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div>
-                        <p className="font-medium text-foreground">{lang === "de" ? "Eintrittskarte" : "Entry Ticket"}</p>
-                        <p className="text-primary font-bold text-lg">{event.ticket_price}€</p>
+                    {eventAreas.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {eventAreas.map((aId) => {
+                          const area = CLUB_AREAS.find((a) => a.id === aId);
+                          return area ? <span key={aId} className={`text-xs px-2 py-0.5 rounded-full font-medium ${area.color}`}>{area.name}</span> : null;
+                        })}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => updateCart("global", -1)} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-muted">
-                          <Minus size={16} />
-                        </button>
-                        <span className="text-lg font-bold text-foreground w-8 text-center">{globalQuantity}</span>
-                        <button onClick={() => updateCart("global", 1)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90">
-                          <Plus size={16} />
-                        </button>
+                    )}
+                    {(event.has_muttizettel || event.has_abendkasse) && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {event.has_abendkasse && (
+                          <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-accent/50 text-accent-foreground font-medium">
+                            <DoorOpen size={13} />
+                            {lang === "de" ? "Abendkasse verfügbar" : "Available at the door"}
+                          </span>
+                        )}
+                        {event.has_muttizettel && (
+                          <a
+                            href={`/u18?event=${eventId}`}
+                            onClick={(e) => { e.stopPropagation(); }}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-primary/15 text-primary font-medium hover:bg-primary/25 transition-colors"
+                          >
+                            <ShieldCheck size={13} />
+                            {lang === "de" ? "Muttizettel erlaubt" : "Parental consent allowed"}
+                          </a>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    /* Ticket types */
-                    <div className="space-y-3">
-                      {ticketTypes.map((tt) => {
-                        const ttRemaining = tt.quantity - tt.sold;
-                        const ttSoldOut = ttRemaining <= 0;
-                        return (
-                          <div key={tt.id} className={`flex items-center justify-between p-4 border border-border rounded-lg ${ttSoldOut ? 'opacity-50' : ''}`}>
-                            <div className="flex-1">
-                              <p className="font-medium text-foreground">{tr(tt.name)}</p>
-                              {tt.description && <p className="text-xs text-muted-foreground">{tr(tt.description)}</p>}
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-primary font-bold text-lg">{tt.price}€</span>
-                                {ttRemaining <= 10 && !ttSoldOut && (
-                                  <span className="text-xs text-destructive">
-                                    {lang === "de" ? `Noch ${ttRemaining}` : `${ttRemaining} left`}
-                                  </span>
-                                )}
-                                {ttSoldOut && <span className="text-xs text-destructive font-bold">{lang === "de" ? "Ausverkauft" : "Sold out"}</span>}
-                              </div>
-                            </div>
-                            {!ttSoldOut && (
-                              <div className="flex items-center gap-3">
-                                <button onClick={() => updateCart(tt.id, -1)} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-muted">
-                                  <Minus size={16} />
-                                </button>
-                                <span className="text-lg font-bold text-foreground w-8 text-center">{cart[tt.id] || 0}</span>
-                                <button
-                                  onClick={() => updateCart(tt.id, 1)}
-                                  disabled={(cart[tt.id] || 0) >= ttRemaining}
-                                  className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-50"
-                                >
-                                  <Plus size={16} />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Discount code */}
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        value={discountCode}
-                        onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                        placeholder={lang === "de" ? "Rabattcode eingeben" : "Enter discount code"}
-                        className="w-full pl-9 pr-4 py-2.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none font-mono"
-                        onKeyDown={(e) => e.key === "Enter" && applyDiscount()}
-                      />
-                    </div>
-                    <button
-                      onClick={applyDiscount}
-                      disabled={discountLoading}
-                      className="px-4 py-2.5 bg-muted border border-border text-foreground rounded-md hover:bg-muted/80 text-sm"
-                    >
-                      {lang === "de" ? "EINLÖSEN" : "APPLY"}
-                    </button>
-                  </div>
-                  {appliedDiscount && (
-                    <div className="flex items-center gap-2 text-green-400 text-sm">
-                      <Tag size={14} />
-                      {appliedDiscount.discount_type === "percent" ? `${appliedDiscount.discount_value}%` : `${appliedDiscount.discount_value}€`} Rabatt mit "{appliedDiscount.code}"
-                      <button onClick={() => { setAppliedDiscount(null); setDiscountCode(""); }} className="text-muted-foreground hover:text-foreground ml-auto text-xs">✕</button>
-                    </div>
-                  )}
-
-                  {/* Summary */}
-                  {totalCount > 0 && (
-                    <div className="border-t border-border pt-4 space-y-1">
-                      {(discount > 0 || totalFees > 0 || totalInsurance > 0) && (
-                        <>
-                          <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>{lang === "de" ? "Zwischensumme" : "Subtotal"}</span>
-                            <span>{rawTotal.toFixed(2)}€</span>
-                          </div>
-                          {discount > 0 && (
-                            <div className="flex justify-between text-sm text-green-400">
-                              <span>{lang === "de" ? "Rabatt" : "Discount"}</span>
-                              <span>-{discount.toFixed(2)}€</span>
-                            </div>
-                          )}
-                          {totalFees > 0 && (
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                              <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
-                              <span>{totalFees.toFixed(2)}€</span>
-                            </div>
-                          )}
-                          {totalInsurance > 0 && (
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1"><Shield size={12} /> {lang === "de" ? "Ticketversicherung" : "Ticket insurance"}</span>
-                              <span>{totalInsurance.toFixed(2)}€</span>
-                            </div>
-                          )}
-                        </>
+                    )}
+                    <div className="flex items-center gap-4 mt-3">
+                      {!soldOut && remaining <= Math.ceil(event.ticket_quantity * 0.2) && (
+                        <span className="text-xs text-destructive font-semibold animate-pulse">
+                          🔥 {lang === "de" ? `Nur noch ${remaining} Tickets!` : `Only ${remaining} tickets left!`}
+                        </span>
                       )}
-                      <div className="flex justify-between text-lg font-bold text-foreground">
-                        <span>{totalCount} {totalCount === 1 ? "Ticket" : "Tickets"}</span>
-                        <span>{finalTotal.toFixed(2)}€</span>
-                      </div>
                     </div>
-                  )}
+                  </div>
+                </ScrollReveal>
 
-                  <button
-                    onClick={() => {
-                      if (insuranceEnabled && insuranceAmountPerTicket > 0) {
-                        setShowInsurancePopup(true);
-                      } else {
-                        setStep(2);
-                      }
-                    }}
-                    disabled={totalCount === 0}
-                    className="w-full py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-                  >
-                    {lang === "de" ? "WEITER ZUR BUCHUNG" : "CONTINUE TO CHECKOUT"}
-                  </button>
+                <div className="lg:hidden">{renderTicketPanel()}</div>
 
-                  {/* Insurance Popup */}
-                  {showInsurancePopup && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setShowInsurancePopup(false)}>
-                      <div className="bg-background border border-border rounded-xl p-6 max-w-md w-full mx-4 space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                            <Shield size={24} className="text-primary" />
-                          </div>
-                          <div>
-                            <h3 className="font-display text-xl tracking-wider text-foreground">
-                              {lang === "de" ? "TICKETVERSICHERUNG" : "TICKET INSURANCE"}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {insuranceAmountPerTicket.toFixed(2).replace(".", ",")}€ {lang === "de" ? "pro Ticket" : "per ticket"}
-                            </p>
-                          </div>
+                {event.description && (
+                  <ScrollReveal>
+                    <div className="glass-card p-5">
+                      <RichTextContent html={tr(event.description)} className="text-sm text-muted-foreground [&_h1]:text-2xl [&_h1]:font-display [&_h1]:text-foreground [&_h2]:text-xl [&_h2]:font-display [&_h2]:text-foreground [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:text-foreground [&_mark]:bg-accent [&_mark]:text-accent-foreground" />
+                    </div>
+                  </ScrollReveal>
+                )}
+
+                {event && event.has_muttizettel && (
+                  <ScrollReveal>
+                    <div className="glass-card p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="shrink-0 w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+                          <ShieldCheck size={20} className="text-primary" />
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {lang === "de"
-                            ? "Sichere deine Tickets ab! Bei Krankheit oder unvorhergesehenen Ereignissen erhältst du den vollen Ticketpreis zurück."
-                            : "Protect your tickets! In case of illness or unforeseen events, you'll receive a full refund."}
-                        </p>
-                        <div className="p-3 bg-muted rounded-lg text-sm text-foreground">
-                          {totalCount} {totalCount === 1 ? "Ticket" : "Tickets"} × {insuranceAmountPerTicket.toFixed(2).replace(".", ",")}€ = <span className="font-bold">{(insuranceAmountPerTicket * totalCount).toFixed(2).replace(".", ",")}€</span>
-                        </div>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => { setInsuranceSelected(false); setShowInsurancePopup(false); setStep(2); }}
-                            className="flex-1 py-3 border border-border text-foreground font-display tracking-wider rounded-md hover:bg-muted transition-colors text-sm"
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-display text-lg tracking-wider text-foreground mb-1">
+                            {lang === "de" ? "UNTER 18?" : "UNDER 18?"}
+                          </h3>
+                          <p className="text-muted-foreground text-sm mb-3">
+                            {lang === "de"
+                              ? "Für dieses Event ist ein Muttizettel erlaubt. Minderjährige können mit einer unterschriebenen Einverständniserklärung teilnehmen."
+                              : "A parental consent form is available for this event. Minors can attend with a signed consent form."}
+                          </p>
+                          <a
+                            href={`/u18?event=${eventId}`}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-sm"
                           >
-                            {lang === "de" ? "NEIN, DANKE" : "NO, THANKS"}
-                          </button>
-                          <button
-                            onClick={() => { setInsuranceSelected(true); setShowInsurancePopup(false); setStep(2); }}
-                            className="flex-1 py-3 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-sm"
-                          >
-                            {lang === "de" ? "JA, ABSICHERN" : "YES, INSURE"}
-                          </button>
+                            <ShieldCheck size={14} />
+                            {lang === "de" ? "MUTTIZETTEL ERSTELLEN" : "CREATE CONSENT FORM"}
+                          </a>
                         </div>
                       </div>
                     </div>
-                  )}
-                </>
-              )}
+                  </ScrollReveal>
+                )}
+
+                {event && step !== 3 && <EventLoungeSection event={event} />}
+              </div>
+
+              <aside className="hidden lg:block sticky top-6 self-start">
+                {renderTicketPanel()}
+              </aside>
             </div>
-          </ScrollReveal>
-        ) : (
-          /* Step 2: Checkout */
-          <ScrollReveal>
-            <div className="glass-card p-5 space-y-4 animate-fade-in">
-              <h2 className="font-display text-2xl tracking-wider text-foreground">
-                {lang === "de" ? "DEINE DATEN" : "YOUR DETAILS"}
-              </h2>
-
-              <div>
-                <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Name *" : "Name *"}</label>
-                <input
-                  type="text"
-                  required
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                  placeholder={lang === "de" ? "Vorname" : "First name"}
-                />
-              </div>
-
-              {!user && (
-                <div>
-                  <label className="text-sm text-foreground mb-1 block">E-Mail *</label>
-                  <input
-                    type="email"
-                    required
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                    placeholder="deine@email.de"
-                  />
-                </div>
-              )}
-
-              {user && (
-                <div className="p-3 bg-muted rounded-md text-sm text-foreground">
-                  {lang === "de" ? "Eingeloggt als" : "Logged in as"}: <strong>{user.email}</strong>
-                </div>
-              )}
-
-              <div>
-                <label className="text-sm text-foreground mb-1 block">{lang === "de" ? "Handynummer *" : "Phone number *"}</label>
-                <input
-                  type="tel"
-                  value={guestPhone}
-                  onChange={(e) => setGuestPhone(e.target.value)}
-                  className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                  placeholder="+49 170 1234567"
-                />
-              </div>
-
-              {/* Order summary */}
-              <div className="border border-border rounded-lg p-4 space-y-2">
-                <h3 className="font-display text-sm tracking-wider text-muted-foreground">
-                  {lang === "de" ? "BESTELLÜBERSICHT" : "ORDER SUMMARY"}
-                </h3>
-                {useGlobalPrice ? (
-                  <div className="flex justify-between text-sm text-foreground">
-                    <span>{globalQuantity}× {lang === "de" ? "Eintrittskarte" : "Entry Ticket"}</span>
-                    <span>{(globalQuantity * (event?.ticket_price || 0)).toFixed(2)}€</span>
-                  </div>
-                ) : (
-                  ticketTypes.filter((tt) => (cart[tt.id] || 0) > 0).map((tt) => (
-                    <div key={tt.id} className="flex justify-between text-sm text-foreground">
-                      <span>{cart[tt.id]}× {tr(tt.name)}</span>
-                      <span>{(cart[tt.id] * tt.price).toFixed(2)}€</span>
-                    </div>
-                  ))
-                )}
-                {discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-400">
-                    <span>{lang === "de" ? "Rabatt" : "Discount"} ({appliedDiscount?.code})</span>
-                    <span>-{discount.toFixed(2)}€</span>
-                  </div>
-                )}
-                {totalFees > 0 && (
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{lang === "de" ? "Servicegebühr" : "Service fee"}</span>
-                    <span>{totalFees.toFixed(2)}€</span>
-                  </div>
-                )}
-                {totalInsurance > 0 && (
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1"><Shield size={12} /> {lang === "de" ? "Ticketversicherung" : "Ticket insurance"}</span>
-                    <span>{totalInsurance.toFixed(2)}€</span>
-                  </div>
-                )}
-                <div className="border-t border-border pt-2 flex justify-between font-bold text-foreground">
-                  <span>Total</span>
-                  <span>{finalTotal.toFixed(2)}€</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex-1 py-3 border border-border text-foreground font-display tracking-wider rounded-md hover:bg-muted"
-                >
-                  {lang === "de" ? "ZURÜCK" : "BACK"}
-                </button>
-                <button
-                  onClick={handlePurchase}
-                  disabled={buying || (!user && !guestEmail) || !guestName.trim()}
-                  className="flex-1 py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {buying ? <><Loader2 size={18} className="animate-spin" /> {lang === "de" ? "WIRD VERARBEITET..." : "PROCESSING..."}</> : lang === "de" ? (finalTotal > 0 ? "JETZT BEZAHLEN" : "JETZT BUCHEN") : (finalTotal > 0 ? "PAY NOW" : "BOOK NOW")}
-                </button>
-              </div>
-            </div>
-          </ScrollReveal>
-        )}
-
-        {/* Muttizettel CTA */}
-        {event && event.has_muttizettel && step !== 3 && (
-          <ScrollReveal>
-            <div className="glass-card p-5 mt-6">
-              <div className="flex items-start gap-4">
-                <div className="shrink-0 w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
-                  <ShieldCheck size={20} className="text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-display text-lg tracking-wider text-foreground mb-1">
-                    {lang === "de" ? "UNTER 18?" : "UNDER 18?"}
-                  </h3>
-                  <p className="text-muted-foreground text-sm mb-3">
-                    {lang === "de"
-                      ? "Für dieses Event ist ein Muttizettel erlaubt. Minderjährige können mit einer unterschriebenen Einverständniserklärung teilnehmen."
-                      : "A parental consent form is available for this event. Minors can attend with a signed consent form."}
-                  </p>
-                  <a
-                    href={`/u18?event=${eventId}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors text-sm"
-                  >
-                    <ShieldCheck size={14} />
-                    {lang === "de" ? "MUTTIZETTEL ERSTELLEN" : "CREATE CONSENT FORM"}
-                  </a>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-        )}
-
-        {/* Lounge Section */}
-        {event && step !== 3 && (
-          <EventLoungeSection event={event} />
+          </>
         )}
       </div>
     </section>
