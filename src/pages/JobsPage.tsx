@@ -52,6 +52,7 @@ const JobsPage = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (selectedJobs.length === 0) { toast.error(t("jobs.selectJob")); return; }
+    if (!photoFile) { toast.error("Bitte lade ein Bewerbungsfoto hoch"); return; }
     if (!agreed) { toast.error(t("jobs.agreePrivacy")); return; }
     setSubmitting(true);
     let photoUrl: string | null = null;
@@ -92,7 +93,7 @@ const JobsPage = () => {
             </div>
             <div><label className="text-sm text-foreground mb-1 block">{t("jobs.email")} *</label><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" /></div>
             <div><label className="text-sm text-foreground mb-1 block">{t("jobs.phone")} *</label><input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none" /></div>
-            <div><label className="text-sm text-foreground mb-1 block">{t("jobs.photo")}</label><input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm file:mr-3 file:bg-primary file:text-primary-foreground file:border-0 file:rounded file:px-3 file:py-1 file:text-sm file:cursor-pointer" /></div>
+            <div><label className="text-sm text-foreground mb-1 block">{t("jobs.photo")} *</label><input type="file" accept="image/*" required onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm file:mr-3 file:bg-primary file:text-primary-foreground file:border-0 file:rounded file:px-3 file:py-1 file:text-sm file:cursor-pointer" /></div>
             <div><label className="text-sm text-foreground mb-1 block">{t("jobs.message")}</label><textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} className="w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none resize-none" /></div>
             <label className="flex items-start gap-3 cursor-pointer"><input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1 accent-primary" /><span className="text-xs text-muted-foreground">{t("jobs.privacy")} <a href="/datenschutz" className="text-primary underline">{t("jobs.privacyLink")}</a> {t("jobs.privacyEnd")} *</span></label>
             <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md hover:bg-primary/90 transition-colors glow-red disabled:opacity-50 flex items-center justify-center gap-2">
