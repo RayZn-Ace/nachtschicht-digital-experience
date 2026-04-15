@@ -49,7 +49,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
       <div className="flex min-h-dvh">
         <AdminSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <main className="flex-1 p-4 md:p-6 lg:p-8 pb-24 pt-14 lg:pt-4" role="main">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 pb-24 pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-4" role="main">
             {children}
           </main>
         </div>
