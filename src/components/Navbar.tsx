@@ -232,8 +232,8 @@ const Navbar = () => {
   }));
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50" role="navigation" aria-label="Hauptnavigation">
-      <div className="container mx-auto flex items-center justify-between h-16 md:h-20 px-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 pt-[env(safe-area-inset-top)]" role="navigation" aria-label="Hauptnavigation">
+      <div className="container mx-auto flex items-center justify-between h-16 md:h-20 px-4 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
         <Link to="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm">
           <img src="/images/logo-light.png" alt="Nachtschicht Kaiserslautern" className="h-8 md:h-10 dark:brightness-100 brightness-0" />
         </Link>
@@ -490,14 +490,24 @@ const Navbar = () => {
             </div>
 
             {!isAdminArea && (
-              <Link
-                to="/mein-bereich"
-                onClick={() => setOpen(false)}
-                className="mt-2 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md min-h-[48px] w-full"
-              >
-                <User size={20} />
-                {t("nav.meinBereich")}
-              </Link>
+              <>
+                <Link
+                  to="/mein-bereich"
+                  onClick={() => setOpen(false)}
+                  className="mt-2 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-foreground font-display text-xl tracking-wider rounded-md min-h-[48px] w-full"
+                >
+                  <User size={20} />
+                  {t("nav.meinBereich")}
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md border border-border/50 min-h-[44px] w-full"
+                >
+                  <LayoutDashboard size={16} />
+                  Team Login
+                </Link>
+              </>
             )}
           </div>
         </div>

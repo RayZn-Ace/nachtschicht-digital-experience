@@ -76,7 +76,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         Zum Inhalt springen
       </a>
       <Navbar />
-      <main id="main-content" className="flex-1 pt-16 md:pt-20" role="main" tabIndex={-1}>
+      <main id="main-content" className="flex-1 pt-[calc(4rem+env(safe-area-inset-top))] md:pt-[calc(5rem+env(safe-area-inset-top))]" role="main" tabIndex={-1}>
         {children}
       </main>
       <Footer />
