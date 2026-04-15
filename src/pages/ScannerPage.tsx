@@ -377,14 +377,8 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
 
       // 2) Fallback: facingMode constraint
       if (!started) {
-        try {
-          await scanner.start({ facingMode: "environment" }, scanConfig, onScanSuccess, onScanError);
-          started = true;
-        } catch {
-          // Last resort: try without any facingMode constraint
-          await scanner.start({ facingMode: "user" }, scanConfig, onScanSuccess, onScanError);
-          started = true;
-        }
+        await scanner.start({ facingMode: "environment" }, scanConfig, onScanSuccess, onScanError);
+        started = true;
       }
 
       // Ensure iOS Safari renders camera inline (prevents black fullscreen-like preview)
