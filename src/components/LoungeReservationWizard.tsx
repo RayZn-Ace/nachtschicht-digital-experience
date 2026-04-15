@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { X, Users, Clock, Shield, ShieldCheck, ChevronRight, ChevronLeft, Check, AlertTriangle, Wine } from "lucide-react";
 import type { Event } from "@/types/database";
+import { buildPaymentRedirectUrl } from "@/lib/capacitor";
 
 interface Lounge {
   id: string;

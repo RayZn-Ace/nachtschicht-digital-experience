@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2, ShieldCheck, DoorOpen, Shield } from "lucide-react";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import { calcOrderFees, type FeeConfig, type TicketTypeFeeOverride } from "@/lib/fees";
+import { buildPaymentRedirectUrl } from "@/lib/capacitor";
 import ScrollReveal from "@/components/ScrollReveal";
 import EventLoungeSection from "@/components/EventLoungeSection";
 import RichTextContent from "@/components/RichTextContent";
