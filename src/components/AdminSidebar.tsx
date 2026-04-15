@@ -88,7 +88,7 @@ const AdminSidebar = () => {
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full pt-[env(safe-area-inset-top)]">
       {/* Header */}
       <div className="p-4 pb-2 flex items-center justify-between">
         {!collapsed && (
@@ -197,7 +197,7 @@ const AdminSidebar = () => {
       {/* Mobile toggle button */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-3 left-3 z-[60] p-2 rounded-lg bg-card border border-border shadow-lg text-foreground"
+        className="lg:hidden fixed top-[max(0.75rem,env(safe-area-inset-top))] left-[max(0.75rem,env(safe-area-inset-left))] z-[60] p-2 rounded-lg bg-card border border-border shadow-lg text-foreground"
         aria-label="Admin-Menü"
       >
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
