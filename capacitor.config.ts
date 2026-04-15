@@ -8,6 +8,12 @@ const config: CapacitorConfig = {
     url: 'https://56ca72fb-10ff-4d66-aaa5-9f4252cc9025.lovableproject.com?forceHideBadge=true',
     cleartext: true,
   },
+  plugins: {
+    App: {
+      // Register custom URL scheme for deep linking (payment returns etc.)
+      url: 'nachtschicht',
+    },
+  },
 };
 
 export default config;
