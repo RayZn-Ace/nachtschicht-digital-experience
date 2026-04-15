@@ -120,7 +120,7 @@ const LoungeReservationWizard = ({ lounge, event, onClose, onSuccess }: Props) =
               service_fee: serviceFee,
               total_amount: totalDeposit,
               notes: notes.trim() || null,
-              redirect_url: window.location.origin + "/lounges",
+              redirect_url: buildPaymentRedirectUrl("/lounges"),
             }),
           }
         );

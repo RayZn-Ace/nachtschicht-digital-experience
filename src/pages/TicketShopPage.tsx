@@ -242,7 +242,7 @@ const TicketShopPage = () => {
         });
     }
 
-    const redirectUrl = `${window.location.origin}/tickets/${eventId}`;
+    const redirectUrl = buildPaymentRedirectUrl(`/tickets/${eventId}`);
 
     try {
       const { data, error } = await supabase.functions.invoke("create-mollie-payment", {
