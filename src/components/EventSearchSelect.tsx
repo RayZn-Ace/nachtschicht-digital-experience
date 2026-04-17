@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronsUpDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface EventOption {
   id: string;
@@ -12,19 +11,37 @@ export interface EventOption {
 
 interface EventSearchSelectProps {
   events: EventOption[];
-  value: string; // event id or "all"
+  value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   allLabel?: string;
   className?: string;
 }
 
-/**
- * Searchable event picker.
- * - Desktop: dropdown anchored under trigger
- * - Mobile: full-screen portal overlay (more reliable than absolute positioning,
- *   prevents keyboard/touch issues inside scroll containers, no clipping)
- */
+const useOverlayPicker = () => {
+  const [useOverlay, setUseOverlay] = useState(false);
+
+  useEffect(() => {
+    const updateMode = () => {
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      const noHover = window.matchMedia("(hover: none)").matches;
+      const narrowViewport = window.innerWidth < 1024;
+      setUseOverlay(coarsePointer || noHover || narrowViewport);
+    };
+
+    updateMode();
+    window.addEventListener("resize", updateMode);
+    window.addEventListener("orientationchange", updateMode);
+
+    return () => {
+      window.removeEventListener("resize", updateMode);
+      window.removeEventListener("orientationchange", updateMode);
+    };
+  }, []);
+
+  return useOverlay;
+};
+
 export const EventSearchSelect = ({
   events,
   value,
@@ -35,13 +52,12 @@ export const EventSearchSelect = ({
 }: EventSearchSelectProps) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const isMobile = useIsMobile();
+  const useOverlay = useOverlayPicker();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Close on outside click (desktop only - mobile uses backdrop)
   useEffect(() => {
-    if (!open || isMobile) return;
+    if (!open || useOverlay) return;
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -49,28 +65,25 @@ export const EventSearchSelect = ({
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open, isMobile]);
+  }, [open, useOverlay]);
 
-  // Focus input when opening
   useEffect(() => {
     if (open) {
       const t = setTimeout(() => inputRef.current?.focus(), 80);
       return () => clearTimeout(t);
-    } else {
-      setQuery("");
     }
+
+    setQuery("");
   }, [open]);
 
-  // Lock body scroll on mobile when open
   useEffect(() => {
-    if (open && isMobile) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
-  }, [open, isMobile]);
+    if (!open || !useOverlay) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open, useOverlay]);
 
   const normalize = (s: string) =>
     s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -78,12 +91,10 @@ export const EventSearchSelect = ({
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return events;
+
     return events.filter((ev) => {
       const dateLabel = new Date(ev.date).toLocaleDateString("de-DE");
-      return (
-        normalize(ev.title).includes(q) ||
-        dateLabel.includes(q)
-      );
+      return normalize(ev.title).includes(q) || normalize(dateLabel).includes(q);
     });
   }, [events, query]);
 
@@ -114,7 +125,7 @@ export const EventSearchSelect = ({
           autoCapitalize="off"
           spellCheck={false}
           className="flex-1 bg-transparent outline-none text-base text-foreground placeholder:text-muted-foreground min-w-0"
-          style={{ fontSize: "16px" }} // Prevents iOS auto-zoom on focus
+          style={{ fontSize: "16px" }}
         />
         {query && (
           <button
@@ -128,7 +139,7 @@ export const EventSearchSelect = ({
         )}
       </div>
 
-      <div className={cn("overflow-y-auto py-1", isMobile ? "flex-1" : "max-h-64")}>
+      <div className={cn("overflow-y-auto py-1", useOverlay ? "flex-1" : "max-h-64")}>
         <button
           type="button"
           onClick={() => handleSelect("all")}
@@ -184,15 +195,13 @@ export const EventSearchSelect = ({
         <ChevronsUpDown size={16} className="shrink-0 text-muted-foreground" />
       </button>
 
-      {/* Desktop: anchored dropdown */}
-      {open && !isMobile && (
+      {open && !useOverlay && (
         <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
           {listContent}
         </div>
       )}
 
-      {/* Mobile: full-screen portal overlay */}
-      {open && isMobile && createPortal(
+      {open && useOverlay && createPortal(
         <div className="fixed inset-0 z-[100] flex flex-col bg-background">
           <div className="flex items-center justify-between px-3 py-3 border-b border-border bg-background">
             <span className="font-display tracking-wider text-sm text-foreground">EVENT WÄHLEN</span>
