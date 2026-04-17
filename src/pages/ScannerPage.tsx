@@ -251,7 +251,16 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
 
   useEffect(() => {
     fetchStats();
-    supabase.from("events").select("id, title, date").eq("is_published", true).order("date", { ascending: false })
+    // Nur heutige & zukünftige Events: ab Beginn des heutigen Tages (lokale Zeit),
+    // damit aktuell laufende Events sichtbar bleiben und vergangene rausfallen.
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    supabase
+      .from("events")
+      .select("id, title, date")
+      .eq("is_published", true)
+      .gte("date", startOfToday.toISOString().split("T")[0])
+      .order("date", { ascending: true })
       .then(({ data }) => { if (data) setEvents(data); });
   }, [fetchStats]);
 
