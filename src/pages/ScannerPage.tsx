@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EventSearchSelect } from "@/components/EventSearchSelect";
 
 interface TicketResult {
   id: string;
@@ -590,20 +591,12 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
           </div>
         )}
 
-        {/* Event filter */}
         <div className="mb-3">
-          <select
+          <EventSearchSelect
+            events={events}
             value={selectedEvent}
-            onChange={(e) => setSelectedEvent(e.target.value)}
-            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm min-h-[44px]"
-          >
-            <option value="all">Alle Events</option>
-            {events.map((ev) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.title} – {new Date(ev.date).toLocaleDateString("de-DE")}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedEvent}
+          />
         </div>
 
         {/* Stats - only with scanner.stats permission */}
@@ -795,18 +788,11 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
         <div className="space-y-3">
           {/* Event filter for lounges */}
           <div>
-            <select
+            <EventSearchSelect
+              events={events}
               value={selectedEvent}
-              onChange={(e) => setSelectedEvent(e.target.value)}
-              className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm min-h-[44px]"
-            >
-              <option value="all">Alle Events</option>
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.title} – {new Date(ev.date).toLocaleDateString("de-DE")}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedEvent}
+            />
           </div>
 
           {loungeLoading ? (
