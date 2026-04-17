@@ -252,15 +252,23 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
 
   useEffect(() => {
     fetchStats();
-    // Nur heutige & zukünftige Events: ab Beginn des heutigen Tages (lokale Zeit),
-    // damit aktuell laufende Events sichtbar bleiben und vergangene rausfallen.
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    // Events anzeigen, deren Eventdatum >= "gestern" ist – damit Events,
+    // die heute Nacht noch laufen (z. B. bis 6–8 Uhr morgens), nach Mitternacht
+    // weiterhin scannbar sind. Vor 8 Uhr morgens gilt der Vortag noch als laufend,
+    // ab 8 Uhr fallen abgelaufene Events raus.
+    const now = new Date();
+    const cutoff = new Date(now);
+    if (now.getHours() < 8) {
+      // Noch in der "Nacht-davor"-Phase: Vortag bleibt sichtbar
+      cutoff.setDate(cutoff.getDate() - 1);
+    }
+    cutoff.setHours(0, 0, 0, 0);
+
     supabase
       .from("events")
       .select("id, title, date")
       .eq("is_published", true)
-      .gte("date", startOfToday.toISOString().split("T")[0])
+      .gte("date", cutoff.toISOString().split("T")[0])
       .order("date", { ascending: true })
       .then(({ data }) => { if (data) setEvents(data); });
   }, [fetchStats]);
