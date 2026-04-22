@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { grantConsent } from "@/hooks/useTracking";
 import { useI18n } from "@/hooks/useI18n";
 import { Settings, Shield } from "lucide-react";
+import { isIosNativeApp } from "@/lib/native";
+import { getNativeTrackingStatus, requestNativeTrackingPermission } from "@/lib/appTrackingTransparency";
 
 interface ConsentState {
   essential: boolean;
@@ -24,6 +26,7 @@ const getStoredConsent = (): ConsentState | null => {
 const CookieConsent = () => {
   const { lang } = useI18n();
   const de = lang === "de";
+  const nativeIos = isIosNativeApp();
   const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [consent, setConsent] = useState<ConsentState>({
@@ -34,22 +37,57 @@ const CookieConsent = () => {
   });
 
   useEffect(() => {
-    const stored = getStoredConsent();
-    if (!stored) {
-      setVisible(true);
-    } else {
+    const initConsent = async () => {
+      const stored = getStoredConsent();
+      if (!stored) {
+        setVisible(true);
+        return;
+      }
+
       setConsent(stored);
-      if (stored.analytics || stored.marketing) grantConsent();
-    }
+
+      if (stored.analytics || stored.marketing) {
+        if (nativeIos) {
+          const status = await getNativeTrackingStatus();
+          if (status === "authorized") grantConsent();
+          else setVisible(true);
+        } else {
+          grantConsent();
+        }
+      }
+    };
+
+    void initConsent();
   }, []);
 
   const save = useCallback((state: ConsentState) => {
     const withTime = { ...state, timestamp: new Date().toISOString() };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(withTime));
     setConsent(withTime);
-    if (state.analytics || state.marketing) grantConsent();
-    setVisible(false);
-  }, []);
+    const finalize = async () => {
+      if (state.analytics || state.marketing) {
+        if (nativeIos) {
+          const status = await requestNativeTrackingPermission();
+          if (status === "authorized") {
+            grantConsent();
+            setVisible(false);
+            return;
+          }
+          const fallbackState = { ...withTime, analytics: false, marketing: false };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackState));
+          setConsent(fallbackState);
+          setVisible(false);
+          return;
+        }
+
+        grantConsent();
+      }
+
+      setVisible(false);
+    };
+
+    void finalize();
+  }, [nativeIos]);
 
   const acceptAll = () => save({ essential: true, analytics: true, marketing: true, timestamp: "" });
   const acceptEssential = () => save({ essential: true, analytics: false, marketing: false, timestamp: "" });
