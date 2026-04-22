@@ -535,6 +535,31 @@ const MeinBereichPage = () => {
                 <LogOut size={16} /> LOGOUT
               </button>
             </div>
+
+            <ScrollReveal delay={0.15}>
+              <div className="glass-card p-6 space-y-3">
+                <h3 className="font-display text-lg tracking-wider text-foreground">{lang === "de" ? "DATENSCHUTZ" : "PRIVACY"}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {lang === "de"
+                    ? "Du kannst deine Daten exportieren oder deinen Account dauerhaft löschen."
+                    : "You can export your data or permanently delete your account."}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    to="/daten-export"
+                    className="flex-1 py-3 px-4 border border-border rounded-md text-center text-foreground hover:bg-muted transition-colors"
+                  >
+                    {lang === "de" ? "DATEN EXPORTIEREN" : "EXPORT DATA"}
+                  </Link>
+                  <Link
+                    to="/account-loeschen"
+                    className="flex-1 py-3 px-4 border border-destructive/30 rounded-md text-center text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    {lang === "de" ? "ACCOUNT LÖSCHEN" : "DELETE ACCOUNT"}
+                  </Link>
+                </div>
+              </div>
+            </ScrollReveal>
           </TabsContent>
 
           {/* ─── BONUS TAB ─── */}
