@@ -8,13 +8,14 @@ import AdminSidebar from "./AdminSidebar";
 import { useTracking } from "@/hooks/useTracking";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { isIosNativeApp } from "@/lib/native";
 
 const ADMIN_PATHS = ["/dashboard", "/admin"];
 const SCANNER_PATHS = ["/scanner"];
 const STAFF_PATHS = [...ADMIN_PATHS, ...SCANNER_PATHS];
 
 const Layout = ({ children }: { children: ReactNode }) => {
-  useTracking();
+  useTracking({ disabled: isIosNativeApp() });
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { isAdmin, user, loading: authLoading } = useAuth();
