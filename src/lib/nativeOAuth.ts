@@ -38,11 +38,13 @@ export const startNativeOAuth = async (provider: "google" | "apple", extraParams
 
 export const completeNativeOAuth = async (callbackUrl: string) => {
   const url = new URL(callbackUrl);
+  const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : url.hash);
+  const readParam = (key: string) => url.searchParams.get(key) ?? hashParams.get(key);
   const expectedState = localStorage.getItem(OAUTH_STATE_KEY);
-  const state = url.searchParams.get("state");
-  const accessToken = url.searchParams.get("access_token");
-  const refreshToken = url.searchParams.get("refresh_token");
-  const error = url.searchParams.get("error_description") || url.searchParams.get("error");
+  const state = readParam("state");
+  const accessToken = readParam("access_token");
+  const refreshToken = readParam("refresh_token");
+  const error = readParam("error_description") || readParam("error");
 
   localStorage.removeItem(OAUTH_STATE_KEY);
 
