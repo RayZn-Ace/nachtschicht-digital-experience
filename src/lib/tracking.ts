@@ -5,6 +5,8 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { getNativeTrackingStatus } from "@/lib/appTrackingTransparency";
+import { isIosNativeApp } from "@/lib/native";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -81,6 +83,7 @@ let _configLoading = false;
 let _configCallbacks: Array<(c: TrackingConfig) => void> = [];
 let _scriptsLoaded: Set<string> = new Set();
 let _consentGranted = false;
+let _trackingAllowed = false;
 
 // ─── UTM & Click ID Persistence ─────────────────────────────────────────────
 
@@ -168,6 +171,31 @@ export const initTracking = async () => {
   persistAttribution();
   const config = await loadConfig();
 
+  if (config.consent_active) {
+    _trackingAllowed = false;
+    return;
+  }
+
+  if (isIosNativeApp()) {
+    const nativeStatus = await getNativeTrackingStatus();
+    if (nativeStatus !== "authorized") {
+      _trackingAllowed = false;
+      return;
+    }
+  }
+
+  _trackingAllowed = true;
+
+  loadTrackingScripts(config);
+
+  if (config.debug_mode) {
+    console.log("[Tracking] Initialized with config:", config);
+  }
+};
+
+const loadTrackingScripts = (config: TrackingConfig) => {
+  if (!_trackingAllowed) return;
+
   // Consent defaults
   if (config.consent_active && config.consent_mode_v2) {
     window.dataLayer = window.dataLayer || [];
@@ -234,15 +262,13 @@ export const initTracking = async () => {
     });
   }
 
-  if (config.debug_mode) {
-    console.log("[Tracking] Initialized with config:", config);
-  }
 };
 
 // ─── Consent ─────────────────────────────────────────────────────────────────
 
 export const grantConsent = () => {
   _consentGranted = true;
+  _trackingAllowed = true;
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({
     event: "consent_update",
@@ -259,6 +285,10 @@ export const grantConsent = () => {
       ad_personalization: "granted",
     });
   }
+
+  void loadConfig().then((config) => {
+    loadTrackingScripts(config);
+  });
 };
 
 export const isConsentGranted = () => _consentGranted;
@@ -286,6 +316,11 @@ export const trackEvent = async (data: TrackingEventData) => {
   };
 
   const platforms: string[] = [];
+
+  if (!_trackingAllowed) {
+    if (config.debug_mode) console.log("[Tracking] Blocked (tracking not allowed):", data.event_name);
+    return;
+  }
 
   if (config.consent_active && !_consentGranted && data.event_name !== "PageView") {
     if (config.debug_mode) console.log("[Tracking] Blocked (no consent):", data.event_name);
