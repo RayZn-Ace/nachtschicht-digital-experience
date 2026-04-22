@@ -354,6 +354,12 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
     setCameraError(null);
 
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError("Kamera wird auf diesem Gerät nicht unterstützt. Nutze die manuelle Eingabe.");
+        setShowManual(true);
+        return;
+      }
+
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode("qr-reader", { verbose: false });
       scannerRef.current = scanner;
@@ -378,6 +384,24 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
       };
 
       let started = false;
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+          },
+          audio: false,
+        });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (permissionError: any) {
+        const permissionMessage = typeof permissionError === "string" ? permissionError : permissionError?.message || "";
+        if (permissionMessage.includes("NotAllowedError") || permissionMessage.includes("Permission")) {
+          setCameraError("Kamera-Zugriff verweigert. Bitte erlaube den Kamerazugriff in den Einstellungen oder nutze die manuelle Eingabe.");
+          setShowManual(true);
+          scannerRef.current = null;
+          return;
+        }
+      }
 
       // 1) Try preferred rear camera by deviceId (best mobile compatibility)
       try {
