@@ -8,6 +8,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import { usePageSEO } from "@/hooks/usePageSEO";
+import { filterUpcomingEvents } from "@/lib/eventTime";
 
 const galleryImages = [
   "/images/gallery-1.jpg", "/images/gallery-2.jpg", "/images/gallery-3.jpg",
@@ -81,27 +82,7 @@ const Index = () => {
         supabase.from("events").select("*").eq("is_published", true).order("date", { ascending: true }).limit(20),
         supabase.from("events").select("*").eq("is_published", true).filter("is_featured", "eq", true).order("date", { ascending: true }).limit(20),
       ]);
-      const now = new Date();
-      const filterUpcoming = (data: any[]) => data.filter((e: any) => {
-        let effectiveEndDate: string;
-        if (e.end_date) {
-          effectiveEndDate = e.end_date;
-        } else {
-          const startDate = (e.date || '').split(/[T ]/)[0];
-          const endTime = e.end_time || e.time || "23:59";
-          const startTime = e.time || "22:00";
-          if (endTime < startTime) {
-            const nextDay = new Date(startDate);
-            nextDay.setDate(nextDay.getDate() + 1);
-            effectiveEndDate = nextDay.toISOString().split("T")[0];
-          } else {
-            effectiveEndDate = startDate;
-          }
-        }
-        const endTime = e.end_time || "23:59";
-        const endDateTime = new Date(`${effectiveEndDate}T${endTime}:00`);
-        return endDateTime >= now;
-      });
+      const filterUpcoming = (data: any[]) => filterUpcomingEvents(data);
       if (eventsRes.data) setEvents(filterUpcoming(eventsRes.data as any).slice(0, 3));
       if (featuredRes.data) setFeaturedEvents(filterUpcoming(featuredRes.data as any).slice(0, 3));
     };

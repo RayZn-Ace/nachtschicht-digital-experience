@@ -10,6 +10,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { EventSkeletonCard } from "@/components/SkeletonCard";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import RichTextContent from "@/components/RichTextContent";
+import { filterUpcomingEvents } from "@/lib/eventTime";
 
 const EventsPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -83,27 +84,7 @@ const EventsPage = () => {
           if (!cancelled) setError(true);
         }
         if (data && !cancelled) {
-          const now = new Date();
-          const upcoming = (data as unknown as Event[]).filter((e: any) => {
-            let effectiveEndDate: string;
-            if (e.end_date) {
-              effectiveEndDate = e.end_date;
-            } else {
-              const startDate = (e.date || '').split(/[T ]/)[0];
-              const endTime = e.end_time || e.time || "23:59";
-              const startTime = e.time || "22:00";
-              if (endTime < startTime) {
-                const nextDay = new Date(startDate);
-                nextDay.setDate(nextDay.getDate() + 1);
-                effectiveEndDate = nextDay.toISOString().split("T")[0];
-              } else {
-                effectiveEndDate = startDate;
-              }
-            }
-            const endTime = e.end_time || "23:59";
-            const endDateTime = new Date(`${effectiveEndDate}T${endTime}:00`);
-            return endDateTime >= now;
-          });
+          const upcoming = filterUpcomingEvents(data as unknown as Event[]);
           setEvents(upcoming);
         }
       } catch (err) {

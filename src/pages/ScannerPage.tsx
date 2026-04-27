@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventSearchSelect } from "@/components/EventSearchSelect";
+import { filterUpcomingEvents, nowInBerlin } from "@/lib/eventTime";
 
 interface TicketResult {
   id: string;
@@ -134,7 +135,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
   const [showManual, setShowManual] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string>("all");
-  const [events, setEvents] = useState<{ id: string; title: string; date: string }[]>([]);
+  const [events, setEvents] = useState<{ id: string; title: string; date: string; end_date?: string | null; time?: string | null; end_time?: string | null }[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [queue, setQueue] = useState<QueuedCheckIn[]>(loadQueue);
   const [syncing, setSyncing] = useState(false);
@@ -252,25 +253,23 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
 
   useEffect(() => {
     fetchStats();
-    // Events anzeigen, deren Eventdatum >= "gestern" ist – damit Events,
-    // die heute Nacht noch laufen (z. B. bis 6–8 Uhr morgens), nach Mitternacht
-    // weiterhin scannbar sind. Vor 8 Uhr morgens gilt der Vortag noch als laufend,
-    // ab 8 Uhr fallen abgelaufene Events raus.
-    const now = new Date();
+    // Events anzeigen, deren effektiver Endzeitpunkt (in deutscher Zeit)
+    // noch nicht überschritten ist. Events, die noch laufen (z. B. bis
+    // 06:00 morgens), bleiben sichtbar; abgelaufene fallen sofort raus.
+    const now = nowInBerlin();
     const cutoff = new Date(now);
-    if (now.getHours() < 8) {
-      // Noch in der "Nacht-davor"-Phase: Vortag bleibt sichtbar
-      cutoff.setDate(cutoff.getDate() - 1);
-    }
+    cutoff.setDate(cutoff.getDate() - 1);
     cutoff.setHours(0, 0, 0, 0);
 
     supabase
       .from("events")
-      .select("id, title, date")
+      .select("id, title, date, end_date, time, end_time")
       .eq("is_published", true)
       .gte("date", cutoff.toISOString().split("T")[0])
       .order("date", { ascending: true })
-      .then(({ data }) => { if (data) setEvents(data); });
+      .then(({ data }) => {
+        if (data) setEvents(filterUpcomingEvents(data as any));
+      });
   }, [fetchStats]);
 
   // Core check-in logic
