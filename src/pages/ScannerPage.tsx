@@ -135,7 +135,7 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
   const [showManual, setShowManual] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string>("all");
-  const [events, setEvents] = useState<{ id: string; title: string; date: string }[]>([]);
+  const [events, setEvents] = useState<{ id: string; title: string; date: string; end_date?: string | null; time?: string | null; end_time?: string | null }[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [queue, setQueue] = useState<QueuedCheckIn[]>(loadQueue);
   const [syncing, setSyncing] = useState(false);
