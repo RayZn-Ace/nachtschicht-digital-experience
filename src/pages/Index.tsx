@@ -8,6 +8,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import { usePageSEO } from "@/hooks/usePageSEO";
+import { filterUpcomingEvents } from "@/lib/eventTime";
 
 const galleryImages = [
   "/images/gallery-1.jpg", "/images/gallery-2.jpg", "/images/gallery-3.jpg",
