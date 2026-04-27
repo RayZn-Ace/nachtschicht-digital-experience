@@ -10,6 +10,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { EventSkeletonCard } from "@/components/SkeletonCard";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
 import RichTextContent from "@/components/RichTextContent";
+import { filterUpcomingEvents } from "@/lib/eventTime";
 
 const EventsPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
