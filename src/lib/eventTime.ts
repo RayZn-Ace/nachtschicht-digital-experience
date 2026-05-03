@@ -49,8 +49,10 @@ export function getEventEndDateTime(e: EventLike): Date | null {
   const startDate = String(e.date).split(/[T ]/)[0];
   let effectiveEndDate: string;
 
+  let crossesMidnight = false;
   if (e.end_date) {
     effectiveEndDate = String(e.end_date).split(/[T ]/)[0];
+    crossesMidnight = effectiveEndDate !== startDate;
   } else {
     const startTime = e.time || "22:00";
     const endTime = e.end_time || e.time || "23:59";
@@ -59,12 +61,16 @@ export function getEventEndDateTime(e: EventLike): Date | null {
       const [y, m, d] = startDate.split("-").map(Number);
       const next = new Date(y, (m || 1) - 1, (d || 1) + 1);
       effectiveEndDate = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+      crossesMidnight = true;
     } else {
       effectiveEndDate = startDate;
     }
   }
 
-  const endTime = e.end_time || "23:59";
+  // Wenn keine explizite Endzeit gesetzt ist:
+  // - Bei Events über Mitternacht: 06:00 (typisches Club-Ende)
+  // - Sonst: 23:59 (Tagesende)
+  const endTime = e.end_time || (crossesMidnight ? "06:00" : "23:59");
   const [y, m, d] = effectiveEndDate.split("-").map(Number);
   const [hh, mm] = endTime.split(":").map(Number);
   return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0);
