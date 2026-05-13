@@ -46,12 +46,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Clean up any stale pending bookings (e.g. aborted payments) for this lounge+event
+    // Clean up stale bookings (aborted/cancelled/expired) so the unique (lounge_id,event_id) constraint doesn't block a new attempt.
+    // Keep only confirmed or deposit-paid bookings.
     await adminClient.from("lounge_bookings")
       .delete()
       .eq("lounge_id", lounge_id)
       .eq("event_id", event_id)
-      .eq("status", "pending")
+      .in("status", ["pending", "cancelled", "expired", "failed"])
       .eq("deposit_paid", false);
 
     // Create booking record as pending
