@@ -785,9 +785,13 @@ const AdminNewsletter = () => {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
           body: JSON.stringify({
             newsletter_id: editingId,
-            category_ids: sendCatIds.length > 0 ? sendCatIds : null,
+            category_ids: recipientMode === "tags" && sendCatIds.length > 0 ? sendCatIds : null,
+            list_ids: recipientMode === "lists" && sendListIds.length > 0 ? sendListIds : null,
+            buyer_event_ids: recipientMode === "buyers" && sendBuyerEventIds.length > 0 ? sendBuyerEventIds : null,
+            send_to_all: recipientMode === "all",
             extra_recipients: extraRecipients.length > 0 ? extraRecipients : null,
           }),
+
         }
       );
 
