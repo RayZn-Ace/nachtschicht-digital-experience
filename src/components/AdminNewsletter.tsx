@@ -70,6 +70,143 @@ const COLOR_PRESETS = [
   { name: "Hell & Clean", primary: "#e11d48", bg: "#ffffff", text: "#1a1a1a", accent: "#f43f5e" },
 ];
 
+/* ─── Newsletter Vorlagen ─── */
+interface NewsletterTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: any;
+  gradient: string;
+  designIndex: number; // index in COLOR_PRESETS
+  build: () => Omit<EditorBlock, "id">[];
+}
+
+const NEWSLETTER_TEMPLATES: NewsletterTemplate[] = [
+  {
+    id: "event-announcement",
+    name: "Event Ankündigung",
+    description: "Neues Event mit Highlight & CTA",
+    icon: PartyPopper,
+    gradient: "linear-gradient(135deg, #e11d48, #f43f5e)",
+    designIndex: 0,
+    build: () => [
+      { type: "heading", content: "🎉 Neues Event bei uns!" },
+      { type: "text", content: "Hey {{NAME}},\n\nschnall dich an – wir haben großartige News für dich. Das nächste Highlight steht in den Startlöchern und du willst es definitiv nicht verpassen." },
+      { type: "event-list", content: "Bald in der Nachtschicht", eventCount: 1 },
+      { type: "divider", content: "" },
+      { type: "text", content: "Sichere dir jetzt dein Ticket, bevor die ersten Kategorien ausverkauft sind." },
+      { type: "button", content: "🎟 Tickets sichern", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "weekly-overview",
+    name: "Wochen-Übersicht",
+    description: "Alle kommenden Events auf einen Blick",
+    icon: Calendar,
+    gradient: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+    designIndex: 3,
+    build: () => [
+      { type: "heading", content: "Deine Woche in der Nachtschicht" },
+      { type: "text", content: "Hey {{NAME}}, hier sind die nächsten Events – speichere dir die Termine direkt!" },
+      { type: "event-list", content: "Kommende Events", eventCount: 5 },
+      { type: "divider", content: "" },
+      { type: "text", content: "Wir sehen uns auf der Tanzfläche. 🪩" },
+      { type: "button", content: "Alle Events ansehen", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "last-minute",
+    name: "Last Minute Tickets",
+    description: "Dringliche Erinnerung kurz vor Event",
+    icon: Zap,
+    gradient: "linear-gradient(135deg, #f59e0b, #ef4444)",
+    designIndex: 0,
+    build: () => [
+      { type: "heading", content: "⏰ Letzte Chance!" },
+      { type: "text", content: "Hey {{NAME}}, nur noch wenige Tickets verfügbar. Zuschlagen, bevor es zu spät ist!" },
+      { type: "event-list", content: "", eventCount: 1 },
+      { type: "button", content: "JETZT Tickets sichern 🔥", url: "https://nachtschicht-kaiserslautern.app/events" },
+      { type: "text", content: "Tipp: Lounges & Tische sind schneller weg als du denkst. Reservierungen per Klick." },
+    ],
+  },
+  {
+    id: "voucher",
+    name: "Gutschein / Rabatt",
+    description: "Exklusiver Code für Abonnenten",
+    icon: Gift,
+    gradient: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+    designIndex: 1,
+    build: () => [
+      { type: "heading", content: "🎁 Dein exklusiver Bonus" },
+      { type: "text", content: "Hey {{NAME}}, weil du Teil unserer Nachtschicht-Familie bist, bekommst du jetzt deinen persönlichen Bonus-Code." },
+      { type: "divider", content: "" },
+      { type: "heading", content: "Code: NACHT15" },
+      { type: "text", content: "15% Rabatt auf dein nächstes Ticket – gültig bis Monatsende." },
+      { type: "button", content: "Jetzt einlösen", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "announcement",
+    name: "News & Update",
+    description: "Wichtige Ankündigung an alle",
+    icon: Megaphone,
+    gradient: "linear-gradient(135deg, #06b6d4, #3b82f6)",
+    designIndex: 3,
+    build: () => [
+      { type: "heading", content: "📢 Wichtige News" },
+      { type: "text", content: "Hey {{NAME}},\n\nwir haben Neuigkeiten für dich, die du nicht verpassen solltest..." },
+      { type: "divider", content: "" },
+      { type: "text", content: "Mehr Details und alle weiteren Infos findest du auf unserer Website." },
+      { type: "button", content: "Mehr erfahren", url: "https://nachtschicht-kaiserslautern.app" },
+    ],
+  },
+  {
+    id: "thanks",
+    name: "Dankeschön",
+    description: "After-Event Recap & Danke",
+    icon: Heart,
+    gradient: "linear-gradient(135deg, #ec4899, #f43f5e)",
+    designIndex: 0,
+    build: () => [
+      { type: "heading", content: "💖 Danke, dass du dabei warst!" },
+      { type: "text", content: "Hey {{NAME}},\n\nwas für eine Nacht! Ohne dich wäre es nur halb so geil gewesen. Wir hoffen, du hattest genauso viel Spaß wie wir." },
+      { type: "divider", content: "" },
+      { type: "heading", content: "Nächste Highlights" },
+      { type: "event-list", content: "", eventCount: 3 },
+      { type: "button", content: "Nächste Events checken", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "welcome",
+    name: "Willkommen Neuabonnent",
+    description: "Erste Mail an neue Subscriber",
+    icon: Star,
+    gradient: "linear-gradient(135deg, #d4a843, #f0d68a)",
+    designIndex: 1,
+    build: () => [
+      { type: "heading", content: "✨ Willkommen, {{NAME}}!" },
+      { type: "text", content: "Schön, dass du dabei bist. Ab jetzt verpasst du keine Events, Specials und Insider-News mehr aus der Nachtschicht." },
+      { type: "divider", content: "" },
+      { type: "text", content: "Damit du direkt loslegen kannst, hier ein erster Blick auf unsere kommenden Events:" },
+      { type: "event-list", content: "Bald live", eventCount: 3 },
+      { type: "button", content: "Alle Events", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "blank",
+    name: "Leere Vorlage",
+    description: "Bei null starten",
+    icon: LayoutTemplate,
+    gradient: "linear-gradient(135deg, #64748b, #94a3b8)",
+    designIndex: 0,
+    build: () => [
+      { type: "heading", content: "Deine Überschrift" },
+      { type: "text", content: "Hey {{NAME}}, dein Text hier..." },
+    ],
+  },
+];
+
+
 const CAT_COLORS = [
   "bg-rose-500/20 text-rose-400",
   "bg-blue-500/20 text-blue-400",
