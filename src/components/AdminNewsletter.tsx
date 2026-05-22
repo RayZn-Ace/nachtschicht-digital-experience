@@ -659,15 +659,56 @@ const AdminNewsletter = () => {
   };
 
   const getRecipientCount = () => {
-    let count = 0;
-    if (sendCatIds.length === 0) {
-      count = activeCount;
-    } else {
-      const subIdsInCats = new Set(subCats.filter((sc) => sendCatIds.includes(sc.category_id)).map((sc) => sc.subscriber_id));
-      count = subscribers.filter((s) => s.is_active && subIdsInCats.has(s.id)).length;
+    const emails = new Set<string>();
+    if (recipientMode === "all") {
+      subscribers.filter((s) => s.is_active).forEach((s) => emails.add(s.email.toLowerCase()));
+    } else if (recipientMode === "tags") {
+      if (sendCatIds.length === 0) {
+        subscribers.filter((s) => s.is_active).forEach((s) => emails.add(s.email.toLowerCase()));
+      } else {
+        const subIdsInCats = new Set(subCats.filter((sc) => sendCatIds.includes(sc.category_id)).map((sc) => sc.subscriber_id));
+        subscribers.filter((s) => s.is_active && subIdsInCats.has(s.id)).forEach((s) => emails.add(s.email.toLowerCase()));
+      }
+    } else if (recipientMode === "lists") {
+      const subIdsInLists = new Set(listMembers.filter((m) => sendListIds.includes(m.list_id)).map((m) => m.subscriber_id));
+      subscribers.filter((s) => subIdsInLists.has(s.id)).forEach((s) => emails.add(s.email.toLowerCase()));
+    } else if (recipientMode === "buyers") {
+      sendBuyerEventIds.forEach((evId) => {
+        (buyerEmailsByEvent[evId] || []).forEach((e) => emails.add(e.toLowerCase()));
+      });
     }
-    return count + extraRecipients.length;
+    extraRecipients.forEach((r) => emails.add(r.email.toLowerCase()));
+    return emails.size;
   };
+
+  // Lazy-fetch buyer emails for selected events
+  useEffect(() => {
+    const missing = sendBuyerEventIds.filter((id) => !(id in buyerEmailsByEvent));
+    if (missing.length === 0) return;
+    (async () => {
+      const all: string[] = [];
+      const batchSize = 1000;
+      for (const evId of missing) {
+        const list: string[] = [];
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from("tickets")
+            .select("buyer_email")
+            .eq("event_id", evId)
+            .eq("status", "confirmed")
+            .range(from, from + batchSize - 1);
+          if (error || !data || data.length === 0) break;
+          data.forEach((r: any) => r.buyer_email && list.push(r.buyer_email));
+          if (data.length < batchSize) break;
+          from += batchSize;
+        }
+        setBuyerEmailsByEvent((prev) => ({ ...prev, [evId]: Array.from(new Set(list.map((e) => e.toLowerCase()))) }));
+        all.push(...list);
+      }
+    })();
+  }, [sendBuyerEventIds]);
+
 
   const addExtraRecipient = () => {
     const email = extraEmail.trim().toLowerCase();
