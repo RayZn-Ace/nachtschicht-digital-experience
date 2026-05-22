@@ -357,6 +357,20 @@ const AdminNewsletter = () => {
   const [listCounts, setListCounts] = useState<Record<string, number>>({});
   const [showListManager, setShowListManager] = useState(false);
 
+  // Vorlagen-Picker
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  const applyTemplate = (tpl: NewsletterTemplate) => {
+    const newBlocks: EditorBlock[] = tpl.build().map((b) => ({
+      ...b,
+      id: crypto.randomUUID(),
+    } as EditorBlock));
+    setBlocks(newBlocks);
+    setDesign(COLOR_PRESETS[tpl.designIndex] || COLOR_PRESETS[0]);
+    setShowTemplates(false);
+    toast.success(`Vorlage "${tpl.name}" geladen`);
+  };
+
   const fetchLists = useCallback(async () => {
     const { data } = await supabase.from("newsletter_lists").select("*").order("created_at", { ascending: false });
     if (data) setLists(data as any);
