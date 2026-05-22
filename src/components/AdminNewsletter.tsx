@@ -925,6 +925,7 @@ const AdminNewsletter = () => {
                 ))}
               </div>
               <div className="flex flex-wrap gap-2 mt-3">
+                <button onClick={() => setShowTemplates(true)} className="px-3 py-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-md text-xs font-medium hover:opacity-90 flex items-center gap-1.5 shadow-md"><LayoutTemplate size={12} /> Vorlagen</button>
                 <button onClick={() => addBlock("heading")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Überschrift</button>
                 <button onClick={() => addBlock("text")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Text</button>
                 <button onClick={() => addBlock("button")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Button</button>
