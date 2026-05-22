@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { newsletter_id, category_ids, extra_recipients } = await req.json();
+    const { newsletter_id, category_ids, list_ids, buyer_event_ids, send_to_all, extra_recipients } = await req.json();
     if (!newsletter_id) {
       return new Response(JSON.stringify({ error: "newsletter_id required" }), {
         status: 400,
@@ -98,42 +98,99 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get subscribers – filtered by categories if provided
-    let subscribers: { email: string; name?: string | null }[] = [];
+    // Build recipients map: email -> name (dedup'd)
+    const recipientMap = new Map<string, string | null>();
 
+    const addSub = (s: { email: string; name?: string | null }) => {
+      const key = s.email.toLowerCase();
+      if (!recipientMap.has(key)) recipientMap.set(key, s.name || null);
+    };
+
+    const fetchAllSubsByIds = async (ids: string[]) => {
+      const out: { email: string; name: string | null }[] = [];
+      const chunk = 500;
+      for (let i = 0; i < ids.length; i += chunk) {
+        const slice = ids.slice(i, i + chunk);
+        const { data } = await adminClient
+          .from("newsletter_subscribers")
+          .select("email, name, is_active")
+          .in("id", slice);
+        if (data) data.filter((r: any) => r.is_active).forEach((r: any) => out.push(r));
+      }
+      return out;
+    };
+
+    // 1) Tags
     if (category_ids && Array.isArray(category_ids) && category_ids.length > 0) {
       const { data: subCatRows } = await adminClient
         .from("newsletter_subscriber_categories")
         .select("subscriber_id")
         .in("category_id", category_ids);
-
       if (subCatRows && subCatRows.length > 0) {
         const subIds = [...new Set(subCatRows.map((r: any) => r.subscriber_id))];
-        const { data: catSubs } = await adminClient
-          .from("newsletter_subscribers")
-          .select("email, name")
-          .in("id", subIds)
-          .eq("is_active", true);
-        if (catSubs) subscribers = catSubs;
+        const rows = await fetchAllSubsByIds(subIds);
+        rows.forEach(addSub);
       }
-    } else {
-      const { data: allSubs } = await adminClient
-        .from("newsletter_subscribers")
-        .select("email, name")
-        .eq("is_active", true);
-      if (allSubs) subscribers = allSubs;
     }
 
-    // Add extra manual recipients (deduplicate by email)
-    if (extra_recipients && Array.isArray(extra_recipients)) {
-      const existingEmails = new Set(subscribers.map((s) => s.email.toLowerCase()));
-      for (const r of extra_recipients) {
-        if (r.email && !existingEmails.has(r.email.toLowerCase())) {
-          subscribers.push({ email: r.email, name: r.name || null });
-          existingEmails.add(r.email.toLowerCase());
-        }
+    // 2) Lists
+    if (list_ids && Array.isArray(list_ids) && list_ids.length > 0) {
+      const { data: memberRows } = await adminClient
+        .from("newsletter_list_members")
+        .select("subscriber_id")
+        .in("list_id", list_ids);
+      if (memberRows && memberRows.length > 0) {
+        const subIds = [...new Set(memberRows.map((r: any) => r.subscriber_id))];
+        const rows = await fetchAllSubsByIds(subIds);
+        rows.forEach(addSub);
       }
     }
+
+    // 3) Event buyers
+    if (buyer_event_ids && Array.isArray(buyer_event_ids) && buyer_event_ids.length > 0) {
+      let from = 0;
+      const batch = 1000;
+      while (true) {
+        const { data } = await adminClient
+          .from("tickets")
+          .select("buyer_email, buyer_name")
+          .in("event_id", buyer_event_ids)
+          .eq("status", "confirmed")
+          .range(from, from + batch - 1);
+        if (!data || data.length === 0) break;
+        data.forEach((r: any) => r.buyer_email && addSub({ email: r.buyer_email, name: r.buyer_name }));
+        if (data.length < batch) break;
+        from += batch;
+      }
+    }
+
+    // 4) Send-to-all fallback (or no specific selection given)
+    const noSelection = !category_ids?.length && !list_ids?.length && !buyer_event_ids?.length;
+    if (send_to_all || noSelection) {
+      let from = 0;
+      const batch = 1000;
+      while (true) {
+        const { data } = await adminClient
+          .from("newsletter_subscribers")
+          .select("email, name")
+          .eq("is_active", true)
+          .range(from, from + batch - 1);
+        if (!data || data.length === 0) break;
+        data.forEach((r: any) => addSub(r));
+        if (data.length < batch) break;
+        from += batch;
+      }
+    }
+
+    // 5) Manual extras
+    if (extra_recipients && Array.isArray(extra_recipients)) {
+      for (const r of extra_recipients) {
+        if (r.email) addSub({ email: r.email, name: r.name || null });
+      }
+    }
+
+    const subscribers: { email: string; name?: string | null }[] = Array.from(recipientMap.entries())
+      .map(([email, name]) => ({ email, name }));
 
     if (subscribers.length === 0) {
       return new Response(JSON.stringify({ error: "Keine Empfänger" }), {
