@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import {
   Trash2, Mail, Users, Search, Plus, Send, Eye, Pencil,
   ChevronLeft, CheckCircle, Loader2, Palette,
-  Calendar, Tag, UserPlus, FolderOpen, X, Copy, Wand2, Sparkles,
+  Calendar, Tag, UserPlus, FolderOpen, X, Copy, Wand2, Sparkles, List,
 } from "lucide-react";
+import ListManagerModal from "@/components/admin/newsletter/ListManagerModal";
 
 /* ─── Types ─── */
 interface Subscriber {
@@ -212,6 +213,27 @@ const AdminNewsletter = () => {
   const [extraName, setExtraName] = useState("");
   const [extraEmail, setExtraEmail] = useState("");
 
+  // Listen
+  const [lists, setLists] = useState<{ id: string; name: string; description: string | null; color: string | null }[]>([]);
+  const [listMembers, setListMembers] = useState<{ id: string; list_id: string; subscriber_id: string }[]>([]);
+  const [listCounts, setListCounts] = useState<Record<string, number>>({});
+  const [showListManager, setShowListManager] = useState(false);
+
+  const fetchLists = useCallback(async () => {
+    const { data } = await supabase.from("newsletter_lists").select("*").order("created_at", { ascending: false });
+    if (data) setLists(data as any);
+  }, []);
+
+  const fetchListMembers = useCallback(async () => {
+    const { data } = await supabase.from("newsletter_list_members").select("id, list_id, subscriber_id");
+    if (data) {
+      setListMembers(data as any);
+      const counts: Record<string, number> = {};
+      (data as any[]).forEach((m) => { counts[m.list_id] = (counts[m.list_id] || 0) + 1; });
+      setListCounts(counts);
+    }
+  }, []);
+
   const fetchSubscribers = useCallback(async () => {
     const { data } = await supabase
       .from("newsletter_subscribers")
@@ -306,8 +328,8 @@ const AdminNewsletter = () => {
   };
 
   useEffect(() => {
-    Promise.all([fetchSubscribers(), fetchNewsletters(), fetchCategories(), fetchSubCats(), fetchEvents()]).finally(() => setLoading(false));
-  }, [fetchSubscribers, fetchNewsletters, fetchCategories, fetchSubCats, fetchEvents]);
+    Promise.all([fetchSubscribers(), fetchNewsletters(), fetchCategories(), fetchSubCats(), fetchEvents(), fetchLists(), fetchListMembers()]).finally(() => setLoading(false));
+  }, [fetchSubscribers, fetchNewsletters, fetchCategories, fetchSubCats, fetchEvents, fetchLists, fetchListMembers]);
 
   const activeCount = subscribers.filter((s) => s.is_active).length;
 
@@ -1072,6 +1094,9 @@ const AdminNewsletter = () => {
         <button onClick={() => setView("categories")} className="px-4 py-2 rounded-md font-display tracking-wider text-sm bg-muted text-muted-foreground hover:text-foreground">
           KATEGORIEN
         </button>
+        <button onClick={() => setShowListManager(true)} className="px-4 py-2 rounded-md font-display tracking-wider text-sm bg-muted text-muted-foreground hover:text-foreground flex items-center gap-2">
+          <List size={14} /> LISTEN ({lists.length})
+        </button>
         <div className="flex-1" />
         {view === "campaigns" && (
           <button onClick={() => openEditor()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider text-sm rounded-md hover:bg-primary/90">
@@ -1205,6 +1230,16 @@ const AdminNewsletter = () => {
           )}
         </>
       )}
+
+      <ListManagerModal
+        open={showListManager}
+        onClose={() => setShowListManager(false)}
+        lists={lists}
+        listMembers={listMembers}
+        subscribers={subscribers as any}
+        listCounts={listCounts}
+        onChanged={() => { fetchLists(); fetchListMembers(); fetchSubscribers(); }}
+      />
     </div>
   );
 };
