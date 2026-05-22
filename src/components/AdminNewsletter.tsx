@@ -995,33 +995,114 @@ const AdminNewsletter = () => {
             <div className="glass-card p-4 space-y-3">
               <h3 className="text-sm font-medium text-foreground flex items-center gap-1.5"><Users size={14} className="text-primary" /> Empfänger</h3>
 
-              {/* Category / Tag selection */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                  <input type="checkbox" checked={sendCatIds.length === 0} onChange={() => setSendCatIds([])} className="rounded border-border" />
-                  <span className="font-medium">Alle aktiven Abonnenten</span>
-                  <span className="text-xs text-muted-foreground">({activeCount})</span>
-                </label>
-                {categories.length > 0 && (
-                  <div className="flex flex-wrap gap-2 ml-6">
-                    {categories.map((cat) => {
-                      const count = getCategorySubCount(cat.id);
-                      return (
-                        <button
-                          key={cat.id}
-                          onClick={() => {
-                            if (sendCatIds.includes(cat.id)) setSendCatIds(sendCatIds.filter((c) => c !== cat.id));
-                            else setSendCatIds([...sendCatIds, cat.id]);
-                          }}
-                          className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${sendCatIds.includes(cat.id) ? cat.color + " ring-1 ring-primary/30" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-                        >
-                          {cat.name} ({count})
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+              {/* Mode tabs */}
+              <div className="grid grid-cols-4 gap-1 p-1 bg-muted rounded-lg">
+                {([
+                  { key: "all", label: "Alle", icon: Users },
+                  { key: "tags", label: "Tags", icon: Tag },
+                  { key: "lists", label: "Listen", icon: List },
+                  { key: "buyers", label: "Käufer", icon: Calendar },
+                ] as const).map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setRecipientMode(key)}
+                    className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      recipientMode === key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Icon size={12} /> {label}
+                  </button>
+                ))}
               </div>
+
+              {/* Mode body */}
+              {recipientMode === "all" && (
+                <div className="text-sm text-foreground py-2 px-3 bg-muted/50 rounded-md">
+                  <span className="font-medium">Alle aktiven Abonnenten</span>
+                  <span className="text-xs text-muted-foreground ml-2">({activeCount})</span>
+                </div>
+              )}
+
+              {recipientMode === "tags" && (
+                <div className="space-y-2">
+                  {categories.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">Keine Tags vorhanden – lege im Event-Bereich Tags an.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((cat) => {
+                        const count = getCategorySubCount(cat.id);
+                        const active = sendCatIds.includes(cat.id);
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => active ? setSendCatIds(sendCatIds.filter((c) => c !== cat.id)) : setSendCatIds([...sendCatIds, cat.id])}
+                            className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${active ? cat.color + " ring-1 ring-primary/40" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+                          >
+                            {cat.name} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {sendCatIds.length === 0 && <p className="text-[11px] text-muted-foreground italic">Kein Tag gewählt → alle aktiven Abonnenten</p>}
+                </div>
+              )}
+
+              {recipientMode === "lists" && (
+                <div className="space-y-2">
+                  {lists.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">Noch keine Listen – über den „Listen"-Button oben anlegen.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {lists.map((l) => {
+                        const active = sendListIds.includes(l.id);
+                        const count = listCounts[l.id] || 0;
+                        return (
+                          <button
+                            key={l.id}
+                            onClick={() => active ? setSendListIds(sendListIds.filter((id) => id !== l.id)) : setSendListIds([...sendListIds, l.id])}
+                            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all border ${active ? "border-primary bg-primary/15 text-primary" : "border-border bg-muted text-muted-foreground hover:text-foreground"}`}
+                            style={active && l.color ? { borderColor: l.color, color: l.color } : undefined}
+                          >
+                            <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: l.color || "#888" }} />
+                            {l.name} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {recipientMode === "buyers" && (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-muted-foreground">Sende an alle bestätigten Käufer der gewählten Events.</p>
+                  {events.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">Keine Events gefunden.</p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto flex flex-col gap-1 pr-1">
+                      {events.map((ev: any) => {
+                        const active = sendBuyerEventIds.includes(ev.id);
+                        const count = buyerEmailsByEvent[ev.id]?.length;
+                        return (
+                          <button
+                            key={ev.id}
+                            onClick={() => active ? setSendBuyerEventIds(sendBuyerEventIds.filter((id) => id !== ev.id)) : setSendBuyerEventIds([...sendBuyerEventIds, ev.id])}
+                            className={`flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-all ${active ? "bg-primary/15 text-primary border border-primary/40" : "bg-muted text-muted-foreground hover:text-foreground border border-transparent"}`}
+                          >
+                            <span className="truncate flex-1">{ev.title}</span>
+                            <span className="ml-2 text-[10px] opacity-70">
+                              {ev.date ? new Date(ev.date).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" }) : ""}
+                              {active && (count !== undefined ? ` · ${count} Käufer` : " · …")}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Manual extra recipients */}
               <div>
