@@ -630,10 +630,6 @@ const ListManagerModal: React.FC<Props> = ({
                       </div>
                     )}
 
-                    {/* Subscribers picker */}
-                    {tab === "subscribers" === false && tab === "subscribers" && null}
-                    {tab === ("subscribers" as any) && null}
-                    {/* (real subscribers picker rendered below under its own tab id) */}
 
                     {/* Buyers */}
                     {tab === "buyers" && (
