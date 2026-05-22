@@ -5,6 +5,7 @@ import {
   Trash2, Mail, Users, Search, Plus, Send, Eye, Pencil,
   ChevronLeft, CheckCircle, Loader2, Palette,
   Calendar, Tag, UserPlus, FolderOpen, X, Copy, Wand2, Sparkles, List,
+  LayoutTemplate, PartyPopper, Gift, Megaphone, Heart, Star, Zap,
 } from "lucide-react";
 import ListManagerModal from "@/components/admin/newsletter/ListManagerModal";
 
@@ -68,6 +69,143 @@ const COLOR_PRESETS = [
   { name: "Ocean Blue", primary: "#3b82f6", bg: "#0c1222", text: "#e2e8f0", accent: "#60a5fa" },
   { name: "Hell & Clean", primary: "#e11d48", bg: "#ffffff", text: "#1a1a1a", accent: "#f43f5e" },
 ];
+
+/* ─── Newsletter Vorlagen ─── */
+interface NewsletterTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: any;
+  gradient: string;
+  designIndex: number; // index in COLOR_PRESETS
+  build: () => Omit<EditorBlock, "id">[];
+}
+
+const NEWSLETTER_TEMPLATES: NewsletterTemplate[] = [
+  {
+    id: "event-announcement",
+    name: "Event Ankündigung",
+    description: "Neues Event mit Highlight & CTA",
+    icon: PartyPopper,
+    gradient: "linear-gradient(135deg, #e11d48, #f43f5e)",
+    designIndex: 0,
+    build: () => [
+      { type: "heading", content: "🎉 Neues Event bei uns!" },
+      { type: "text", content: "Hey {{NAME}},\n\nschnall dich an – wir haben großartige News für dich. Das nächste Highlight steht in den Startlöchern und du willst es definitiv nicht verpassen." },
+      { type: "event-list", content: "Bald in der Nachtschicht", eventCount: 1 },
+      { type: "divider", content: "" },
+      { type: "text", content: "Sichere dir jetzt dein Ticket, bevor die ersten Kategorien ausverkauft sind." },
+      { type: "button", content: "🎟 Tickets sichern", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "weekly-overview",
+    name: "Wochen-Übersicht",
+    description: "Alle kommenden Events auf einen Blick",
+    icon: Calendar,
+    gradient: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+    designIndex: 3,
+    build: () => [
+      { type: "heading", content: "Deine Woche in der Nachtschicht" },
+      { type: "text", content: "Hey {{NAME}}, hier sind die nächsten Events – speichere dir die Termine direkt!" },
+      { type: "event-list", content: "Kommende Events", eventCount: 5 },
+      { type: "divider", content: "" },
+      { type: "text", content: "Wir sehen uns auf der Tanzfläche. 🪩" },
+      { type: "button", content: "Alle Events ansehen", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "last-minute",
+    name: "Last Minute Tickets",
+    description: "Dringliche Erinnerung kurz vor Event",
+    icon: Zap,
+    gradient: "linear-gradient(135deg, #f59e0b, #ef4444)",
+    designIndex: 0,
+    build: () => [
+      { type: "heading", content: "⏰ Letzte Chance!" },
+      { type: "text", content: "Hey {{NAME}}, nur noch wenige Tickets verfügbar. Zuschlagen, bevor es zu spät ist!" },
+      { type: "event-list", content: "", eventCount: 1 },
+      { type: "button", content: "JETZT Tickets sichern 🔥", url: "https://nachtschicht-kaiserslautern.app/events" },
+      { type: "text", content: "Tipp: Lounges & Tische sind schneller weg als du denkst. Reservierungen per Klick." },
+    ],
+  },
+  {
+    id: "voucher",
+    name: "Gutschein / Rabatt",
+    description: "Exklusiver Code für Abonnenten",
+    icon: Gift,
+    gradient: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+    designIndex: 1,
+    build: () => [
+      { type: "heading", content: "🎁 Dein exklusiver Bonus" },
+      { type: "text", content: "Hey {{NAME}}, weil du Teil unserer Nachtschicht-Familie bist, bekommst du jetzt deinen persönlichen Bonus-Code." },
+      { type: "divider", content: "" },
+      { type: "heading", content: "Code: NACHT15" },
+      { type: "text", content: "15% Rabatt auf dein nächstes Ticket – gültig bis Monatsende." },
+      { type: "button", content: "Jetzt einlösen", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "announcement",
+    name: "News & Update",
+    description: "Wichtige Ankündigung an alle",
+    icon: Megaphone,
+    gradient: "linear-gradient(135deg, #06b6d4, #3b82f6)",
+    designIndex: 3,
+    build: () => [
+      { type: "heading", content: "📢 Wichtige News" },
+      { type: "text", content: "Hey {{NAME}},\n\nwir haben Neuigkeiten für dich, die du nicht verpassen solltest..." },
+      { type: "divider", content: "" },
+      { type: "text", content: "Mehr Details und alle weiteren Infos findest du auf unserer Website." },
+      { type: "button", content: "Mehr erfahren", url: "https://nachtschicht-kaiserslautern.app" },
+    ],
+  },
+  {
+    id: "thanks",
+    name: "Dankeschön",
+    description: "After-Event Recap & Danke",
+    icon: Heart,
+    gradient: "linear-gradient(135deg, #ec4899, #f43f5e)",
+    designIndex: 0,
+    build: () => [
+      { type: "heading", content: "💖 Danke, dass du dabei warst!" },
+      { type: "text", content: "Hey {{NAME}},\n\nwas für eine Nacht! Ohne dich wäre es nur halb so geil gewesen. Wir hoffen, du hattest genauso viel Spaß wie wir." },
+      { type: "divider", content: "" },
+      { type: "heading", content: "Nächste Highlights" },
+      { type: "event-list", content: "", eventCount: 3 },
+      { type: "button", content: "Nächste Events checken", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "welcome",
+    name: "Willkommen Neuabonnent",
+    description: "Erste Mail an neue Subscriber",
+    icon: Star,
+    gradient: "linear-gradient(135deg, #d4a843, #f0d68a)",
+    designIndex: 1,
+    build: () => [
+      { type: "heading", content: "✨ Willkommen, {{NAME}}!" },
+      { type: "text", content: "Schön, dass du dabei bist. Ab jetzt verpasst du keine Events, Specials und Insider-News mehr aus der Nachtschicht." },
+      { type: "divider", content: "" },
+      { type: "text", content: "Damit du direkt loslegen kannst, hier ein erster Blick auf unsere kommenden Events:" },
+      { type: "event-list", content: "Bald live", eventCount: 3 },
+      { type: "button", content: "Alle Events", url: "https://nachtschicht-kaiserslautern.app/events" },
+    ],
+  },
+  {
+    id: "blank",
+    name: "Leere Vorlage",
+    description: "Bei null starten",
+    icon: LayoutTemplate,
+    gradient: "linear-gradient(135deg, #64748b, #94a3b8)",
+    designIndex: 0,
+    build: () => [
+      { type: "heading", content: "Deine Überschrift" },
+      { type: "text", content: "Hey {{NAME}}, dein Text hier..." },
+    ],
+  },
+];
+
 
 const CAT_COLORS = [
   "bg-rose-500/20 text-rose-400",
@@ -218,6 +356,20 @@ const AdminNewsletter = () => {
   const [listMembers, setListMembers] = useState<{ id: string; list_id: string; subscriber_id: string }[]>([]);
   const [listCounts, setListCounts] = useState<Record<string, number>>({});
   const [showListManager, setShowListManager] = useState(false);
+
+  // Vorlagen-Picker
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  const applyTemplate = (tpl: NewsletterTemplate) => {
+    const newBlocks: EditorBlock[] = tpl.build().map((b) => ({
+      ...b,
+      id: crypto.randomUUID(),
+    } as EditorBlock));
+    setBlocks(newBlocks);
+    setDesign(COLOR_PRESETS[tpl.designIndex] || COLOR_PRESETS[0]);
+    setShowTemplates(false);
+    toast.success(`Vorlage "${tpl.name}" geladen`);
+  };
 
   const fetchLists = useCallback(async () => {
     const { data } = await supabase.from("newsletter_lists").select("*").order("created_at", { ascending: false });
@@ -773,6 +925,7 @@ const AdminNewsletter = () => {
                 ))}
               </div>
               <div className="flex flex-wrap gap-2 mt-3">
+                <button onClick={() => setShowTemplates(true)} className="px-3 py-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-md text-xs font-medium hover:opacity-90 flex items-center gap-1.5 shadow-md"><LayoutTemplate size={12} /> Vorlagen</button>
                 <button onClick={() => addBlock("heading")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Überschrift</button>
                 <button onClick={() => addBlock("text")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Text</button>
                 <button onClick={() => addBlock("button")} className="px-3 py-1.5 bg-muted border border-border rounded-md text-xs text-foreground hover:bg-muted/80">+ Button</button>
@@ -1239,6 +1392,65 @@ const AdminNewsletter = () => {
             </div>
           )}
         </>
+      )}
+
+
+      {/* ─── Vorlagen-Modal ─── */}
+      {showTemplates && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowTemplates(false)}>
+          <div className="bg-card border border-border rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border px-6 py-4 flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                  <LayoutTemplate size={20} className="text-primary-foreground" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-display font-bold text-foreground">Newsletter Vorlagen</h2>
+                  <p className="text-xs text-muted-foreground">Wähle einen Startpunkt – Design & Blöcke werden direkt gesetzt</p>
+                </div>
+              </div>
+              <button onClick={() => setShowTemplates(false)} className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {NEWSLETTER_TEMPLATES.map((tpl) => {
+                const Icon = tpl.icon;
+                return (
+                  <button
+                    key={tpl.id}
+                    onClick={() => applyTemplate(tpl)}
+                    className="group relative overflow-hidden rounded-xl border border-border bg-background hover:border-primary/60 transition-all text-left hover:scale-[1.02] hover:shadow-xl"
+                  >
+                    <div className="h-24 flex items-center justify-center relative overflow-hidden" style={{ background: tpl.gradient }}>
+                      <Icon size={36} className="text-white drop-shadow-lg relative z-10" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-display font-semibold text-foreground text-sm mb-1 group-hover:text-primary transition-colors">{tpl.name}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{tpl.description}</p>
+                      <div className="mt-3 flex items-center gap-1.5">
+                        {[
+                          COLOR_PRESETS[tpl.designIndex]?.primary,
+                          COLOR_PRESETS[tpl.designIndex]?.bg,
+                          COLOR_PRESETS[tpl.designIndex]?.accent,
+                        ].filter(Boolean).map((c, i) => (
+                          <div key={i} className="w-3 h-3 rounded-full border border-border" style={{ background: c as string }} />
+                        ))}
+                        <span className="text-[10px] text-muted-foreground ml-1">{COLOR_PRESETS[tpl.designIndex]?.name}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="px-6 pb-6 pt-2 text-xs text-muted-foreground text-center">
+              💡 Tipp: Nach dem Laden kannst du alle Blöcke & Farben weiter anpassen.
+            </div>
+          </div>
+        </div>
       )}
 
       <ListManagerModal
