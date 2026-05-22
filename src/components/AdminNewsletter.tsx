@@ -5,6 +5,7 @@ import {
   Trash2, Mail, Users, Search, Plus, Send, Eye, Pencil,
   ChevronLeft, CheckCircle, Loader2, Palette,
   Calendar, Tag, UserPlus, FolderOpen, X, Copy, Wand2, Sparkles, List,
+  LayoutTemplate, PartyPopper, Gift, Megaphone, Heart, Star, Zap,
 } from "lucide-react";
 import ListManagerModal from "@/components/admin/newsletter/ListManagerModal";
 
