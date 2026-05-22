@@ -213,6 +213,27 @@ const AdminNewsletter = () => {
   const [extraName, setExtraName] = useState("");
   const [extraEmail, setExtraEmail] = useState("");
 
+  // Listen
+  const [lists, setLists] = useState<{ id: string; name: string; description: string | null; color: string | null }[]>([]);
+  const [listMembers, setListMembers] = useState<{ id: string; list_id: string; subscriber_id: string }[]>([]);
+  const [listCounts, setListCounts] = useState<Record<string, number>>({});
+  const [showListManager, setShowListManager] = useState(false);
+
+  const fetchLists = useCallback(async () => {
+    const { data } = await supabase.from("newsletter_lists").select("*").order("created_at", { ascending: false });
+    if (data) setLists(data as any);
+  }, []);
+
+  const fetchListMembers = useCallback(async () => {
+    const { data } = await supabase.from("newsletter_list_members").select("id, list_id, subscriber_id");
+    if (data) {
+      setListMembers(data as any);
+      const counts: Record<string, number> = {};
+      (data as any[]).forEach((m) => { counts[m.list_id] = (counts[m.list_id] || 0) + 1; });
+      setListCounts(counts);
+    }
+  }, []);
+
   const fetchSubscribers = useCallback(async () => {
     const { data } = await supabase
       .from("newsletter_subscribers")
