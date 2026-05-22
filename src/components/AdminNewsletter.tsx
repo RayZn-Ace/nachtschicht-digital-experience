@@ -1230,6 +1230,16 @@ const AdminNewsletter = () => {
           )}
         </>
       )}
+
+      <ListManagerModal
+        open={showListManager}
+        onClose={() => setShowListManager(false)}
+        lists={lists}
+        listMembers={listMembers}
+        subscribers={subscribers as any}
+        listCounts={listCounts}
+        onChanged={() => { fetchLists(); fetchListMembers(); fetchSubscribers(); }}
+      />
     </div>
   );
 };
