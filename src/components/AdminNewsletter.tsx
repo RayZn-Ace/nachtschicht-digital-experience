@@ -1094,6 +1094,9 @@ const AdminNewsletter = () => {
         <button onClick={() => setView("categories")} className="px-4 py-2 rounded-md font-display tracking-wider text-sm bg-muted text-muted-foreground hover:text-foreground">
           KATEGORIEN
         </button>
+        <button onClick={() => setShowListManager(true)} className="px-4 py-2 rounded-md font-display tracking-wider text-sm bg-muted text-muted-foreground hover:text-foreground flex items-center gap-2">
+          <List size={14} /> LISTEN ({lists.length})
+        </button>
         <div className="flex-1" />
         {view === "campaigns" && (
           <button onClick={() => openEditor()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-display tracking-wider text-sm rounded-md hover:bg-primary/90">
