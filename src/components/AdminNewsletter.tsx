@@ -328,8 +328,8 @@ const AdminNewsletter = () => {
   };
 
   useEffect(() => {
-    Promise.all([fetchSubscribers(), fetchNewsletters(), fetchCategories(), fetchSubCats(), fetchEvents()]).finally(() => setLoading(false));
-  }, [fetchSubscribers, fetchNewsletters, fetchCategories, fetchSubCats, fetchEvents]);
+    Promise.all([fetchSubscribers(), fetchNewsletters(), fetchCategories(), fetchSubCats(), fetchEvents(), fetchLists(), fetchListMembers()]).finally(() => setLoading(false));
+  }, [fetchSubscribers, fetchNewsletters, fetchCategories, fetchSubCats, fetchEvents, fetchLists, fetchListMembers]);
 
   const activeCount = subscribers.filter((s) => s.is_active).length;
 
