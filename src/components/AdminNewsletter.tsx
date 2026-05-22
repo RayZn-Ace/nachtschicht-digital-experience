@@ -1394,6 +1394,65 @@ const AdminNewsletter = () => {
         </>
       )}
 
+
+      {/* ─── Vorlagen-Modal ─── */}
+      {showTemplates && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowTemplates(false)}>
+          <div className="bg-card border border-border rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border px-6 py-4 flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                  <LayoutTemplate size={20} className="text-primary-foreground" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-display font-bold text-foreground">Newsletter Vorlagen</h2>
+                  <p className="text-xs text-muted-foreground">Wähle einen Startpunkt – Design & Blöcke werden direkt gesetzt</p>
+                </div>
+              </div>
+              <button onClick={() => setShowTemplates(false)} className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {NEWSLETTER_TEMPLATES.map((tpl) => {
+                const Icon = tpl.icon;
+                return (
+                  <button
+                    key={tpl.id}
+                    onClick={() => applyTemplate(tpl)}
+                    className="group relative overflow-hidden rounded-xl border border-border bg-background hover:border-primary/60 transition-all text-left hover:scale-[1.02] hover:shadow-xl"
+                  >
+                    <div className="h-24 flex items-center justify-center relative overflow-hidden" style={{ background: tpl.gradient }}>
+                      <Icon size={36} className="text-white drop-shadow-lg relative z-10" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-display font-semibold text-foreground text-sm mb-1 group-hover:text-primary transition-colors">{tpl.name}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{tpl.description}</p>
+                      <div className="mt-3 flex items-center gap-1.5">
+                        {[
+                          COLOR_PRESETS[tpl.designIndex]?.primary,
+                          COLOR_PRESETS[tpl.designIndex]?.bg,
+                          COLOR_PRESETS[tpl.designIndex]?.accent,
+                        ].filter(Boolean).map((c, i) => (
+                          <div key={i} className="w-3 h-3 rounded-full border border-border" style={{ background: c as string }} />
+                        ))}
+                        <span className="text-[10px] text-muted-foreground ml-1">{COLOR_PRESETS[tpl.designIndex]?.name}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="px-6 pb-6 pt-2 text-xs text-muted-foreground text-center">
+              💡 Tipp: Nach dem Laden kannst du alle Blöcke & Farben weiter anpassen.
+            </div>
+          </div>
+        </div>
+      )}
+
       <ListManagerModal
         open={showListManager}
         onClose={() => setShowListManager(false)}
