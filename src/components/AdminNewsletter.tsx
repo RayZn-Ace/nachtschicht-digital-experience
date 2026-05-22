@@ -235,11 +235,21 @@ const AdminNewsletter = () => {
   }, []);
 
   const fetchSubscribers = useCallback(async () => {
-    const { data } = await supabase
-      .from("newsletter_subscribers")
-      .select("*")
-      .order("subscribed_at", { ascending: false });
-    if (data) setSubscribers(data as any);
+    const all: any[] = [];
+    const batchSize = 1000;
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from("newsletter_subscribers")
+        .select("*")
+        .order("subscribed_at", { ascending: false })
+        .range(from, from + batchSize - 1);
+      if (error || !data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < batchSize) break;
+      from += batchSize;
+    }
+    setSubscribers(all as any);
   }, []);
 
   const fetchNewsletters = useCallback(async () => {
