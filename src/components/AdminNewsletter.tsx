@@ -347,6 +347,10 @@ const AdminNewsletter = () => {
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [sendTargetId, setSendTargetId] = useState<string | null>(null);
   const [sendCatIds, setSendCatIds] = useState<string[]>([]);
+  const [recipientMode, setRecipientMode] = useState<"all" | "tags" | "lists" | "buyers">("all");
+  const [sendListIds, setSendListIds] = useState<string[]>([]);
+  const [sendBuyerEventIds, setSendBuyerEventIds] = useState<string[]>([]);
+  const [buyerEmailsByEvent, setBuyerEmailsByEvent] = useState<Record<string, string[]>>({});
   const [extraRecipients, setExtraRecipients] = useState<{ name: string; email: string }[]>([]);
   const [extraName, setExtraName] = useState("");
   const [extraEmail, setExtraEmail] = useState("");
