@@ -1471,7 +1471,7 @@ const AdminNewsletter = () => {
                   )}
                   {nl.status === "sent" && (
                     <>
-                      <CheckCircle size={18} className="text-green-400" />
+                      <button onClick={() => openReport(nl)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Details / Empfänger"><Eye size={16} /></button>
                       <button onClick={() => duplicateNewsletter(nl)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Duplizieren"><Copy size={16} /></button>
                     </>
                   )}
