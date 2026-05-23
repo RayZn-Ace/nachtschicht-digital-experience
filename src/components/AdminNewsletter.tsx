@@ -1621,6 +1621,86 @@ const AdminNewsletter = () => {
         </div>
       )}
 
+      {/* Report modal */}
+      {reportNewsletter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setReportNewsletter(null)}>
+          <div className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="min-w-0">
+                <h2 className="font-display tracking-wider text-foreground truncate">{reportNewsletter.subject}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {reportNewsletter.sent_at && new Date(reportNewsletter.sent_at).toLocaleString("de-DE")}
+                  {" · "}{reportNewsletter.total_sent}/{reportNewsletter.total_recipients} zugestellt
+                  {reportNewsletter.total_failed > 0 && ` · ${reportNewsletter.total_failed} fehlgeschlagen`}
+                </p>
+              </div>
+              <button onClick={() => setReportNewsletter(null)} className="p-2 hover:bg-muted rounded-md"><X size={18} /></button>
+            </div>
+
+            <div className="flex gap-2 px-4 pt-3 border-b border-border">
+              {([
+                ["sent", `Zugestellt (${reportSends.filter(s => s.status === "sent").length})`],
+                ["failed", `Fehlgeschlagen (${reportSends.filter(s => s.status !== "sent" && s.status !== "pending").length})`],
+                ["content", "Inhalt"],
+              ] as const).map(([k, label]) => (
+                <button key={k} onClick={() => setReportTab(k as any)} className={`px-3 py-2 text-xs font-display tracking-wider rounded-t-md ${reportTab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-auto p-4">
+              {reportLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground"><Loader2 className="animate-spin mr-2" size={18} /> Lade…</div>
+              ) : reportTab === "content" ? (
+                <div className="bg-white rounded-md overflow-hidden">
+                  <iframe srcDoc={reportNewsletter.body_html} className="w-full h-[70vh] border-0" title="Newsletter Inhalt" />
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {(() => {
+                    const filtered = reportTab === "sent"
+                      ? reportSends.filter(s => s.status === "sent")
+                      : reportSends.filter(s => s.status !== "sent" && s.status !== "pending");
+                    if (filtered.length === 0) return <p className="text-muted-foreground text-center py-8 text-sm">Keine Einträge.</p>;
+                    return filtered.map((s) => (
+                      <div key={s.id} className="flex items-start justify-between gap-3 p-2 rounded hover:bg-muted/40 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-foreground truncate">{s.subscriber_email}</p>
+                          {s.error_message && <p className="text-xs text-destructive mt-0.5 break-words">{s.error_message}</p>}
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {(s.sent_at || s.created_at) && new Date(s.sent_at || s.created_at).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {reportTab !== "content" && reportSends.length > 0 && (
+              <div className="p-3 border-t border-border flex justify-end">
+                <button
+                  onClick={() => {
+                    const rows = reportSends.filter(s => reportTab === "sent" ? s.status === "sent" : s.status !== "sent" && s.status !== "pending");
+                    const csv = ["email,status,timestamp,error", ...rows.map(r => `"${r.subscriber_email}","${r.status}","${r.sent_at || r.created_at || ""}","${(r.error_message || "").replace(/"/g, '""')}"`)].join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = `newsletter-${reportTab}-${reportNewsletter.id}.csv`; a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="text-xs px-3 py-1.5 bg-muted hover:bg-muted/70 rounded-md"
+                >
+                  CSV exportieren
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <ListManagerModal
         open={showListManager}
         onClose={() => setShowListManager(false)}
