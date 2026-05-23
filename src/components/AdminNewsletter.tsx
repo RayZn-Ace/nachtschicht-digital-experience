@@ -335,6 +335,41 @@ const AdminNewsletter = () => {
   const [saving, setSaving] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
+  // Report modal
+  const [reportNewsletter, setReportNewsletter] = useState<Newsletter | null>(null);
+  const [reportSends, setReportSends] = useState<Array<{ id: string; subscriber_email: string; status: string; error_message: string | null; sent_at: string | null; created_at: string }>>([]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportTab, setReportTab] = useState<"sent" | "failed" | "content">("sent");
+
+  const openReport = async (nl: Newsletter) => {
+    setReportNewsletter(nl);
+    setReportTab("sent");
+    setReportSends([]);
+    setReportLoading(true);
+    try {
+      const all: any[] = [];
+      let from = 0;
+      const batch = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("newsletter_sends")
+          .select("id, subscriber_email, status, error_message, sent_at, created_at")
+          .eq("newsletter_id", nl.id)
+          .order("created_at", { ascending: false })
+          .range(from, from + batch - 1);
+        if (error || !data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      setReportSends(all);
+    } catch (e: any) {
+      toast.error("Fehler beim Laden: " + e.message);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   // Add subscriber modal
   const [showAddSub, setShowAddSub] = useState(false);
   const [newSubName, setNewSubName] = useState("");
