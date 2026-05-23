@@ -335,6 +335,41 @@ const AdminNewsletter = () => {
   const [saving, setSaving] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
+  // Report modal
+  const [reportNewsletter, setReportNewsletter] = useState<Newsletter | null>(null);
+  const [reportSends, setReportSends] = useState<Array<{ id: string; subscriber_email: string; status: string; error_message: string | null; sent_at: string | null; created_at: string }>>([]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportTab, setReportTab] = useState<"sent" | "failed" | "content">("sent");
+
+  const openReport = async (nl: Newsletter) => {
+    setReportNewsletter(nl);
+    setReportTab("sent");
+    setReportSends([]);
+    setReportLoading(true);
+    try {
+      const all: any[] = [];
+      let from = 0;
+      const batch = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("newsletter_sends")
+          .select("id, subscriber_email, status, error_message, sent_at, created_at")
+          .eq("newsletter_id", nl.id)
+          .order("created_at", { ascending: false })
+          .range(from, from + batch - 1);
+        if (error || !data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      setReportSends(all);
+    } catch (e: any) {
+      toast.error("Fehler beim Laden: " + e.message);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   // Add subscriber modal
   const [showAddSub, setShowAddSub] = useState(false);
   const [newSubName, setNewSubName] = useState("");
@@ -1436,7 +1471,7 @@ const AdminNewsletter = () => {
                   )}
                   {nl.status === "sent" && (
                     <>
-                      <CheckCircle size={18} className="text-green-400" />
+                      <button onClick={() => openReport(nl)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Details / Empfänger"><Eye size={16} /></button>
                       <button onClick={() => duplicateNewsletter(nl)} className="p-2 hover:bg-muted rounded-md transition-colors text-foreground" title="Duplizieren"><Copy size={16} /></button>
                     </>
                   )}
@@ -1582,6 +1617,86 @@ const AdminNewsletter = () => {
             <div className="px-6 pb-6 pt-2 text-xs text-muted-foreground text-center">
               💡 Tipp: Nach dem Laden kannst du alle Blöcke & Farben weiter anpassen.
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report modal */}
+      {reportNewsletter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setReportNewsletter(null)}>
+          <div className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="min-w-0">
+                <h2 className="font-display tracking-wider text-foreground truncate">{reportNewsletter.subject}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {reportNewsletter.sent_at && new Date(reportNewsletter.sent_at).toLocaleString("de-DE")}
+                  {" · "}{reportNewsletter.total_sent}/{reportNewsletter.total_recipients} zugestellt
+                  {reportNewsletter.total_failed > 0 && ` · ${reportNewsletter.total_failed} fehlgeschlagen`}
+                </p>
+              </div>
+              <button onClick={() => setReportNewsletter(null)} className="p-2 hover:bg-muted rounded-md"><X size={18} /></button>
+            </div>
+
+            <div className="flex gap-2 px-4 pt-3 border-b border-border">
+              {([
+                ["sent", `Zugestellt (${reportSends.filter(s => s.status === "sent").length})`],
+                ["failed", `Fehlgeschlagen (${reportSends.filter(s => s.status !== "sent" && s.status !== "pending").length})`],
+                ["content", "Inhalt"],
+              ] as const).map(([k, label]) => (
+                <button key={k} onClick={() => setReportTab(k as any)} className={`px-3 py-2 text-xs font-display tracking-wider rounded-t-md ${reportTab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-auto p-4">
+              {reportLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground"><Loader2 className="animate-spin mr-2" size={18} /> Lade…</div>
+              ) : reportTab === "content" ? (
+                <div className="bg-white rounded-md overflow-hidden">
+                  <iframe srcDoc={reportNewsletter.body_html} className="w-full h-[70vh] border-0" title="Newsletter Inhalt" />
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {(() => {
+                    const filtered = reportTab === "sent"
+                      ? reportSends.filter(s => s.status === "sent")
+                      : reportSends.filter(s => s.status !== "sent" && s.status !== "pending");
+                    if (filtered.length === 0) return <p className="text-muted-foreground text-center py-8 text-sm">Keine Einträge.</p>;
+                    return filtered.map((s) => (
+                      <div key={s.id} className="flex items-start justify-between gap-3 p-2 rounded hover:bg-muted/40 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-foreground truncate">{s.subscriber_email}</p>
+                          {s.error_message && <p className="text-xs text-destructive mt-0.5 break-words">{s.error_message}</p>}
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {(s.sent_at || s.created_at) && new Date(s.sent_at || s.created_at).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {reportTab !== "content" && reportSends.length > 0 && (
+              <div className="p-3 border-t border-border flex justify-end">
+                <button
+                  onClick={() => {
+                    const rows = reportSends.filter(s => reportTab === "sent" ? s.status === "sent" : s.status !== "sent" && s.status !== "pending");
+                    const csv = ["email,status,timestamp,error", ...rows.map(r => `"${r.subscriber_email}","${r.status}","${r.sent_at || r.created_at || ""}","${(r.error_message || "").replace(/"/g, '""')}"`)].join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = `newsletter-${reportTab}-${reportNewsletter.id}.csv`; a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="text-xs px-3 py-1.5 bg-muted hover:bg-muted/70 rounded-md"
+                >
+                  CSV exportieren
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
