@@ -93,13 +93,13 @@ const U18Page = () => {
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   useEffect(() => {
-    const fetchEvents = async () => {
+  const fetchEvents = async () => {
       const { data } = await supabase
         .from("events")
-        .select("id, title, date")
+        .select("id, title, date, end_date, time, end_time")
         .eq("is_published", true)
         .order("date", { ascending: true });
-      if (data) setEvents(data);
+      if (data) setEvents(filterUpcomingEvents(data as any) as any);
     };
     fetchEvents();
   }, []);
