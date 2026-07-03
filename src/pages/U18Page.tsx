@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { filterUpcomingEvents } from "@/lib/eventTime";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
