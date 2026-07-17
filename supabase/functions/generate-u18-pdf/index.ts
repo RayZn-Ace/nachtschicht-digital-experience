@@ -148,12 +148,13 @@ Deno.serve(async (req) => {
       y -= 5;
 
       for (const field of fields) {
-        if (!field.value) continue;
+        const safeValue = sanitizeForPdf(field.value);
+        if (!safeValue) continue;
         y -= 16;
-        page.drawText(field.label + ":", {
+        page.drawText(sanitizeForPdf(field.label) + ":", {
           x: 40, y, size: 9, font: fontRegular, color: gray,
         });
-        page.drawText(field.value, {
+        page.drawText(safeValue, {
           x: 180, y, size: 10, font: fontBold, color: black,
           maxWidth: width - 220,
         });
