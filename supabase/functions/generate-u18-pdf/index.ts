@@ -1,10 +1,36 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 
-// Strip emojis & non-WinAnsi characters for pdf-lib compatibility
-function stripEmoji(str: string): string {
-  return str.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu, "").trim();
+// WinAnsi-safe sanitizer: replaces any character pdf-lib's StandardFonts cannot encode
+// (emojis, CJK, Cyrillic outside WinAnsi, etc.) with "?" so drawText never crashes.
+function sanitizeForPdf(str: unknown): string {
+  if (str === null || str === undefined) return "";
+  const s = String(str);
+  // Common typographic replacements
+  const normalized = s
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u2026/g, "...")
+    .replace(/\u00A0/g, " ");
+  let out = "";
+  for (const ch of normalized) {
+    const code = ch.codePointAt(0)!;
+    // WinAnsi covers 0x20-0x7E and most of 0xA0-0xFF; drop control chars and anything above
+    if (code === 0x0a || code === 0x0d || code === 0x09) {
+      out += " ";
+    } else if (code >= 0x20 && code <= 0x7e) {
+      out += ch;
+    } else if (code >= 0xa0 && code <= 0xff) {
+      out += ch;
+    } else {
+      out += "?";
+    }
+  }
+  return out.trim();
 }
+// Backwards-compat alias
+const stripEmoji = sanitizeForPdf;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
