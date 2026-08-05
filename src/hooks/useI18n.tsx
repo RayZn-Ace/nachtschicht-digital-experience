@@ -75,8 +75,8 @@ const translations: Record<string, Record<Lang, string>> = {
   "area.lavie.desc": { de: "Black, RnB & Dancehall", en: "Black, RnB & Dancehall" },
   "area.mausefalle": { de: "MAUSEFALLE", en: "MAUSEFALLE" },
   "area.mausefalle.desc": { de: "Schlager, Ballermann & 90er-2010er", en: "Schlager, Ballermann & 90s-2010s" },
-  "area.openair": { de: "OPEN AIR", en: "OPEN AIR" },
-  "area.openair.desc": { de: "Open Air Floor", en: "Open Air Floor" },
+  "area.openair": { de: "RAUCHERTERASSE", en: "SMOKING TERRACE" },
+  "area.openair.desc": { de: "Raucherterasse", en: "Smoking Terrace" },
   "area.bistro": { de: "BISTRO", en: "BISTRO" },
   "area.bistro.desc": { de: "Bistro & Lounge", en: "Bistro & Lounge" },
 
@@ -169,7 +169,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "club.areaAgostea": { de: "Die Hauptarea mit der größten Tanzfläche. Hier erleben Gäste die besten DJ-Sets und eine atemberaubende Licht- und Soundanlage.", en: "The main area with the largest dance floor. Experience the best DJ sets and a stunning light and sound system." },
   "club.areaLaVie": { de: "Exklusives Ambiente mit urbanem Sound. Perfekt für alle, die stilvoll feiern möchten.", en: "Exclusive ambiance with urban sound. Perfect for those who want to party in style." },
   "club.areaMausefalle": { de: "Nostalgie pur! Die Mausefalle ist der Place-to-be für alle Fans von Schlager, Ballermann und den besten Hits der 90er bis 2010er.", en: "Pure nostalgia! The Mausefalle is the place-to-be for all fans of Schlager, Ballermann and the best hits from the 90s to 2010s." },
-  "club.areaOpenAir": { de: "Unser riesiger Open Air Floor bietet ein einzigartiges Outdoor-Erlebnis unter freiem Himmel – perfekt für warme Nächte.", en: "Our huge open-air floor offers a unique outdoor experience under the stars – perfect for warm nights." },
+  "club.areaOpenAir": { de: "Unsere große Raucherterasse bietet ein einzigartiges Outdoor-Erlebnis unter freiem Himmel – perfekt für warme Nächte.", en: "Our large smoking terrace offers a unique outdoor experience under the stars – perfect for warm nights." },
   "club.areaBistro": { de: "Entspannt genießen im Bistro-Bereich. Leckere Drinks, ausgewählte Snacks und eine gemütliche Atmosphäre zum Durchatmen.", en: "Relax and enjoy in the bistro area. Delicious drinks, selected snacks and a cozy atmosphere to unwind." },
   "club.outro": { de: "Die Nachtschicht Kaiserslautern bietet auf mehreren Floors ein einzigartiges Cluberlebnis. Modernste Sound- und Lichttechnik, stilvolle Inneneinrichtung und ein professionelles Team sorgen dafür, dass jede Nacht unvergesslich wird.", en: "Nachtschicht Kaiserslautern offers a unique club experience across multiple floors. State-of-the-art sound and lighting, stylish interior design and a professional team ensure every night is unforgettable." },
 
