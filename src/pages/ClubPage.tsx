@@ -8,7 +8,7 @@ const ClubPage = () => {
 
   usePageSEO({
     title: "Der Club – Nachtschicht Kaiserslautern | 5 Areas, Sound & Licht",
-    description: "Entdecke die Nachtschicht Kaiserslautern: 5 einzigartige Areas – Agostea Mainhall, La Vie, Mausefalle, Open Air & Bistro. Modernste Sound- & Lichttechnik für das beste Cluberlebnis in der Region.",
+    description: "Entdecke die Nachtschicht Kaiserslautern: 5 einzigartige Areas – Agostea Mainhall, La Vie, Mausefalle, Raucherterasse & Bistro. Modernste Sound- & Lichttechnik für das beste Cluberlebnis in der Region.",
     canonical: "/club",
   });
 
@@ -16,7 +16,7 @@ const ClubPage = () => {
     { name: "AGOSTEA", subtitle: "Mainhall", description: "Charts & EDM", fullDescKey: "club.areaAgostea", icon: Disc3 },
     { name: "LA VIE", subtitle: "", description: "Black, RnB & Dancehall", fullDescKey: "club.areaLaVie", icon: Disc3 },
     { name: "MAUSEFALLE", subtitle: "", description: "Schlager, Ballermann & 90er-2010er", fullDescKey: "club.areaMausefalle", icon: Disc3 },
-    { name: "OPEN AIR", subtitle: "Outdoor Floor", description: t("area.openair.desc"), fullDescKey: "club.areaOpenAir", icon: Trees },
+    { name: "RAUCHERTERASSE", subtitle: "Outdoor Floor", description: t("area.openair.desc"), fullDescKey: "club.areaOpenAir", icon: Trees },
     { name: "BISTRO", subtitle: "", description: "Drinks & Snacks", fullDescKey: "club.areaBistro", icon: UtensilsCrossed },
   ];
 
