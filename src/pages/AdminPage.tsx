@@ -637,18 +637,27 @@ const AdminPage = () => {
             <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })} className="accent-primary" />
             <span className="text-sm text-foreground">Veröffentlicht</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer" title={!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 ? "Maximal 3 Favoriten möglich" : ""}>
-            <input
-              type="checkbox"
-              checked={formData.is_featured}
-              disabled={!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3}
-              onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
-              className="accent-primary"
-            />
-            <span className={`text-sm ${!formData.is_featured && events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 ? "text-muted-foreground" : "text-foreground"}`}>
-              ⭐ Highlight auf Startseite {events.filter((e: any) => e.is_featured && e.id !== editing?.id).length >= 3 && !formData.is_featured ? "(max. 3)" : ""}
-            </span>
-          </label>
+          {(() => {
+            // Limit gilt nur für aktuelle/zukünftige Events – vergangene zählen nicht mit
+            const editingIsPast = editing ? isEventPast(editing as any, new Date()) : (formData.date ? isEventPast(formData as any, new Date()) : false);
+            const activeFeatured = events.filter((e: any) => e.is_featured && e.id !== editing?.id && !isEventPast(e, new Date())).length;
+            const limitReached = !editingIsPast && !formData.is_featured && activeFeatured >= 3;
+            return (
+              <label className="flex items-center gap-2 cursor-pointer" title={limitReached ? "Maximal 3 Highlights für aktuelle/zukünftige Events" : ""}>
+                <input
+                  type="checkbox"
+                  checked={formData.is_featured}
+                  disabled={limitReached}
+                  onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                  className="accent-primary"
+                />
+                <span className={`text-sm ${limitReached ? "text-muted-foreground" : "text-foreground"}`}>
+                  ⭐ Highlight auf Startseite {limitReached ? "(max. 3)" : ""}
+                </span>
+              </label>
+            );
+          })()}
+
         </div>
 
         {/* Ticketgebühren */}
