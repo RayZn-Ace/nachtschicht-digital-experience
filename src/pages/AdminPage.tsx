@@ -638,25 +638,24 @@ const AdminPage = () => {
             <span className="text-sm text-foreground">Veröffentlicht</span>
           </label>
           {(() => {
-            // Limit gilt nur für aktuelle/zukünftige Events – vergangene zählen nicht mit
-            const editingIsPast = editing ? isEventPast(editing as any, new Date()) : (formData.date ? isEventPast(formData as any, new Date()) : false);
+            // Hinweis (kein Block): Limit gilt nur für aktuelle/zukünftige Events
             const activeFeatured = events.filter((e: any) => e.is_featured && e.id !== editing?.id && !isEventPast(e, new Date())).length;
-            const limitReached = !editingIsPast && !formData.is_featured && activeFeatured >= 3;
+            const limitReached = !formData.is_featured && activeFeatured >= 3;
             return (
-              <label className="flex items-center gap-2 cursor-pointer" title={limitReached ? "Maximal 3 Highlights für aktuelle/zukünftige Events" : ""}>
+              <label className="flex items-center gap-2 cursor-pointer" title={limitReached ? "Hinweis: Es sind bereits 3 aktuelle Highlights markiert" : ""}>
                 <input
                   type="checkbox"
                   checked={formData.is_featured}
-                  disabled={limitReached}
                   onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
                   className="accent-primary"
                 />
-                <span className={`text-sm ${limitReached ? "text-muted-foreground" : "text-foreground"}`}>
-                  ⭐ Highlight auf Startseite {limitReached ? "(max. 3)" : ""}
+                <span className="text-sm text-foreground">
+                  ⭐ Highlight auf Startseite {limitReached ? "(bereits 3 aktive Highlights)" : ""}
                 </span>
               </label>
             );
           })()}
+
 
         </div>
 
