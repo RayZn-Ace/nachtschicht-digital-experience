@@ -51,7 +51,7 @@ const LoungesPage = () => {
     try {
       const [loungeRes, eventRes, bookingRes, assignRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
-        supabase.from("events").select("*").eq("is_published", true).gte("date", new Date().toISOString()).order("date", { ascending: true }),
+        supabase.from("events").select("*").eq("is_published", true).gte("date", new Date(Date.now() - 3 * 86400000).toISOString()).order("date", { ascending: true }),
         supabase.rpc("get_lounge_availability"),
         supabase.from("event_lounges").select("event_id, lounge_id"),
       ]);
