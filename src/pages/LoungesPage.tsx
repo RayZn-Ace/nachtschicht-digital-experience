@@ -4,6 +4,7 @@ import { Users, Wine, Calendar, X } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import LoungeReservationWizard from "@/components/LoungeReservationWizard";
 import { parseAreas } from "@/lib/areas";
+import { filterUpcomingEvents } from "@/lib/eventTime";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -51,13 +52,13 @@ const LoungesPage = () => {
     try {
       const [loungeRes, eventRes, bookingRes, assignRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
-        supabase.from("events").select("*").eq("is_published", true).gte("date", new Date().toISOString()).order("date", { ascending: true }),
+        supabase.from("events").select("*").eq("is_published", true).gte("date", new Date(Date.now() - 3 * 86400000).toISOString()).order("date", { ascending: true }),
         supabase.rpc("get_lounge_availability"),
         supabase.from("event_lounges").select("event_id, lounge_id"),
       ]);
       if (loungeRes.error || eventRes.error || bookingRes.error) { setError(true); }
       if (loungeRes.data) setLounges(loungeRes.data as any);
-      if (eventRes.data) setEvents(eventRes.data as unknown as Event[]);
+      if (eventRes.data) setEvents(filterUpcomingEvents(eventRes.data as unknown as Event[]));
       if (bookingRes.data) setBookings(bookingRes.data as any);
       if (assignRes.data) {
         const map: Record<string, string[]> = {};
