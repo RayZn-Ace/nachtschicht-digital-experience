@@ -4,6 +4,7 @@ import { Users, Wine, Calendar, X } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import LoungeReservationWizard from "@/components/LoungeReservationWizard";
 import { parseAreas } from "@/lib/areas";
+import { filterUpcomingEvents } from "@/lib/eventTime";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
 import { usePageSEO } from "@/hooks/usePageSEO";
