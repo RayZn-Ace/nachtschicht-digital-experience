@@ -57,7 +57,7 @@ const LoungesPage = () => {
       ]);
       if (loungeRes.error || eventRes.error || bookingRes.error) { setError(true); }
       if (loungeRes.data) setLounges(loungeRes.data as any);
-      if (eventRes.data) setEvents(eventRes.data as unknown as Event[]);
+      if (eventRes.data) setEvents(filterUpcomingEvents(eventRes.data as unknown as Event[]));
       if (bookingRes.data) setBookings(bookingRes.data as any);
       if (assignRes.data) {
         const map: Record<string, string[]> = {};
