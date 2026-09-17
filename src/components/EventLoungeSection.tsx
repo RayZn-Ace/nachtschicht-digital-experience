@@ -8,6 +8,7 @@ import type { Event } from "@/types/database";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
+import { applyLoungeOverrides } from "@/lib/loungePricing";
 
 interface Lounge {
   id: string;
@@ -19,6 +20,7 @@ interface Lounge {
   image_url: string | null;
   description: string | null;
   sort_order: number;
+  price_note?: string | null;
 }
 
 interface Booking {
@@ -48,12 +50,18 @@ const EventLoungeSection = ({ event }: Props) => {
       const [loungeRes, bookingRes, assignmentRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
         supabase.rpc("get_lounge_availability", { p_event_id: event.id }),
-        supabase.from("event_lounges").select("lounge_id").eq("event_id", event.id),
+        supabase
+          .from("event_lounges")
+          .select("lounge_id, min_spend_override, price_per_person_override, price_note")
+          .eq("event_id", event.id),
       ]);
       if (loungeRes.error) throw loungeRes.error;
       if (bookingRes.error) throw bookingRes.error;
       
-      const allLounges = loungeRes.data as any as Lounge[];
+      const allLounges = applyLoungeOverrides(
+        loungeRes.data as any as Lounge[],
+        (assignmentRes.data as any) || []
+      );
       const assignedIds = assignmentRes.data?.map((a: any) => a.lounge_id) || [];
       
       if (assignedIds.length > 0) {

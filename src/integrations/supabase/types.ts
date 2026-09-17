@@ -227,18 +227,27 @@ export type Database = {
           event_id: string
           id: string
           lounge_id: string
+          min_spend_override: number | null
+          price_note: string | null
+          price_per_person_override: number | null
         }
         Insert: {
           created_at?: string
           event_id: string
           id?: string
           lounge_id: string
+          min_spend_override?: number | null
+          price_note?: string | null
+          price_per_person_override?: number | null
         }
         Update: {
           created_at?: string
           event_id?: string
           id?: string
           lounge_id?: string
+          min_spend_override?: number | null
+          price_note?: string | null
+          price_per_person_override?: number | null
         }
         Relationships: [
           {
