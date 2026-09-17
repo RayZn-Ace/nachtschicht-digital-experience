@@ -327,7 +327,7 @@ const TicketShopPage = () => {
   const eventAreas = parseAreas(event.areas);
 
   const renderTicketPanel = () => {
-    if (soldOut) {
+    if (!(event as any).external_ticket_url && soldOut) {
       return (
         <div className="glass-card p-8 text-center">
           <p className="text-2xl font-display text-destructive tracking-wider">{lang === "de" ? "AUSVERKAUFT" : "SOLD OUT"}</p>
