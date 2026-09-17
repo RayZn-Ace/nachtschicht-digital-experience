@@ -264,6 +264,7 @@ const LoungeReservationWizard = ({ lounge, event, onClose, onSuccess }: Props) =
                 </div>
                 <p className="text-xs text-muted-foreground italic">
                   Dieser Voucher beinhaltet {minSpend.toFixed(0)} € Freiverzehr
+                  {lounge.price_note ? ` – ${lounge.price_note}` : ""}
                 </p>
               </div>
 
