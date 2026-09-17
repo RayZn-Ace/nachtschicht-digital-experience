@@ -15,6 +15,7 @@ interface Lounge {
   price_per_person: number;
   image_url: string | null;
   description: string | null;
+  price_note?: string | null;
 }
 
 interface Props {

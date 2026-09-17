@@ -162,6 +162,9 @@ const LoungesPage = () => {
                           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mb-4">
                             <span className="flex items-center gap-1"><Users size={14} className="text-primary" /> max. {lounge.capacity} {t("lounges.maxPersons")}</span>
                             <span className="flex items-center gap-1"><Wine size={14} className="text-primary" /> {lounge.min_spend}€ {t("lounges.minSpend")}</span>
+                            {lounge.price_note && (
+                              <span className="flex items-center gap-1 text-primary font-medium">{lounge.price_note}</span>
+                            )}
                           </div>
                           <div className="flex items-center justify-between mb-3">
                             <span className="font-display text-xl text-foreground">{lounge.price_per_person}€ <span className="text-sm text-muted-foreground font-sans">{t("lounges.perPerson")}</span></span>
