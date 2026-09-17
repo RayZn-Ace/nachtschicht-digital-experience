@@ -869,11 +869,12 @@ const TicketShopPage = () => {
             <ScrollReveal>
               <div className="glass-card overflow-hidden mb-6">
                 {event.image_url && (
-                  <div className="relative h-40 sm:h-48 md:h-72 overflow-hidden">
-                    <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
+                  <div className="relative aspect-video overflow-hidden bg-black">
+                    <img src={event.image_url} alt={event.title} className="w-full h-full object-contain" />
+                    <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-background/80 to-transparent pointer-events-none" />
                   </div>
                 )}
+
               </div>
             </ScrollReveal>
 
