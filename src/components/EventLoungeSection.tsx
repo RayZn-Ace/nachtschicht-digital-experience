@@ -50,12 +50,18 @@ const EventLoungeSection = ({ event }: Props) => {
       const [loungeRes, bookingRes, assignmentRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
         supabase.rpc("get_lounge_availability", { p_event_id: event.id }),
-        supabase.from("event_lounges").select("lounge_id").eq("event_id", event.id),
+        supabase
+          .from("event_lounges")
+          .select("lounge_id, min_spend_override, price_per_person_override, price_note")
+          .eq("event_id", event.id),
       ]);
       if (loungeRes.error) throw loungeRes.error;
       if (bookingRes.error) throw bookingRes.error;
       
-      const allLounges = loungeRes.data as any as Lounge[];
+      const allLounges = applyLoungeOverrides(
+        loungeRes.data as any as Lounge[],
+        (assignmentRes.data as any) || []
+      );
       const assignedIds = assignmentRes.data?.map((a: any) => a.lounge_id) || [];
       
       if (assignedIds.length > 0) {

@@ -5,6 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import LoungeReservationWizard from "@/components/LoungeReservationWizard";
 import { parseAreas } from "@/lib/areas";
 import { filterUpcomingEvents } from "@/lib/eventTime";
+import { applyLoungeOverrides, type LoungeOverrideRow } from "@/lib/loungePricing";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -20,6 +21,7 @@ interface Lounge {
   image_url: string | null;
   description: string | null;
   sort_order: number;
+  price_note?: string | null;
 }
 
 interface Booking {
