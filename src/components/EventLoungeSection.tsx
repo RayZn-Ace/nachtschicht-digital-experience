@@ -8,6 +8,7 @@ import type { Event } from "@/types/database";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
+import { applyLoungeOverrides } from "@/lib/loungePricing";
 
 interface Lounge {
   id: string;
@@ -19,6 +20,7 @@ interface Lounge {
   image_url: string | null;
   description: string | null;
   sort_order: number;
+  price_note?: string | null;
 }
 
 interface Booking {
