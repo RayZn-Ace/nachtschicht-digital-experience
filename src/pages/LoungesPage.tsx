@@ -96,12 +96,13 @@ const LoungesPage = () => {
 
   const availableLounges = (() => {
     if (!selectedEvent || !currentEvent) return [];
+    const priced = applyLoungeOverrides(lounges, overrideMap[selectedEvent]);
     const assignedIds = eventLoungeMap[selectedEvent];
     if (assignedIds && assignedIds.length > 0) {
-      return lounges.filter((l) => assignedIds.includes(l.id));
+      return priced.filter((l) => assignedIds.includes(l.id));
     }
     // Fallback: filter by area
-    return lounges.filter((l) => parseAreas(currentEvent.areas).includes(l.area_id));
+    return priced.filter((l) => parseAreas(currentEvent.areas).includes(l.area_id));
   })();
 
   const getStatus = (loungeId: string) => { const booking = bookings.find((b) => b.lounge_id === loungeId && b.event_id === selectedEvent); if (!booking) return "free"; if (booking.booking_type === "guaranteed" && (booking.status === "confirmed" || booking.status === "pending")) return "guaranteed"; return "available"; };
