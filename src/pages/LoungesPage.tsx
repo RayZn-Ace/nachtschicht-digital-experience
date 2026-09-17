@@ -49,6 +49,7 @@ const LoungesPage = () => {
   });
 
   const [eventLoungeMap, setEventLoungeMap] = useState<Record<string, string[]>>({});
+  const [overrideMap, setOverrideMap] = useState<Record<string, LoungeOverrideRow[]>>({});
 
   const fetchData = async () => {
     try {
@@ -56,7 +57,7 @@ const LoungesPage = () => {
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
         supabase.from("events").select("*").eq("is_published", true).gte("date", new Date(Date.now() - 3 * 86400000).toISOString()).order("date", { ascending: true }),
         supabase.rpc("get_lounge_availability"),
-        supabase.from("event_lounges").select("event_id, lounge_id"),
+        supabase.from("event_lounges").select("event_id, lounge_id, min_spend_override, price_per_person_override, price_note"),
       ]);
       if (loungeRes.error || eventRes.error || bookingRes.error) { setError(true); }
       if (loungeRes.data) setLounges(loungeRes.data as any);
@@ -64,11 +65,15 @@ const LoungesPage = () => {
       if (bookingRes.data) setBookings(bookingRes.data as any);
       if (assignRes.data) {
         const map: Record<string, string[]> = {};
+        const ovr: Record<string, LoungeOverrideRow[]> = {};
         assignRes.data.forEach((a: any) => {
           if (!map[a.event_id]) map[a.event_id] = [];
           map[a.event_id].push(a.lounge_id);
+          if (!ovr[a.event_id]) ovr[a.event_id] = [];
+          ovr[a.event_id].push(a);
         });
         setEventLoungeMap(map);
+        setOverrideMap(ovr);
       }
     } catch (err) { setError(true); } finally { setLoading(false); }
   };
