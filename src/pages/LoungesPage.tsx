@@ -105,7 +105,8 @@ const LoungesPage = () => {
     return priced.filter((l) => parseAreas(currentEvent.areas).includes(l.area_id));
   })();
 
-  const getStatus = (loungeId: string) => { const booking = bookings.find((b) => b.lounge_id === loungeId && b.event_id === selectedEvent); if (!booking) return "free"; if (booking.booking_type === "guaranteed" && (booking.status === "confirmed" || booking.status === "pending")) return "guaranteed"; return "available"; };
+  // Only paid/confirmed guaranteed bookings block a lounge; unpaid "pending" never blocks
+  const getStatus = (loungeId: string) => { const rel = bookings.filter((b) => b.lounge_id === loungeId && b.event_id === selectedEvent); if (rel.length === 0) return "free"; if (rel.some((b) => b.booking_type === "guaranteed" && b.status === "confirmed")) return "guaranteed"; return "available"; };
   const dateFmt = (d: string) => new Date(d).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" });
 
   return (
