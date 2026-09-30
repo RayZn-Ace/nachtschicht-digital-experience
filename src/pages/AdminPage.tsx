@@ -248,11 +248,17 @@ const AdminPage = () => {
     }
   };
 
+  // Diff-based: keeps existing rows (and their per-event price overrides) intact
   const saveLoungeAssignments = async (eventId: string) => {
-    await supabase.from("event_lounges").delete().eq("event_id", eventId);
-    if (selectedLoungeIds.length > 0) {
-      const rows = selectedLoungeIds.map((lounge_id) => ({ event_id: eventId, lounge_id }));
-      await supabase.from("event_lounges").insert(rows);
+    const { data: existingRows } = await supabase.from("event_lounges").select("lounge_id").eq("event_id", eventId);
+    const existing = (existingRows || []).map((r: any) => r.lounge_id as string);
+    const toRemove = existing.filter((id) => !selectedLoungeIds.includes(id));
+    const toAdd = selectedLoungeIds.filter((id) => !existing.includes(id));
+    if (toRemove.length > 0) {
+      await supabase.from("event_lounges").delete().eq("event_id", eventId).in("lounge_id", toRemove);
+    }
+    if (toAdd.length > 0) {
+      await supabase.from("event_lounges").insert(toAdd.map((lounge_id) => ({ event_id: eventId, lounge_id })));
     }
   };
 
