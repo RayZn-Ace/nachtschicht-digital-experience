@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Users, Wine, Calendar, Map as MapIcon, LayoutGrid } from "lucide-react";
 import LoungeFloorplan from "@/components/LoungeFloorplan";
 import { useLoungeAvailability } from "@/hooks/useLoungeAvailability";
-import { resolveLoungeStatus, isBookable } from "@/lib/loungeAvailability";
+import { resolveLoungeStatus, isBookable, getWizardInvalidation, wizardInvalidationText } from "@/lib/loungeAvailability";
+import { toast } from "@/hooks/use-toast";
+import { useRef } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import LoungeReservationWizard from "@/components/LoungeReservationWizard";
 import { parseAreas } from "@/lib/areas";
@@ -49,17 +51,26 @@ const LoungesPage = () => {
   const [eventLoungeMap, setEventLoungeMap] = useState<Record<string, string[]>>({});
   const [overrideMap, setOverrideMap] = useState<Record<string, LoungeOverrideRow[]>>({});
 
+  const metaReq = useRef(0);
   const fetchData = async () => {
+    const reqId = ++metaReq.current;
     try {
       const [loungeRes, eventRes, assignRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
         supabase.from("events").select("*").eq("is_published", true).gte("date", new Date(Date.now() - 3 * 86400000).toISOString()).order("date", { ascending: true }),
         supabase.from("event_lounges").select("event_id, lounge_id, min_spend_override, price_per_person_override, price_note"),
       ]);
-      if (loungeRes.error || eventRes.error || assignRes.error) { setError(true); }
-      if (loungeRes.data) setLounges(loungeRes.data as any);
-      if (eventRes.data) setEvents(filterUpcomingEvents(eventRes.data as unknown as Event[]));
-      if (assignRes.data) {
+      if (reqId !== metaReq.current) return;
+      // Fail closed: apply the metadata batch only if every essential request succeeded
+      if (loungeRes.error || eventRes.error || assignRes.error || !loungeRes.data || !eventRes.data || !assignRes.data) {
+        setError(true);
+        setSelectedLounge(null);
+        return;
+      }
+      setError(false);
+      setLounges(loungeRes.data as any);
+      setEvents(filterUpcomingEvents(eventRes.data as unknown as Event[]));
+      {
         const map: Record<string, string[]> = {};
         const ovr: Record<string, LoungeOverrideRow[]> = {};
         assignRes.data.forEach((a: any) => {
@@ -71,7 +82,7 @@ const LoungesPage = () => {
         setEventLoungeMap(map);
         setOverrideMap(ovr);
       }
-    } catch (err) { setError(true); } finally { setLoading(false); }
+    } catch (err) { if (reqId === metaReq.current) { setError(true); setSelectedLounge(null); } } finally { if (reqId === metaReq.current) setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -103,6 +114,17 @@ const LoungesPage = () => {
 
   // Only paid/confirmed guaranteed bookings block a lounge; unpaid "pending" never blocks
   const getStatus = (loungeId: string) => resolveLoungeStatus({ eligible: true, loadState: availability.state, bookings: availability.bookings, loungeId, eventId: selectedEvent });
+  // Close an open wizard when its selection is no longer valid for the current event/data
+  const eligibleIds = availableLounges.map((l) => l.id).join(",");
+  useEffect(() => {
+    if (!selectedLounge) return;
+    const reason = error ? "ineligible" : getWizardInvalidation({ selectedLoungeId: selectedLounge.id, eligibleIds: eligibleIds ? eligibleIds.split(",") : [], loadState: availability.state, bookings: availability.bookings, eventId: selectedEvent });
+    if (reason) {
+      setSelectedLounge(null);
+      toast({ title: lang === "de" ? "Reservierung geschlossen" : "Reservation closed", description: wizardInvalidationText(reason, lang === "de"), variant: "destructive" });
+    }
+  }, [selectedLounge, eligibleIds, availability.state, availability.bookings, selectedEvent, error, lang]);
+
   const dateFmt = (d: string) => new Date(d).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" });
 
   return (
@@ -120,10 +142,10 @@ const LoungesPage = () => {
 
         {loading ? (
           <div className="text-center text-muted-foreground py-16">{t("lounges.loading")}</div>
-        ) : error && lounges.length === 0 ? (
+        ) : error ? (
           <div className="text-center py-16 space-y-4">
             <p className="text-muted-foreground">{t("lounges.error")}</p>
-            <button onClick={() => window.location.reload()} className="px-6 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors">{t("lounges.retry")}</button>
+            <button onClick={() => { setLoading(true); fetchData(); }} className="px-6 py-2 bg-primary text-primary-foreground font-display tracking-wider rounded-md hover:bg-primary/90 transition-colors">{t("lounges.retry")}</button>
           </div>
         ) : loungeEvents.length === 0 ? (
           <div className="text-center text-muted-foreground py-16">{t("lounges.noEvents")}</div>

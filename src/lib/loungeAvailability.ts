@@ -38,3 +38,27 @@ export const resolveLoungeStatus = (opts: {
 };
 
 export const isBookable = (s: LoungeDisplayStatus) => s === "available" || s === "non_binding";
+
+export type WizardInvalidation = "ineligible" | "booked" | "availability_failed";
+
+/** Decides whether an open reservation wizard must be closed for the current event/data. */
+export const getWizardInvalidation = (opts: {
+  selectedLoungeId: string | null | undefined;
+  eligibleIds: string[];
+  loadState: AvailabilityLoadState;
+  bookings: LoungeAvailabilityRow[];
+  eventId: string | null | undefined;
+}): WizardInvalidation | null => {
+  if (!opts.selectedLoungeId) return null;
+  if (!opts.eventId || !opts.eligibleIds.includes(opts.selectedLoungeId)) return "ineligible";
+  if (opts.loadState === "error") return "availability_failed";
+  if (opts.loadState === "ready" && getBookingStatus(opts.bookings, opts.selectedLoungeId, opts.eventId) === "booked") return "booked";
+  return null;
+};
+
+export const wizardInvalidationText = (r: WizardInvalidation, de: boolean) =>
+  ({
+    ineligible: de ? "Diese Lounge ist für das gewählte Event nicht mehr buchbar." : "This lounge is no longer bookable for the selected event.",
+    booked: de ? "Diese Lounge wurde gerade verbindlich reserviert." : "This lounge has just been booked.",
+    availability_failed: de ? "Verfügbarkeit konnte nicht geprüft werden – Reservierung abgebrochen. Bitte erneut versuchen." : "Availability could not be verified – reservation cancelled. Please retry.",
+  })[r];
