@@ -11,7 +11,7 @@ describe("floorplan geometry", () => {
     const ids = FLOORPLANS.flatMap((r) => r.nodes.map((n) => n.loungeId));
     expect(new Set(ids).size).toBe(11);
   });
-  it("inactive LA VIE Bungalow 4 is unavailable when not in eligible list", () => {
+  it("a lounge not in the eligible list is unavailable", () => {
     expect(resolveLoungeStatus({ eligible: false, loadState: "ready", bookings: [], loungeId: "29036735-9bef-42b7-bb5e-28ce4ae34141", eventId: EV })).toBe("unavailable");
   });
 });
