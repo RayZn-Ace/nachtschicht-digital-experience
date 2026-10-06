@@ -58,6 +58,7 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
   const firstRoom = (FLOORPLANS.find((r) => r.nodes.some((n) => byId.has(n.loungeId)))?.id ?? "agostea") as RoomId;
   const [room, setRoom] = useState<RoomId>(firstRoom);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [imgFailed, setImgFailed] = useState<Record<string, boolean>>({});
 
   // Event change: reset selection + jump to first room with lounges
   useEffect(() => { setSelectedId(null); setRoom(firstRoom); }, [eventId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -226,6 +227,8 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
           </div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 };
