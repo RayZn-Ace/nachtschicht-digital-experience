@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Wine, Calendar, X } from "lucide-react";
+import { Users, Wine, Calendar, Map as MapIcon, LayoutGrid } from "lucide-react";
+import LoungeFloorplan from "@/components/LoungeFloorplan";
+import { useLoungeAvailability } from "@/hooks/useLoungeAvailability";
+import { resolveLoungeStatus, isBookable } from "@/lib/loungeAvailability";
 import ScrollReveal from "@/components/ScrollReveal";
 import LoungeReservationWizard from "@/components/LoungeReservationWizard";
 import { parseAreas } from "@/lib/areas";
@@ -24,23 +27,18 @@ interface Lounge {
   price_note?: string | null;
 }
 
-interface Booking {
-  lounge_id: string;
-  event_id: string;
-  booking_type: string;
-  status: string;
-}
 
 const LoungesPage = () => {
   const { lang, t } = useI18n();
   const translate = useTranslate(lang);
   const [lounges, setLounges] = useState<Lounge[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedLounge, setSelectedLounge] = useState<Lounge | null>(null);
+  const [view, setView] = useState<"map" | "list">("map");
+  const availability = useLoungeAvailability(selectedEvent || null);
 
   usePageSEO({
     title: "VIP Lounges reservieren – Nachtschicht Kaiserslautern | Geburtstag & Events",
@@ -53,16 +51,14 @@ const LoungesPage = () => {
 
   const fetchData = async () => {
     try {
-      const [loungeRes, eventRes, bookingRes, assignRes] = await Promise.all([
+      const [loungeRes, eventRes, assignRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
         supabase.from("events").select("*").eq("is_published", true).gte("date", new Date(Date.now() - 3 * 86400000).toISOString()).order("date", { ascending: true }),
-        supabase.rpc("get_lounge_availability"),
         supabase.from("event_lounges").select("event_id, lounge_id, min_spend_override, price_per_person_override, price_note"),
       ]);
-      if (loungeRes.error || eventRes.error || bookingRes.error) { setError(true); }
+      if (loungeRes.error || eventRes.error || assignRes.error) { setError(true); }
       if (loungeRes.data) setLounges(loungeRes.data as any);
       if (eventRes.data) setEvents(filterUpcomingEvents(eventRes.data as unknown as Event[]));
-      if (bookingRes.data) setBookings(bookingRes.data as any);
       if (assignRes.data) {
         const map: Record<string, string[]> = {};
         const ovr: Record<string, LoungeOverrideRow[]> = {};
@@ -106,7 +102,7 @@ const LoungesPage = () => {
   })();
 
   // Only paid/confirmed guaranteed bookings block a lounge; unpaid "pending" never blocks
-  const getStatus = (loungeId: string) => { const rel = bookings.filter((b) => b.lounge_id === loungeId && b.event_id === selectedEvent); if (rel.length === 0) return "free"; if (rel.some((b) => b.booking_type === "guaranteed" && b.status === "confirmed")) return "guaranteed"; return "available"; };
+  const getStatus = (loungeId: string) => resolveLoungeStatus({ eligible: true, loadState: availability.state, bookings: availability.bookings, loungeId, eventId: selectedEvent });
   const dateFmt = (d: string) => new Date(d).toLocaleDateString(lang === "de" ? "de-DE" : "en-US", { day: "2-digit", month: "long", year: "numeric" });
 
   return (
@@ -143,11 +139,42 @@ const LoungesPage = () => {
               </div>
             </ScrollReveal>
 
-            {selectedEvent && availableLounges.length > 0 && (
+            {!selectedEvent && (
+              <p className="max-w-2xl mx-auto text-center text-sm text-muted-foreground mb-8">{lang === "de" ? "Wähle oben ein Event – danach siehst du im Raumplan, welche Lounges an diesem Abend frei (grün) oder reserviert (rot) sind." : "Choose an event above to see which lounges are free (green) or booked (red) that evening."}</p>
+            )}
+
+            {selectedEvent && (
+              <div className="max-w-5xl mx-auto mb-6 flex justify-center">
+                <div role="group" aria-label={lang === "de" ? "Ansicht" : "View"} className="inline-flex rounded-md border border-border p-1 bg-muted/40">
+                  {(["map", "list"] as const).map((v) => (
+                    <button key={v} onClick={() => setView(v)} aria-pressed={view === v} className={`min-h-10 px-4 inline-flex items-center gap-1.5 rounded text-sm font-medium transition-colors ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                      {v === "map" ? <MapIcon size={14} /> : <LayoutGrid size={14} />}
+                      {v === "map" ? (lang === "de" ? "Raumplan" : "Floorplan") : (lang === "de" ? "Liste" : "List")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedEvent && view === "map" && (
+              <div className="max-w-3xl mx-auto">
+                <LoungeFloorplan lang={lang} eventId={selectedEvent} lounges={availableLounges} loadState={availability.state} bookings={availability.bookings} onRetry={availability.refresh} onReserve={(l) => setSelectedLounge(l as Lounge)} translate={translate} />
+              </div>
+            )}
+
+            {selectedEvent && view === "list" && availability.state === "error" && (
+              <div className="max-w-5xl mx-auto mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                <span>{lang === "de" ? "Verfügbarkeit konnte nicht geladen werden – Buchung vorübergehend deaktiviert." : "Availability could not be loaded – booking temporarily disabled."}</span>
+                <button onClick={availability.refresh} className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground">{t("lounges.retry")}</button>
+              </div>
+            )}
+
+            {selectedEvent && view === "list" && availableLounges.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
                 {availableLounges.map((lounge, i) => {
                   const status = getStatus(lounge.id);
-                  const isGuaranteed = status === "guaranteed";
+                  const isGuaranteed = status === "booked";
+                  const canBook = isBookable(status);
                   return (
                     <ScrollReveal key={lounge.id} delay={i * 0.1}>
                       <article className={`glass-card overflow-hidden hover-lift group ${isGuaranteed ? "opacity-60" : ""}`}>
@@ -170,8 +197,8 @@ const LoungesPage = () => {
                           <div className="flex items-center justify-between mb-3">
                             <span className="font-display text-xl text-foreground">{lounge.price_per_person}€ <span className="text-sm text-muted-foreground font-sans">{t("lounges.perPerson")}</span></span>
                           </div>
-                          <button onClick={() => !isGuaranteed && setSelectedLounge(lounge)} disabled={isGuaranteed} className="w-full py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            {isGuaranteed ? t("lounges.reserved") : t("lounges.bookNow")}
+                          <button onClick={() => canBook && setSelectedLounge(lounge)} disabled={!canBook} className="w-full py-3 bg-primary text-primary-foreground font-display text-lg tracking-wider rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isGuaranteed ? t("lounges.reserved") : canBook ? t("lounges.bookNow") : (lang === "de" ? "STATUS UNBEKANNT" : "STATUS UNKNOWN")}
                           </button>
                         </div>
                       </article>
@@ -182,7 +209,7 @@ const LoungesPage = () => {
             )}
 
             {selectedLounge && currentEvent && (
-              <LoungeReservationWizard lounge={selectedLounge} event={currentEvent} onClose={() => setSelectedLounge(null)} onSuccess={() => { setSelectedLounge(null); fetchData(); }} />
+              <LoungeReservationWizard lounge={selectedLounge} event={currentEvent} onClose={() => setSelectedLounge(null)} onSuccess={() => { setSelectedLounge(null); fetchData(); availability.refresh(); }} />
             )}
           </>
         )}

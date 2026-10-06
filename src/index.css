@@ -36,6 +36,8 @@
     --sidebar-border: 0 0% 18%;
     --sidebar-ring: 0 85% 50%;
 
+    --success: 142 70% 42%;
+    --status-unknown: 0 0% 42%;
     --font-display: 'Bebas Neue', sans-serif;
     --font-body: 'Space Grotesk', sans-serif;
   }
@@ -70,6 +72,8 @@
     --sidebar-border: 0 0% 85%;
     --sidebar-ring: 0 85% 50%;
 
+    --success: 142 70% 42%;
+    --status-unknown: 0 0% 42%;
     --font-display: 'Bebas Neue', sans-serif;
     --font-body: 'Space Grotesk', sans-serif;
   }
