@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Wine, ShieldCheck, Shield, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 import { parseAreas, CLUB_AREAS } from "@/lib/areas";
@@ -11,7 +12,7 @@ import { useTranslate } from "@/hooks/useTranslate";
 import { applyLoungeOverrides } from "@/lib/loungePricing";
 import LoungeFloorplan from "@/components/LoungeFloorplan";
 import { useLoungeAvailability } from "@/hooks/useLoungeAvailability";
-import { resolveLoungeStatus } from "@/lib/loungeAvailability";
+import { resolveLoungeStatus, getWizardInvalidation, wizardInvalidationText } from "@/lib/loungeAvailability";
 import { Map as MapIcon, LayoutGrid, RefreshCw } from "lucide-react";
 
 interface Lounge {
@@ -35,7 +36,9 @@ interface Props {
 const EventLoungeSection = ({ event }: Props) => {
   const { lang } = useI18n();
   const tr = useTranslate(lang);
-  const [lounges, setLounges] = useState<Lounge[]>([]);
+  // Metadata is tagged with the event it was loaded for; data for another event is never used
+  const [meta, setMeta] = useState<{ eventId: string | null; state: "loading" | "ready" | "error"; lounges: Lounge[] }>({ eventId: null, state: "loading", lounges: [] });
+  const metaReq = useRef(0);
   const availability = useLoungeAvailability(event.id);
   const [view, setView] = useState<"map" | "list">("map");
   const [loading, setLoading] = useState(true);
@@ -44,16 +47,20 @@ const EventLoungeSection = ({ event }: Props) => {
 
   const eventAreas = parseAreas(event.areas);
 
-  const fetchData = async () => {
+  const fetchData = async (forEventId: string = event.id, silent = false) => {
+    const reqId = ++metaReq.current;
+    if (!silent) setMeta({ eventId: forEventId, state: "loading", lounges: [] });
     try {
       const [loungeRes, assignmentRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
         supabase
           .from("event_lounges")
           .select("lounge_id, min_spend_override, price_per_person_override, price_note")
-          .eq("event_id", event.id),
+          .eq("event_id", forEventId),
       ]);
-      if (loungeRes.error) throw loungeRes.error;
+      if (reqId !== metaReq.current) return;
+      if (loungeRes.error || !loungeRes.data) throw loungeRes.error || new Error("lounges");
+      if (assignmentRes.error || !assignmentRes.data) throw assignmentRes.error || new Error("assignments");
       
       const allLounges = applyLoungeOverrides(
         loungeRes.data as any as Lounge[],
@@ -62,22 +69,48 @@ const EventLoungeSection = ({ event }: Props) => {
       const assignedIds = assignmentRes.data?.map((a: any) => a.lounge_id) || [];
       
       if (assignedIds.length > 0) {
-        setLounges(allLounges.filter((l) => assignedIds.includes(l.id)));
+        setMeta({ eventId: forEventId, state: "ready", lounges: allLounges.filter((l) => assignedIds.includes(l.id)) });
       } else {
-        setLounges(allLounges);
+        setMeta({ eventId: forEventId, state: "ready", lounges: allLounges });
       }
     } catch (err) {
+      if (reqId !== metaReq.current) return;
       console.error("Failed to load lounges:", err);
-    } finally {
-      setLoading(false);
+      setMeta({ eventId: forEventId, state: "error", lounges: [] });
     }
   };
 
-  useEffect(() => { fetchData(); }, [event.id]);
+  useEffect(() => {
+    setSelectedLounge(null);
+    setExpandedArea(null);
+    fetchData(event.id);
+    return () => { metaReq.current++; };
+  }, [event.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const metaCurrent = meta.eventId === event.id;
+  const metaState = metaCurrent ? meta.state : "loading";
+  const lounges = metaCurrent && meta.state === "ready" ? meta.lounges : [];
   const availableLounges = lounges.filter((l) => eventAreas.includes(l.area_id));
 
-  if (loading || availableLounges.length === 0) return null;
+  const eligibleKey = availableLounges.map((l) => l.id).join(",");
+  useEffect(() => {
+    if (!selectedLounge || metaState === "loading") return;
+    const reason = metaState === "error" ? "ineligible" : getWizardInvalidation({ selectedLoungeId: selectedLounge.id, eligibleIds: eligibleKey ? eligibleKey.split(",") : [], loadState: availability.state, bookings: availability.bookings, eventId: event.id });
+    if (reason) {
+      setSelectedLounge(null);
+      toast({ title: lang === "de" ? "Reservierung geschlossen" : "Reservation closed", description: wizardInvalidationText(reason, lang === "de"), variant: "destructive" });
+    }
+  }, [selectedLounge, metaState, eligibleKey, availability.state, availability.bookings, event.id, lang]);
+
+  if (metaState === "error") {
+    return (
+      <div id="lounges" className="glass-card p-5 mt-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{lang === "de" ? "Lounges konnten nicht geladen werden – Reservierung vorübergehend nicht möglich." : "Lounges could not be loaded – reservations temporarily unavailable."}</p>
+        <button onClick={() => fetchData(event.id)} className="inline-flex min-h-10 items-center gap-1 rounded-md bg-primary px-4 text-sm text-primary-foreground"><RefreshCw size={14} /> {lang === "de" ? "Erneut versuchen" : "Retry"}</button>
+      </div>
+    );
+  }
+  if (metaState === "loading" || availableLounges.length === 0) return null;
 
   // Shared helper: "booked" | "non_binding" | "available" | "unknown"
   const getStatus = (loungeId: string) => {
@@ -309,7 +342,7 @@ const EventLoungeSection = ({ event }: Props) => {
               onClose={() => setSelectedLounge(null)}
               onSuccess={() => {
                 setSelectedLounge(null);
-                fetchData();
+                fetchData(event.id, true);
                 availability.refresh();
               }}
             />

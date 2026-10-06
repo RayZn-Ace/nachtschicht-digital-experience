@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Wine, Calendar, Map as MapIcon, LayoutGrid } from "lucide-react";
 import LoungeFloorplan from "@/components/LoungeFloorplan";
 import { useLoungeAvailability } from "@/hooks/useLoungeAvailability";
 import { resolveLoungeStatus, isBookable, getWizardInvalidation, wizardInvalidationText } from "@/lib/loungeAvailability";
 import { toast } from "@/hooks/use-toast";
-import { useRef } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import LoungeReservationWizard from "@/components/LoungeReservationWizard";
 import { parseAreas } from "@/lib/areas";
