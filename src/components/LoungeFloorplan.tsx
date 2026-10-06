@@ -124,7 +124,7 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
                 stroke={l.kind === "dj" ? "hsl(var(--primary))" : "hsl(var(--border))"}
                 strokeDasharray={l.kind === "dance" ? "6 5" : undefined} strokeWidth="1.5" />
               <text x={l.x + l.w / 2} y={l.y + l.h / 2} textAnchor="middle" dominantBaseline="central"
-                fill="hsl(var(--muted-foreground))" fontSize={l.kind === "bar" ? 13 : 15} letterSpacing="2"
+                fill="hsl(var(--muted-foreground))" fontSize={l.kind === "bar" ? 16 : l.kind === "stairs" ? 14 : 19} letterSpacing="2"
                 style={{ fontFamily: "var(--font-display)" }}
                 transform={l.kind === "bar" ? `rotate(-90 ${l.x + l.w / 2} ${l.y + l.h / 2})` : undefined}>
                 {l.label[de ? "de" : "en"]}
