@@ -157,7 +157,8 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
             );
           })}
         </svg>
-        <p className="mt-1 text-center text-[10px] text-muted-foreground">{de ? "Schematische Darstellung, nicht maßstabsgetreu" : "Schematic, not to scale"}</p>
+        <p className="mt-1 text-center text-xs text-foreground/80">{de ? "B = Bungalow · L = Lounge" : "B = Bungalow · L = Lounge"}</p>
+        <p className="mt-0.5 text-center text-[10px] text-muted-foreground">{de ? "Schematische Darstellung, nicht maßstabsgetreu" : "Schematic, not to scale"}</p>
       </div>
 
       {/* Legend */}

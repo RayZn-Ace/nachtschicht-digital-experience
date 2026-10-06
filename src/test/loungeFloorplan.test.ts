@@ -45,3 +45,13 @@ describe("availability", () => {
     expect(l.price_per_person).toBe(20);
   });
 });
+
+import { getWizardInvalidation } from "@/lib/loungeAvailability";
+describe("wizard invalidation", () => {
+  const base = { selectedLoungeId: "a", eligibleIds: ["a"], loadState: "ready" as const, bookings: [], eventId: EV };
+  it("keeps valid selection", () => expect(getWizardInvalidation(base)).toBeNull());
+  it("closes when not eligible for current event", () => expect(getWizardInvalidation({ ...base, eligibleIds: ["b"] })).toBe("ineligible"));
+  it("closes on availability failure", () => expect(getWizardInvalidation({ ...base, loadState: "error" })).toBe("availability_failed"));
+  it("closes when booked", () => expect(getWizardInvalidation({ ...base, bookings: [{ lounge_id: "a", event_id: EV, booking_type: "guaranteed", status: "confirmed" }] })).toBe("booked"));
+  it("does not close during non-silent loading", () => expect(getWizardInvalidation({ ...base, loadState: "loading" })).toBeNull());
+});
