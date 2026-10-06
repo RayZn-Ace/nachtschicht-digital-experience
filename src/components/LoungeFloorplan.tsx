@@ -185,7 +185,7 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
                 <p className="text-[10px] tracking-widest text-muted-foreground">{plan.name}</p>
                 <h3 className="font-display text-2xl tracking-wider text-foreground">{selected ? translate(selected.name) : selectedNode?.name}</h3>
               </div>
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: `${STATUS_COLOR[selStatus].replace(")", " / 0.18)")}`, color: STATUS_COLOR[selStatus] }}>
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: STATUS_COLOR[selStatus].slice(0, -1) + " / 0.18)", color: STATUS_COLOR[selStatus] }}>
                 <StatusIcon s={selStatus} size={12} /> {statusText(selStatus, de)}
               </span>
             </div>
