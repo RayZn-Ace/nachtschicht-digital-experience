@@ -9,6 +9,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
 import { applyLoungeOverrides } from "@/lib/loungePricing";
+import LoungeFloorplan from "@/components/LoungeFloorplan";
+import { useLoungeAvailability } from "@/hooks/useLoungeAvailability";
+import { resolveLoungeStatus } from "@/lib/loungeAvailability";
+import { Map as MapIcon, LayoutGrid, RefreshCw } from "lucide-react";
 
 interface Lounge {
   id: string;
@@ -23,12 +27,6 @@ interface Lounge {
   price_note?: string | null;
 }
 
-interface Booking {
-  lounge_id: string;
-  event_id: string;
-  booking_type: string;
-  status: string;
-}
 
 interface Props {
   event: Event;
@@ -38,7 +36,8 @@ const EventLoungeSection = ({ event }: Props) => {
   const { lang } = useI18n();
   const tr = useTranslate(lang);
   const [lounges, setLounges] = useState<Lounge[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const availability = useLoungeAvailability(event.id);
+  const [view, setView] = useState<"map" | "list">("map");
   const [loading, setLoading] = useState(true);
   const [selectedLounge, setSelectedLounge] = useState<Lounge | null>(null);
   const [expandedArea, setExpandedArea] = useState<string | null>(null);
@@ -47,16 +46,14 @@ const EventLoungeSection = ({ event }: Props) => {
 
   const fetchData = async () => {
     try {
-      const [loungeRes, bookingRes, assignmentRes] = await Promise.all([
+      const [loungeRes, assignmentRes] = await Promise.all([
         supabase.from("lounges").select("*").eq("is_active", true).order("sort_order"),
-        supabase.rpc("get_lounge_availability", { p_event_id: event.id }),
         supabase
           .from("event_lounges")
           .select("lounge_id, min_spend_override, price_per_person_override, price_note")
           .eq("event_id", event.id),
       ]);
       if (loungeRes.error) throw loungeRes.error;
-      if (bookingRes.error) throw bookingRes.error;
       
       const allLounges = applyLoungeOverrides(
         loungeRes.data as any as Lounge[],
@@ -69,7 +66,6 @@ const EventLoungeSection = ({ event }: Props) => {
       } else {
         setLounges(allLounges);
       }
-      setBookings(bookingRes.data as any);
     } catch (err) {
       console.error("Failed to load lounges:", err);
     } finally {
@@ -83,13 +79,12 @@ const EventLoungeSection = ({ event }: Props) => {
 
   if (loading || availableLounges.length === 0) return null;
 
+  // Shared helper: "booked" | "non_binding" | "available" | "unknown"
   const getStatus = (loungeId: string) => {
-    const booking = bookings.find((b) => b.lounge_id === loungeId);
-    if (!booking) return "free";
-    if (booking.booking_type === "guaranteed" && booking.status === "confirmed") return "guaranteed";
-    if (booking.booking_type === "non_binding") return "non_binding";
-    return "free";
+    const s = resolveLoungeStatus({ eligible: true, loadState: availability.state, bookings: availability.bookings, loungeId, eventId: event.id });
+    return s === "booked" ? "guaranteed" : s;
   };
+  const statusKnown = availability.state === "ready";
 
   // Group lounges by area
   const areaGroups = eventAreas
@@ -124,7 +119,27 @@ const EventLoungeSection = ({ event }: Props) => {
             {lang === "de" ? "Sichere dir eine exklusive VIP Lounge – mit Fast Lane Einlass & Freiverzehr." : "Secure an exclusive VIP lounge – with fast lane entry & complimentary drinks."}
           </p>
 
-          <div className="flex flex-col gap-3">
+          <div role="group" aria-label={lang === "de" ? "Ansicht" : "View"} className="inline-flex rounded-md border border-border p-1 bg-muted/40 mb-4">
+            {(["map", "list"] as const).map((v) => (
+              <button key={v} onClick={() => setView(v)} aria-pressed={view === v} className={`min-h-10 px-4 inline-flex items-center gap-1.5 rounded text-sm font-medium transition-colors ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                {v === "map" ? <MapIcon size={14} /> : <LayoutGrid size={14} />}
+                {v === "map" ? (lang === "de" ? "Raumplan" : "Floorplan") : (lang === "de" ? "Liste" : "List")}
+              </button>
+            ))}
+          </div>
+
+          {view === "map" && (
+            <LoungeFloorplan lang={lang} eventId={event.id} lounges={availableLounges} loadState={availability.state} bookings={availability.bookings} onRetry={availability.refresh} onReserve={(l) => setSelectedLounge(l as Lounge)} translate={tr} />
+          )}
+
+          {view === "list" && !statusKnown && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <span>{availability.state === "error" ? (lang === "de" ? "Verfügbarkeit konnte nicht geladen werden – Buchung deaktiviert." : "Availability failed to load – booking disabled.") : (lang === "de" ? "Verfügbarkeit wird geladen…" : "Loading availability…")}</span>
+              {availability.state === "error" && <button onClick={availability.refresh} className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-primary-foreground"><RefreshCw size={12} /> {lang === "de" ? "Erneut versuchen" : "Retry"}</button>}
+            </div>
+          )}
+
+          {view === "list" && <div className="flex flex-col gap-3">
             {(areaGroups as any[]).map((group: any) => {
               const isExpanded = expandedArea === group.area.id;
 
@@ -142,7 +157,9 @@ const EventLoungeSection = ({ event }: Props) => {
                           {group.area.name}
                         </h3>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {group.freeCount > 0 ? (
+                          {!statusKnown ? (
+                            <span>{lang === "de" ? "Status unbekannt" : "Status unknown"}</span>
+                          ) : group.freeCount > 0 ? (
                             <span className="text-green-400">
                             {group.freeCount} {lang === "de" ? "von" : "of"} {group.totalCount} {lang === "de" ? "verfügbar" : "available"}
                             </span>
@@ -186,13 +203,14 @@ const EventLoungeSection = ({ event }: Props) => {
                                 return (
                                   <div
                                     key={lounge.id}
-                                    className="relative rounded-lg border border-border hover:border-primary/50 overflow-hidden transition-all group cursor-pointer"
-                                    onClick={() => setSelectedLounge(lounge)}
+                                    className={`relative rounded-lg border border-border hover:border-primary/50 overflow-hidden transition-all group ${statusKnown ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                                    onClick={() => statusKnown && setSelectedLounge(lounge)}
+                                    aria-disabled={!statusKnown}
                                     role="button"
                                     tabIndex={0}
                                     aria-label={`${lounge.name} – Jetzt reservieren`}
                                     onKeyDown={(e) => {
-                                      if (e.key === "Enter") setSelectedLounge(lounge);
+                                      if (e.key === "Enter" && statusKnown) setSelectedLounge(lounge);
                                     }}
                                   >
                                     {lounge.image_url && (
@@ -281,7 +299,7 @@ const EventLoungeSection = ({ event }: Props) => {
                 </div>
               );
             })}
-          </div>
+          </div>}
 
           {/* Wizard modal */}
           {selectedLounge && (
@@ -292,6 +310,7 @@ const EventLoungeSection = ({ event }: Props) => {
               onSuccess={() => {
                 setSelectedLounge(null);
                 fetchData();
+                availability.refresh();
               }}
             />
           )}
