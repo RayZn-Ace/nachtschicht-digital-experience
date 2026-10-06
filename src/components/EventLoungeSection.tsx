@@ -41,7 +41,6 @@ const EventLoungeSection = ({ event }: Props) => {
   const metaReq = useRef(0);
   const availability = useLoungeAvailability(event.id);
   const [view, setView] = useState<"map" | "list">("map");
-  const [loading, setLoading] = useState(true);
   const [selectedLounge, setSelectedLounge] = useState<Lounge | null>(null);
   const [expandedArea, setExpandedArea] = useState<string | null>(null);
 
@@ -335,7 +334,7 @@ const EventLoungeSection = ({ event }: Props) => {
           </div>}
 
           {/* Wizard modal */}
-          {selectedLounge && (
+          {selectedLounge && availableLounges.some((l) => l.id === selectedLounge.id) && (
             <LoungeReservationWizard
               lounge={selectedLounge}
               event={event}

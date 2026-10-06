@@ -229,7 +229,7 @@ const LoungesPage = () => {
               </div>
             )}
 
-            {selectedLounge && currentEvent && (
+            {selectedLounge && currentEvent && !error && availableLounges.some((l) => l.id === selectedLounge.id) && (
               <LoungeReservationWizard lounge={selectedLounge} event={currentEvent} onClose={() => setSelectedLounge(null)} onSuccess={() => { setSelectedLounge(null); fetchData(); availability.refresh(); }} />
             )}
           </>
