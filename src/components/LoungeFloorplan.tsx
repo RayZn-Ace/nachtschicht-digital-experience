@@ -58,6 +58,7 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
   const firstRoom = (FLOORPLANS.find((r) => r.nodes.some((n) => byId.has(n.loungeId)))?.id ?? "agostea") as RoomId;
   const [room, setRoom] = useState<RoomId>(firstRoom);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [imgFailed, setImgFailed] = useState<Record<string, boolean>>({});
 
   // Event change: reset selection + jump to first room with lounges
   useEffect(() => { setSelectedId(null); setRoom(firstRoom); }, [eventId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -113,53 +114,60 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
         </div>
       )}
 
+      <div className="lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start lg:gap-6 space-y-4 lg:space-y-0">
       {/* Map */}
-      <div className="glass-card p-2 sm:p-4">
-        <svg viewBox={`0 0 ${FLOOR_VIEWBOX.w} ${FLOOR_VIEWBOX.h}`} className="w-full h-auto" role="group" aria-label={`${de ? "Raumplan" : "Floorplan"} ${plan.name}`}>
-          <rect x="6" y="6" width={FLOOR_VIEWBOX.w - 12} height={FLOOR_VIEWBOX.h - 12} rx="14" fill="hsl(var(--muted) / 0.35)" stroke="hsl(var(--border))" strokeWidth="2" />
-          {plan.landmarks.map((l, i) => (
-            <g key={i} aria-hidden="true">
-              <rect x={l.x} y={l.y} width={l.w} height={l.h} rx={l.kind === "dance" ? 18 : 8}
-                fill={l.kind === "dj" ? "hsl(var(--primary) / 0.25)" : "hsl(var(--secondary) / 0.6)"}
-                stroke={l.kind === "dj" ? "hsl(var(--primary))" : "hsl(var(--border))"}
-                strokeDasharray={l.kind === "dance" ? "6 5" : undefined} strokeWidth="1.5" />
-              <text x={l.x + l.w / 2} y={l.y + l.h / 2} textAnchor="middle" dominantBaseline="central"
-                fill="hsl(var(--muted-foreground))" fontSize={l.kind === "bar" ? 16 : l.kind === "stairs" ? 14 : 19} letterSpacing="2"
-                style={{ fontFamily: "var(--font-display)" }}
-                transform={l.kind === "bar" ? `rotate(-90 ${l.x + l.w / 2} ${l.y + l.h / 2})` : undefined}>
-                {l.label[de ? "de" : "en"]}
-              </text>
-            </g>
-          ))}
-          {plan.nodes.map((n) => {
-            const s = statusOf(n.loungeId);
-            const isSel = n.loungeId === selectedId;
-            const lounge = byId.get(n.loungeId);
-            const label = `${lounge ? translate(lounge.name) : n.name}: ${statusText(s, de)}`;
-            return (
-              <g
-                key={n.loungeId} role="button" tabIndex={0} aria-label={label} aria-pressed={isSel}
-                className="cursor-pointer outline-none [&:focus-visible>rect.ring]:opacity-100"
-                onClick={() => setSelectedId(n.loungeId)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(n.loungeId); } }}
-              >
-                <title>{label}</title>
-                <rect className="ring opacity-0" x={n.x - 5} y={n.y - 5} width={n.w + 10} height={n.h + 10} rx="12" fill="none" stroke="hsl(var(--ring))" strokeWidth="3" />
-                <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="9"
-                  fill={STATUS_COLOR[s]} fillOpacity={s === "unavailable" ? 0.18 : 0.3}
-                  stroke={isSel ? "hsl(var(--foreground))" : STATUS_COLOR[s]} strokeWidth={isSel ? 3 : 2}
-                  strokeDasharray={s === "unavailable" ? "4 4" : undefined} />
-                <text x={n.x + n.w / 2} y={n.y + n.h / 2 - 7} textAnchor="middle" dominantBaseline="central"
-                  fill="hsl(var(--foreground))" fontSize="20" letterSpacing="1" style={{ fontFamily: "var(--font-display)" }}>{n.short}</text>
-                <text x={n.x + n.w / 2} y={n.y + n.h / 2 + 14} textAnchor="middle" dominantBaseline="central"
-                  fill="hsl(var(--foreground))" fontSize="14" fontWeight="700">{glyph(s)}</text>
-              </g>
-            );
-          })}
-        </svg>
-        <p className="mt-1 text-center text-xs text-foreground/80">{de ? "B = Bungalow · L = Lounge" : "B = Bungalow · L = Lounge"}</p>
-        <p className="mt-0.5 text-center text-[10px] text-muted-foreground">{de ? "Schematische Darstellung, nicht maßstabsgetreu" : "Schematic, not to scale"}</p>
+      <div className="glass-card p-2 sm:p-3">
+        <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-md bg-muted/40" style={{ aspectRatio: `${FLOOR_VIEWBOX.w} / ${FLOOR_VIEWBOX.h}` }}>
+          {!imgFailed[plan.id] && (
+            <img
+              key={plan.image} src={plan.image} alt="" aria-hidden="true" draggable={false}
+              onError={() => setImgFailed((m) => ({ ...m, [plan.id]: true }))}
+              className="absolute inset-0 h-full w-full object-contain select-none"
+            />
+          )}
+          <svg viewBox={`0 0 ${FLOOR_VIEWBOX.w} ${FLOOR_VIEWBOX.h}`} preserveAspectRatio="xMidYMid meet" className="absolute inset-0 h-full w-full" role="group" aria-label={`${de ? "Raumplan" : "Floorplan"} ${plan.name}`}>
+            {plan.labels.map((l, i) => {
+              const text = l.label[de ? "de" : "en"];
+              const w = text.length * 22 + 36;
+              return (
+                <g key={i} aria-hidden="true" pointerEvents="none">
+                  <rect x={l.x - w / 2} y={l.y - 22} width={w} height={44} rx="22" fill="hsl(var(--background) / 0.72)" stroke="hsl(var(--border))" strokeWidth="2" />
+                  <text x={l.x} y={l.y} textAnchor="middle" dominantBaseline="central" fill="hsl(var(--muted-foreground))" fontSize="28" letterSpacing="3" style={{ fontFamily: "var(--font-display)" }}>{text}</text>
+                </g>
+              );
+            })}
+            {plan.nodes.map((n) => {
+              const s = statusOf(n.loungeId);
+              const isSel = n.loungeId === selectedId;
+              const lounge = byId.get(n.loungeId);
+              const label = `${lounge ? translate(lounge.name) : n.name}: ${statusText(s, de)}`;
+              return (
+                <g
+                  key={n.loungeId} role="button" tabIndex={0} aria-label={label} aria-pressed={isSel}
+                  className="cursor-pointer outline-none [&:focus-visible>rect.ring]:opacity-100"
+                  onClick={() => setSelectedId(n.loungeId)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(n.loungeId); } }}
+                >
+                  <title>{label}</title>
+                  <rect className="ring opacity-0" x={n.x - 10} y={n.y - 10} width={n.w + 20} height={n.h + 20} rx="22" fill="none" stroke="hsl(var(--ring))" strokeWidth="8" />
+                  <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="16"
+                    fill={STATUS_COLOR[s]} fillOpacity={isSel ? 0.12 : 0.07}
+                    stroke={isSel ? "hsl(var(--foreground))" : STATUS_COLOR[s]} strokeWidth={isSel ? 6 : 4}
+                    strokeDasharray={s === "unavailable" || s === "unknown" ? "14 10" : undefined} />
+                  <rect x={n.bx - 72} y={n.by - 30} width="144" height="60" rx="30" fill="hsl(var(--background) / 0.88)" stroke={STATUS_COLOR[s]} strokeWidth="4" />
+                  <text x={n.bx - 14} y={n.by} textAnchor="middle" dominantBaseline="central"
+                    fill="hsl(var(--foreground))" fontSize="36" letterSpacing="1" style={{ fontFamily: "var(--font-display)" }}>{n.short}</text>
+                  <text x={n.bx + 38} y={n.by} textAnchor="middle" dominantBaseline="central"
+                    fill={STATUS_COLOR[s]} fontSize="34" fontWeight="700">{glyph(s)}</text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+        <p className="mt-2 text-center text-xs text-foreground/80">B = Bungalow · L = Lounge</p>
+        <p className="mt-0.5 text-center text-[10px] text-muted-foreground">{de ? "Visualisierung nach Raumskizzen und Fotos · nicht maßstabsgetreu" : "Visualisation based on room sketches and photos · not to scale"}</p>
       </div>
+      <div className="space-y-4">
 
       {/* Legend */}
       <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground" aria-label={de ? "Legende" : "Legend"}>
@@ -219,6 +227,8 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
           </div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 };
