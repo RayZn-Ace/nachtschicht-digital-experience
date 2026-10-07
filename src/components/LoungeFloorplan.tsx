@@ -64,6 +64,8 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
   useEffect(() => { setSelectedId(null); setRoom(firstRoom); }, [eventId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const plan = FLOORPLANS.find((r) => r.id === room)!;
+  const mappedIds = new Set(FLOORPLANS.flatMap((r) => r.nodes.map((n) => n.loungeId)));
+  const unmapped = lounges.filter((l) => !mappedIds.has(l.id));
   const statusOf = (id: string) =>
     resolveLoungeStatus({ eligible: byId.has(id), loadState, bookings, loungeId: id, eventId });
 
@@ -168,6 +170,24 @@ const LoungeFloorplan = ({ lang, eventId, lounges, loadState, bookings, onRetry,
         <p className="mt-0.5 text-center text-[10px] text-muted-foreground">{de ? "Visualisierung nach Raumskizzen und Fotos · nicht maßstabsgetreu" : "Visualisation based on room sketches and photos · not to scale"}</p>
       </div>
       <div className="space-y-4">
+      {unmapped.length > 0 && (
+        <div className="glass-card p-3 space-y-2">
+          <p className="text-xs tracking-widest text-muted-foreground">{de ? "WEITERE LOUNGES" : "MORE LOUNGES"}</p>
+          <div className="flex flex-wrap gap-2">
+            {unmapped.map((l) => {
+              const s = statusOf(l.id);
+              return (
+                <button key={l.id} onClick={() => setSelectedId(l.id)} aria-pressed={selectedId === l.id}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-md border px-3 text-sm text-foreground"
+                  style={{ borderColor: STATUS_COLOR[s] }}>
+                  <span style={{ color: STATUS_COLOR[s] }}><StatusIcon s={s} size={12} /></span>
+                  {translate(l.name)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Legend */}
       <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground" aria-label={de ? "Legende" : "Legend"}>
