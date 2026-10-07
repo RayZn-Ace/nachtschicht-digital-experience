@@ -63,14 +63,16 @@ export const FLOORPLANS: FloorRoom[] = [
   {
     id: "mausefalle",
     name: "MAUSEFALLE",
-    image: "/images/floorplans/mausefalle-birdseye-v2.webp",
+    image: "/images/floorplans/mausefalle-birdseye-v3.webp",
     labels: [
-      { label: { de: "TANZFLÄCHE", en: "DANCEFLOOR" }, x: 512, y: 475 },
-      { label: { de: "DJ", en: "DJ" }, x: 512, y: 858 },
+      { label: { de: "DJ", en: "DJ" }, x: 512, y: 500 },
+      { label: { de: "TANZFLÄCHE", en: "DANCEFLOOR" }, x: 512, y: 720 },
+      { label: { de: "BAR", en: "BAR" }, x: 125, y: 300 },
+      { label: { de: "BAR", en: "BAR" }, x: 900, y: 300 },
     ],
     nodes: [
-      { loungeId: "94f87bc8-3c14-4259-bdaf-cc8423b29902", short: "L2", name: "Lounge 2", x: 199, y: 1042, w: 310, h: 310, bx: 355, by: 1185 },
-      { loungeId: "a34d2810-6365-43ad-b0a0-716c7bb03dec", short: "L1", name: "Lounge 1", x: 522, y: 1042, w: 310, h: 310, bx: 682, by: 1185 },
+      { loungeId: "94f87bc8-3c14-4259-bdaf-cc8423b29902", short: "L2", name: "Lounge 2", x: 195, y: 930, w: 315, h: 395, bx: 352, by: 1120 },
+      { loungeId: "a34d2810-6365-43ad-b0a0-716c7bb03dec", short: "L1", name: "Lounge 1", x: 518, y: 930, w: 315, h: 395, bx: 676, by: 1120 },
     ],
   },
 ];
