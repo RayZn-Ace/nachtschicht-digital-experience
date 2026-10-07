@@ -67,7 +67,7 @@ export const FLOORPLANS: FloorRoom[] = [
     labels: [
       { label: { de: "DJ", en: "DJ" }, x: 512, y: 410 },
       { label: { de: "TANZFLÄCHE", en: "DANCEFLOOR" }, x: 560, y: 760 },
-      { label: { de: "BAR", en: "BAR" }, x: 125, y: 1000 },
+      { label: { de: "BAR", en: "BAR" }, x: 125, y: 900 },
       { label: { de: "BAR", en: "BAR" }, x: 790, y: 1420 },
     ],
     nodes: [
