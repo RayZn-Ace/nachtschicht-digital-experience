@@ -9,7 +9,10 @@ const corsHeaders = {
 
 // Strip emojis & non-WinAnsi characters for pdf-lib compatibility
 function stripEmoji(str: string): string {
-  return str.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu, "").trim();
+  const extra = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+  return Array.from(String(str ?? ""))
+    .filter((c) => { const n = c.codePointAt(0)!; return c === "\n" || (n >= 0x20 && n < 0x7f) || (n >= 0xa0 && n <= 0xff) || extra.includes(c); })
+    .join("").replace(/ {2,}/g, " ").trim();
 }
 
 async function generateTicketPdf(ticket: any, event: any, ticketType: any): Promise<Uint8Array> {
@@ -45,7 +48,7 @@ async function generateTicketPdf(ticket: any, event: any, ticketType: any): Prom
 
   if (event.subtitle) {
     yPos -= 20;
-    page.drawText(event.subtitle, { x: 30, y: yPos, size: 11, font: fontRegular, color: gray, maxWidth: width - 60 });
+    page.drawText(stripEmoji(event.subtitle), { x: 30, y: yPos, size: 11, font: fontRegular, color: gray, maxWidth: width - 60 });
   }
 
   yPos -= 20;
@@ -68,7 +71,7 @@ async function generateTicketPdf(ticket: any, event: any, ticketType: any): Prom
   for (const detail of details) {
     if (!detail.value) continue;
     page.drawText(detail.label, { x: 30, y: yPos, size: 9, font: fontRegular, color: gray });
-    page.drawText(detail.value, { x: 120, y: yPos, size: 10, font: fontBold, color: black, maxWidth: width - 150 });
+    page.drawText(stripEmoji(String(detail.value ?? "")), { x: 120, y: yPos, size: 10, font: fontBold, color: black, maxWidth: width - 150 });
     yPos -= 18;
   }
 
@@ -178,7 +181,7 @@ async function generateInvoicePdf(adminClient: any, invoiceId: string): Promise<
   y -= 18;
   const buyerLines = [invoice.buyer_name, ...(buyerAddress ? buyerAddress.split("\n") : [])];
   for (const line of buyerLines) {
-    page.drawText(line, { x: marginLeft, y, size: 10, font: fontRegular, color: black });
+    page.drawText(stripEmoji(line), { x: marginLeft, y, size: 10, font: fontRegular, color: black });
     y -= 14;
   }
 
@@ -193,7 +196,7 @@ async function generateInvoicePdf(adminClient: any, invoiceId: string): Promise<
   let metaYPos = metaY;
   for (const m of metaItems) {
     page.drawText(m.label, { x: metaX, y: metaYPos, size: 9, font: fontRegular, color: gray });
-    page.drawText(m.value, { x: metaX + 110, y: metaYPos, size: 9, font: fontBold, color: black });
+    page.drawText(stripEmoji(String(m.value)), { x: metaX + 110, y: metaYPos, size: 9, font: fontBold, color: black });
     metaYPos -= 14;
   }
 
@@ -265,7 +268,7 @@ async function generateInvoicePdf(adminClient: any, invoiceId: string): Promise<
     y -= 40;
     page.drawText("Hinweis:", { x: marginLeft, y, size: 9, font: fontBold, color: black });
     y -= 14;
-    page.drawText(invoice.notes, { x: marginLeft, y, size: 8, font: fontRegular, color: gray, maxWidth: contentWidth });
+    page.drawText(stripEmoji(invoice.notes), { x: marginLeft, y, size: 8, font: fontRegular, color: gray, maxWidth: contentWidth });
   }
 
   // Footer
@@ -280,12 +283,12 @@ async function generateInvoicePdf(adminClient: any, invoiceId: string): Promise<
   for (let col = 0; col < footerCols.length; col++) {
     let fy = footerY;
     for (const line of footerCols[col]) {
-      page.drawText(line as string, { x: marginLeft + col * colWidth, y: fy, size: 7, font: fontRegular, color: gray });
+      page.drawText(stripEmoji(line as string), { x: marginLeft + col * colWidth, y: fy, size: 7, font: fontRegular, color: gray });
       fy -= 10;
     }
   }
   if (config?.footer_text) {
-    page.drawText(config.footer_text, { x: marginLeft, y: 25, size: 6, font: fontRegular, color: gray, maxWidth: contentWidth });
+    page.drawText(stripEmoji(config.footer_text), { x: marginLeft, y: 25, size: 6, font: fontRegular, color: gray, maxWidth: contentWidth });
   }
 
   return await pdfDoc.save();

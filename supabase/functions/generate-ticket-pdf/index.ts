@@ -9,7 +9,10 @@ const corsHeaders = {
 
 // Strip emojis & non-WinAnsi characters for pdf-lib compatibility
 function stripEmoji(str: string): string {
-  return str.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu, "").trim();
+  const extra = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+  return Array.from(String(str ?? ""))
+    .filter((c) => { const n = c.codePointAt(0)!; return c === "\n" || (n >= 0x20 && n < 0x7f) || (n >= 0xa0 && n <= 0xff) || extra.includes(c); })
+    .join("").replace(/ {2,}/g, " ").trim();
 }
 
 Deno.serve(async (req) => {
@@ -81,7 +84,7 @@ Deno.serve(async (req) => {
 
     if (event.subtitle) {
       yPos -= 20;
-      page.drawText(event.subtitle, { x: 30, y: yPos, size: 11, font: fontRegular, color: gray, maxWidth: width - 60 });
+      page.drawText(stripEmoji(event.subtitle), { x: 30, y: yPos, size: 11, font: fontRegular, color: gray, maxWidth: width - 60 });
     }
 
     yPos -= 20;
@@ -104,7 +107,7 @@ Deno.serve(async (req) => {
     for (const detail of details) {
       if (!detail.value) continue;
       page.drawText(detail.label, { x: 30, y: yPos, size: 9, font: fontRegular, color: gray });
-      page.drawText(detail.value, { x: 120, y: yPos, size: 10, font: fontBold, color: black, maxWidth: width - 150 });
+      page.drawText(stripEmoji(String(detail.value ?? "")), { x: 120, y: yPos, size: 10, font: fontBold, color: black, maxWidth: width - 150 });
       yPos -= 18;
     }
 
@@ -132,7 +135,7 @@ Deno.serve(async (req) => {
 
     // Ticket type name above QR
     yPos -= 35;
-    const typeName = ticketType?.name || "Standard";
+    const typeName = stripEmoji(ticketType?.name || "Standard") || "Standard";
     const typeNameW = fontRegular.widthOfTextAtSize(typeName, 9);
     page.drawText(typeName, { x: (width - typeNameW) / 2, y: yPos, size: 9, font: fontRegular, color: gray });
 
