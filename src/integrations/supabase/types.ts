@@ -1850,6 +1850,14 @@ export type Database = {
           status: string
         }[]
       }
+      get_purchased_tickets: {
+        Args: { p_ids: string[] }
+        Returns: {
+          id: string
+          qr_code: string
+          status: string
+        }[]
+      }
       get_tracking_config_public: { Args: never; Returns: Json }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
     }
