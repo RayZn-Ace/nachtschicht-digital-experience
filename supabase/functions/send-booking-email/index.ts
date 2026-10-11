@@ -20,6 +20,18 @@ serve(async (req) => {
   }
 
   try {
+    // Admin-only: prevents use as an open mail relay
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const token = (req.headers.get("authorization") || "").replace("Bearer ", "");
+    const { data: { user: caller } } = token ? await admin.auth.getUser(token) : { data: { user: null } };
+    const { data: isAdmin } = caller ? await admin.rpc("has_role", { _user_id: caller.id, _role: "admin" }) : { data: false };
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { to, userName, status, loungeName, eventName, guestCount } =
       (await req.json()) as BookingEmailRequest;
 
