@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log("send-u18-email start", { form_id, recipient });
+    console.log("send-u18-email start", { form_id });
 
     const pdfRes = await fetchWithRetry(
       "generate-u18-pdf",
@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
     );
 
     const result = await emailRes.json();
-    console.log("send-u18-email success", { form_id, recipient, email_id: result.id });
+    console.log("send-u18-email success", { form_id, email_id: result.id });
 
     return new Response(JSON.stringify({ success: true, email_id: result.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

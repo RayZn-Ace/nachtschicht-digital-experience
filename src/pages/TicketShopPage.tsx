@@ -81,10 +81,7 @@ const TicketShopPage = () => {
 
       // Poll for confirmed status (webhook might take a moment)
       const checkTickets = async (retries = 0): Promise<void> => {
-        const { data } = await supabase
-          .from("tickets")
-          .select("id, status, qr_code")
-          .in("id", ids);
+        const { data } = await supabase.rpc("get_purchased_tickets", { p_ids: ids });
 
         const allConfirmed = data?.every((t: any) => t.status === "confirmed");
         if (allConfirmed && data && data.length > 0) {
@@ -283,10 +280,7 @@ const TicketShopPage = () => {
         setPurchasedTicketIds(ids);
         // Fetch all ticket QR codes
         if (ids.length > 0) {
-          const { data: ticketData } = await supabase
-            .from("tickets")
-            .select("id, qr_code")
-            .in("id", ids);
+          const { data: ticketData } = await supabase.rpc("get_purchased_tickets", { p_ids: ids });
           if (ticketData && ticketData.length > 0) {
             setPurchasedQrCode(ticketData[0].qr_code || "");
             setPurchasedTickets(ticketData.map((t: any) => ({ id: t.id, qr_code: t.qr_code || "" })));
