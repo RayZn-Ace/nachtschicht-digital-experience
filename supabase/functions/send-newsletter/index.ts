@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
 
     const fetchAllSubsByIds = async (ids: string[]) => {
       const out: { email: string; name: string | null }[] = [];
-      const chunk = 500;
+      const chunk = 100;
       for (let i = 0; i < ids.length; i += chunk) {
         const slice = ids.slice(i, i + chunk);
         const { data, error } = await adminClient
