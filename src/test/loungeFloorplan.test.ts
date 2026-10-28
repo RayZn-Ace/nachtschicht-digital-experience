@@ -46,6 +46,27 @@ describe("availability", () => {
   });
 });
 
+describe("Silvester room-specific price overrides", () => {
+  it("AGOSTEA bungalows receive only the 50 euro uplift, without Moët", () => {
+    const lounges = applyLoungeOverrides(
+      [{ id: "d36c1786-9dc2-4fa1-bd6d-6f4c96602ded", min_spend: 250, price_per_person: 25, price_note: null as string | null }],
+      [{ lounge_id: "d36c1786-9dc2-4fa1-bd6d-6f4c96602ded", min_spend_override: 300, price_per_person_override: 30, price_note: null }],
+    );
+    expect(lounges[0].min_spend).toBe(300);
+    expect(lounges[0].price_per_person).toBe(30);
+    expect(lounges[0].price_note).toBeNull();
+  });
+  it("LA VIE bungalows retain 500 euros including Moët", () => {
+    const lounges = applyLoungeOverrides(
+      [{ id: "df9728ed-7ea1-4f7d-b60b-78245a05662d", min_spend: 200, price_per_person: 20, price_note: null as string | null }],
+      [{ lounge_id: "df9728ed-7ea1-4f7d-b60b-78245a05662d", min_spend_override: 500, price_per_person_override: 50, price_note: "inkl. Moët" }],
+    );
+    expect(lounges[0].min_spend).toBe(500);
+    expect(lounges[0].price_per_person).toBe(50);
+    expect(lounges[0].price_note).toBe("inkl. Moët");
+  });
+});
+
 import { getWizardInvalidation } from "@/lib/loungeAvailability";
 describe("wizard invalidation", () => {
   const base = { selectedLoungeId: "a", eligibleIds: ["a"], loadState: "ready" as const, bookings: [], eventId: EV };
