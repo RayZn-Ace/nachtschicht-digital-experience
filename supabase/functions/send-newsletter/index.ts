@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("send-newsletter failed");
+    console.error("send-newsletter failed", err instanceof Error ? err.message : "Unknown internal failure");
     return new Response(JSON.stringify({ error: "Versand fehlgeschlagen; Versandhistorie vor erneutem Versuch prüfen" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
