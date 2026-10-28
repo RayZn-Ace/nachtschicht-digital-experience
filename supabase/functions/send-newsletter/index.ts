@@ -31,12 +31,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
-    if (!resendApiKey) {
+    if (!resendApiKey || !supabaseUrl || !anonKey || !serviceRoleKey) {
       return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (newsletter.status === "sent") {
+    if (newsletter.status === "sent" || newsletter.status === "sending") {
       return new Response(JSON.stringify({ error: "Newsletter wurde bereits versendet" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -108,13 +108,14 @@ Deno.serve(async (req) => {
 
     const fetchAllSubsByIds = async (ids: string[]) => {
       const out: { email: string; name: string | null }[] = [];
-      const chunk = 500;
+      const chunk = 100;
       for (let i = 0; i < ids.length; i += chunk) {
         const slice = ids.slice(i, i + chunk);
-        const { data } = await adminClient
+        const { data, error } = await adminClient
           .from("newsletter_subscribers")
           .select("email, name, is_active")
           .in("id", slice);
+        if (error) throw new Error("Recipient lookup failed");
         if (data) data.filter((r: any) => r.is_active).forEach((r: any) => out.push(r));
       }
       return out;
@@ -135,14 +136,20 @@ Deno.serve(async (req) => {
 
     // 2) Lists
     if (list_ids && Array.isArray(list_ids) && list_ids.length > 0) {
-      const { data: memberRows } = await adminClient
-        .from("newsletter_list_members")
-        .select("subscriber_id")
-        .in("list_id", list_ids);
-      if (memberRows && memberRows.length > 0) {
+      let from = 0;
+      while (true) {
+        const { data: memberRows, error } = await adminClient
+          .from("newsletter_list_members")
+          .select("subscriber_id")
+          .in("list_id", list_ids)
+          .order("id")
+          .range(from, from + 999);
+        if (error) throw new Error("List lookup failed");
+        if (!memberRows?.length) break;
         const subIds = [...new Set(memberRows.map((r: any) => r.subscriber_id))];
-        const rows = await fetchAllSubsByIds(subIds);
-        rows.forEach(addSub);
+        (await fetchAllSubsByIds(subIds)).forEach(addSub);
+        if (memberRows.length < 1000) break;
+        from += 1000;
       }
     }
 
@@ -199,10 +206,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    await adminClient
+    const { data: claimed, error: claimError } = await adminClient
       .from("newsletters")
       .update({ status: "sending", total_recipients: subscribers.length })
-      .eq("id", newsletter_id);
+      .eq("id", newsletter_id)
+      .eq("status", newsletter.status)
+      .select("id")
+      .maybeSingle();
+    if (claimError || !claimed) throw new Error("Campaign already claimed");
 
     const { data: config } = await adminClient
       .from("invoice_config")
@@ -217,62 +228,39 @@ Deno.serve(async (req) => {
     let totalFailed = 0;
     const baseHtml = newsletter.body_html;
 
-    for (let i = 0; i < subscribers.length; i++) {
-      const sub = subscribers[i];
-      const personalizedHtml = replacePlaceholders(baseHtml, sub);
-
-      try {
-        const res = await fetch("https://api.resend.com/emails", {
+    for (let i = 0; i < subscribers.length; i += 100) {
+      const batch = subscribers.slice(i, i + 100);
+      const res = await fetch("https://api.resend.com/emails/batch", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${resendApiKey}`,
+            "Idempotency-Key": `newsletter-${newsletter_id}-${i}`,
           },
-          body: JSON.stringify({
+          body: JSON.stringify(batch.map(sub => ({
             from: `${senderName} <${senderEmail}>`,
             to: [sub.email],
             subject: replacePlaceholders(newsletter.subject, sub),
-            html: personalizedHtml,
-          }),
+            html: replacePlaceholders(baseHtml, sub),
+          }))),
         });
-
-        const resBody = await res.text();
-
-        if (res.ok) {
-          totalSent++;
-          await adminClient.from("newsletter_sends").insert({
-            newsletter_id,
-            subscriber_email: sub.email,
-            status: "sent",
-            sent_at: new Date().toISOString(),
-          });
-        } else {
-          totalFailed++;
-          await adminClient.from("newsletter_sends").insert({
-            newsletter_id,
-            subscriber_email: sub.email,
-            status: "failed",
-            error_message: resBody.slice(0, 500),
-          });
-        }
-      } catch (err) {
-        totalFailed++;
-        await adminClient.from("newsletter_sends").insert({
+      const result = await res.json();
+      const accepted = res.ok && Array.isArray(result.data) && result.data.length === batch.length;
+      if (accepted) totalSent += batch.length;
+      else totalFailed += batch.length;
+      const { error: logError } = await adminClient.from("newsletter_sends").insert(batch.map(sub => ({
           newsletter_id,
           subscriber_email: sub.email,
-          status: "failed",
-          error_message: String(err).slice(0, 500),
-        });
-      }
-
-      if (i < subscribers.length - 1) await sleep(RATE_LIMIT_MS);
-
-      if ((i + 1) % 10 === 0 || i === subscribers.length - 1) {
-        await adminClient
+          status: accepted ? "sent" : "failed",
+          sent_at: accepted ? new Date().toISOString() : null,
+          error_message: accepted ? null : `Email provider rejected batch (HTTP ${res.status})`,
+      })));
+      if (logError) throw new Error("Send history write failed; do not retry campaign");
+      await adminClient
           .from("newsletters")
           .update({ total_sent: totalSent, total_failed: totalFailed })
           .eq("id", newsletter_id);
-      }
+      if (i + 100 < subscribers.length) await sleep(RATE_LIMIT_MS);
     }
 
     await adminClient
@@ -295,8 +283,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("send-newsletter error:", err);
-    return new Response(JSON.stringify({ error: "Versand fehlgeschlagen", details: String(err) }), {
+    console.error("send-newsletter failed", err instanceof Error ? err.message : "Unknown internal failure");
+    return new Response(JSON.stringify({ error: "Versand fehlgeschlagen; Versandhistorie vor erneutem Versuch prüfen" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
