@@ -93,27 +93,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Restore sold counts on ticket_types
-    const soldRestoreMap: Record<string, number> = {};
-    for (const t of confirmable) {
-      if (t.ticket_type_id) {
-        soldRestoreMap[t.ticket_type_id] = (soldRestoreMap[t.ticket_type_id] || 0) + t.quantity;
-      }
-    }
+    // 3. Sold counts (ticket_types.sold / events.tickets_sold) are recalculated by DB trigger on status change
 
-    for (const [typeId, qty] of Object.entries(soldRestoreMap)) {
-      const { data: tt } = await admin.from("ticket_types").select("sold").eq("id", typeId).single();
-      if (tt) {
-        await admin.from("ticket_types").update({ sold: Math.max(0, tt.sold - qty) }).eq("id", typeId);
-      }
-    }
-
-    // Also restore events.tickets_sold
-    const totalQtyRestored = confirmable.reduce((s: number, t: any) => s + t.quantity, 0);
-    const { data: ev } = await admin.from("events").select("tickets_sold").eq("id", eventId).single();
-    if (ev) {
-      await admin.from("events").update({ tickets_sold: Math.max(0, (ev.tickets_sold || 0) - totalQtyRestored) }).eq("id", eventId);
-    }
 
     // 4. Find existing invoice for these tickets
     const { data: existingInvoice } = await admin
