@@ -46,6 +46,38 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Server-side quota check: confirmed tickets + pending ones from the last 30 min reserve capacity
+    const holdSince = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const countTaken = async (col: "ticket_type_id" | "event_id", id: string) => {
+      const { count: c1, error: e1 } = await adminClient.from("tickets").select("id", { count: "exact", head: true })
+        .eq(col, id).in("status", ["confirmed", "paid"]);
+      const { count: c2, error: e2 } = await adminClient.from("tickets").select("id", { count: "exact", head: true })
+        .eq(col, id).eq("status", "pending").gte("created_at", holdSince);
+      if (e1 || e2) throw new Error("quota check failed");
+      return (c1 || 0) + (c2 || 0);
+    };
+    const soldOutResponse = (name: string, left: number) => new Response(JSON.stringify({
+      error: left > 0 ? `Für "${name}" sind nur noch ${left} Tickets verfügbar.` : `"${name}" ist ausverkauft.`,
+    }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    if (use_global_price) {
+      const { data: ev } = await adminClient.from("events").select("title, ticket_quantity").eq("id", event_id).single();
+      if (ev?.ticket_quantity && ev.ticket_quantity > 0) {
+        const left = ev.ticket_quantity - await countTaken("event_id", event_id);
+        if ((global_quantity || 0) > left) return soldOutResponse(ev.title, Math.max(0, left));
+      }
+    } else {
+      const items = Object.values(cart as Record<string, { quantity: number; ticket_type_id: string }>).filter((i) => i.quantity > 0);
+      for (const item of items) {
+        const { data: tt } = await adminClient.from("ticket_types").select("name, quantity, event_id, is_active").eq("id", item.ticket_type_id).single();
+        if (!tt || tt.event_id !== event_id || !tt.is_active) return soldOutResponse(tt?.name || "Ticket", 0);
+        if (tt.quantity > 0) {
+          const left = tt.quantity - await countTaken("ticket_type_id", item.ticket_type_id);
+          if (item.quantity > left) return soldOutResponse(tt.name, Math.max(0, left));
+        }
+      }
+    }
+
     // Helper: create individual ticket rows (one per unit) instead of one row with quantity > 1
     function buildIndividualInserts(
       baseFields: Record<string, any>,
