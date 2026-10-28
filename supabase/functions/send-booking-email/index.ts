@@ -24,16 +24,32 @@ serve(async (req) => {
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const token = (req.headers.get("authorization") || "").replace("Bearer ", "");
-    const { data: { user: caller } } = token ? await admin.auth.getUser(token) : { data: { user: null } };
+    const isService = !!token && token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const { data: { user: caller } } = token && !isService ? await admin.auth.getUser(token) : { data: { user: null } };
     const { data: isAdmin } = caller ? await admin.rpc("has_role", { _user_id: caller.id, _role: "admin" }) : { data: false };
-    if (!isAdmin) {
+    if (!isAdmin && !isService) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { to, userName, status, loungeName, eventName, guestCount } =
-      (await req.json()) as BookingEmailRequest;
+    const body = await req.json();
+    let { to, userName, status, loungeName, eventName, guestCount } = body as BookingEmailRequest;
+    if (body.booking_id) {
+      // Called from mollie-webhook: load booking data server-side
+      const { data: b } = await admin.from("lounge_bookings")
+        .select("user_email, user_name, guest_count, status, lounges(name), events(title)")
+        .eq("id", body.booking_id).single();
+      if (!b) {
+        return new Response(JSON.stringify({ error: "Booking not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      to = b.user_email; userName = b.user_name; guestCount = b.guest_count;
+      status = b.status === "confirmed" ? "confirmed" : "rejected";
+      loungeName = (b as any).lounges?.name || "Lounge";
+      eventName = (b as any).events?.title || "Event";
+    }
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
