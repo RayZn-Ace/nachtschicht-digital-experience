@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
 import { useTranslate } from "@/hooks/useTranslate";
-import type { Event, TicketType, DiscountCode } from "@/types/database";
+import type { Event, TicketType } from "@/types/database";
+import { ticketDiscount, type ValidatedDiscount } from "@/lib/discounts";
 import { toast } from "sonner";
 import { Calendar, Minus, Plus, Tag, ArrowLeft, Ticket, Users, CheckCircle2, Copy, Download, FileText, Loader2, ShieldCheck, DoorOpen, Shield } from "lucide-react";
 import { CLUB_AREAS, parseAreas } from "@/lib/areas";
@@ -30,8 +31,17 @@ const TicketShopPage = () => {
   // Cart state
   const [cart, setCart] = useState<Record<string, number>>({});
   const [discountCode, setDiscountCode] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<ValidatedDiscount | null>(null);
   const [discountLoading, setDiscountLoading] = useState(false);
+  const discountRequest = useRef(0);
+
+  useEffect(() => {
+    discountRequest.current += 1;
+    setAppliedDiscount(null);
+    setDiscountCode("");
+    setDiscountLoading(false);
+    return () => { discountRequest.current += 1; };
+  }, [eventId]);
 
   // Guest info
   const [guestName, setGuestName] = useState("");
@@ -156,14 +166,7 @@ const TicketShopPage = () => {
 
   const totalFees = totalCount > 0 ? calcOrderFees(eventFee, feeItems) : 0;
 
-  let discount = 0;
-  if (appliedDiscount) {
-    if (appliedDiscount.discount_type === "percent") {
-      discount = rawTotal * (appliedDiscount.discount_value / 100);
-    } else {
-      discount = Math.min(appliedDiscount.discount_value, rawTotal);
-    }
-  }
+  const discount = ticketDiscount(rawTotal, appliedDiscount);
   const finalTotal = Math.max(0, rawTotal - discount + totalFees + totalInsurance);
 
   const updateCart = (typeId: string, delta: number) => {
@@ -179,37 +182,35 @@ const TicketShopPage = () => {
   };
 
   const applyDiscount = async () => {
-    if (!discountCode.trim()) return;
+    if (!discountCode.trim() || !eventId) return;
+    const requestId = ++discountRequest.current;
     setDiscountLoading(true);
-    const { data, error } = await supabase
-      .from("discount_codes")
-      .select("*")
-      .eq("code", discountCode.trim().toUpperCase())
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (!data || error) {
-      toast.error(lang === "de" ? "Ungültiger Code" : "Invalid code");
-      setAppliedDiscount(null);
-    } else {
-      const dc = data as unknown as DiscountCode;
-      // Validate
-      if (dc.event_id && dc.event_id !== eventId) {
-        toast.error(lang === "de" ? "Code gilt nicht für dieses Event" : "Code not valid for this event");
-      } else if (dc.max_uses && dc.uses >= dc.max_uses) {
-        toast.error(lang === "de" ? "Code wurde bereits zu oft genutzt" : "Code has been used too many times");
-      } else if (dc.valid_until && new Date(dc.valid_until) < new Date()) {
-        toast.error(lang === "de" ? "Code ist abgelaufen" : "Code has expired");
+    setAppliedDiscount(null);
+    try {
+      const { data, error } = await supabase.rpc("validate_discount_code", {
+        p_code: discountCode.trim().toUpperCase(),
+        p_event_id: eventId,
+      });
+      if (requestId !== discountRequest.current) return;
+      if (error) throw error;
+      const dc = data?.[0];
+      if (!dc || (dc.discount_type !== "percent" && dc.discount_type !== "fixed")) {
+        toast.error(lang === "de" ? "Code ungültig oder nicht mehr gültig für dieses Event" : "Code invalid or no longer valid for this event");
       } else {
-        setAppliedDiscount(dc);
+        setAppliedDiscount({ ...dc, discount_type: dc.discount_type });
         toast.success(
           dc.discount_type === "percent"
             ? `${dc.discount_value}% Rabatt angewendet!`
             : `${dc.discount_value}€ Rabatt angewendet!`
         );
       }
+    } catch {
+      if (requestId === discountRequest.current) {
+        toast.error(lang === "de" ? "Rabattprüfung nicht erreichbar. Bitte erneut versuchen." : "Discount validation unavailable. Please try again.");
+      }
+    } finally {
+      if (requestId === discountRequest.current) setDiscountLoading(false);
     }
-    setDiscountLoading(false);
   };
 
   const handlePurchase = async () => {
@@ -456,7 +457,12 @@ const TicketShopPage = () => {
                     <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
                       value={discountCode}
-                      onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                      onChange={(e) => {
+                        discountRequest.current += 1;
+                        setDiscountLoading(false);
+                        setAppliedDiscount(null);
+                        setDiscountCode(e.target.value.toUpperCase());
+                      }}
                       placeholder={lang === "de" ? "Rabattcode eingeben" : "Enter discount code"}
                       className="w-full pl-9 pr-4 py-2.5 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none font-mono"
                       onKeyDown={(e) => e.key === "Enter" && applyDiscount()}
@@ -475,7 +481,7 @@ const TicketShopPage = () => {
                   <div className="flex items-center gap-2 text-green-400 text-sm">
                     <Tag size={14} />
                     {appliedDiscount.discount_type === "percent" ? `${appliedDiscount.discount_value}%` : `${appliedDiscount.discount_value}€`} Rabatt mit "{appliedDiscount.code}"
-                    <button onClick={() => { setAppliedDiscount(null); setDiscountCode(""); }} className="text-muted-foreground hover:text-foreground ml-auto text-xs">✕</button>
+                    <button onClick={() => { discountRequest.current += 1; setAppliedDiscount(null); setDiscountCode(""); }} className="text-muted-foreground hover:text-foreground ml-auto text-xs">✕</button>
                   </div>
                 )}
 

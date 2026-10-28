@@ -15,6 +15,13 @@
       "when": 1793190971397,
       "tag": "0001_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793222860821,
+      "tag": "0002_validate_discount_code",
+      "breakpoints": true
     }
   ]
 }

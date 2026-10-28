@@ -1860,6 +1860,15 @@ export type Database = {
       }
       get_tracking_config_public: { Args: never; Returns: Json }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
+      validate_discount_code: {
+        Args: { p_code: string; p_event_id: string }
+        Returns: {
+          code: string
+          discount_type: string
+          discount_value: number
+          id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
