@@ -2,4 +2,4 @@
 - [x] Scanner-Kurznummern ohne begrenzte Fallback-Liste zuverlässig auflösen.
 - [x] 13 Regressionstests bestanden; Scanner bereitgestellt, anonymer Zugriff mit 401 abgewiesen, vier UUID-Suchen lesen korrekte Tickets; keine echten Check-ins.
 - [ ] Angemeldete Prüfung im Ticketcenter/Scanner: benötigt eine autorisierte Sitzung in der Vorschau; keine passende eigene Sitzung verfügbar.
-- [ ] Stornierungsantwort ohne undefinierte Mengenangabe korrigieren, synthetisch testen und Funktion bereitstellen.
+- [x] Stornierungsantwort korrigiert: Mengen aus stornierten Tickets, Trigger unverändert; 3 synthetische Antworttests bestanden, Funktion bereitgestellt. Keine echte Stornierung ausgeführt.
