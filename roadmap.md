@@ -1,3 +1,4 @@
-- [ ] Ticketcenter vollständig laden und Fehler sichtbar behandeln.
-- [ ] Scanner-Kurznummern ohne begrenzte Fallback-Liste zuverlässig auflösen.
-- [ ] Regressionstests ausführen und Scanner-Funktion bereitstellen; keine echten Check-ins.
+- [x] Ticketcenter vollständig laden und Fehler sichtbar behandeln.
+- [x] Scanner-Kurznummern ohne begrenzte Fallback-Liste zuverlässig auflösen.
+- [x] 13 Regressionstests bestanden; Scanner bereitgestellt, anonymer Zugriff mit 401 abgewiesen, vier UUID-Suchen lesen korrekte Tickets; keine echten Check-ins.
+- [ ] Angemeldete Prüfung im Ticketcenter/Scanner: benötigt eine autorisierte Sitzung in der Vorschau; keine passende eigene Sitzung verfügbar.
