@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { cancellationSummary } from "./summary.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -212,8 +213,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        cancelled_count: ticketIdsToCancel.length,
-        restored_quantity: totalQtyRestored,
+        ...cancellationSummary(confirmable),
         cancellation_invoice_id: cancellationInvoiceId,
         cancellation_invoice_number: cancellationInvoiceNumber,
         had_invoice: !!existingInvoice,
