@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Ticket, Event, TicketType } from "@/types/database";
 import { toast } from "sonner";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { Button } from "@/components/ui/button";
 import {
   Search, Filter, Download, ChevronDown, ChevronUp,
   Eye, Calendar, CheckCircle, XCircle, Clock,
@@ -49,6 +51,7 @@ const AdminTicketCenter = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Sales filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,15 +72,25 @@ const AdminTicketCenter = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [ordersRes, eventsRes, typesRes] = await Promise.all([
-      supabase.from("tickets").select("*").order("created_at", { ascending: false }),
-      supabase.from("events").select("*").order("date", { ascending: false }),
-      supabase.from("ticket_types").select("*").order("sort_order"),
-    ]);
-    if (ordersRes.data) setOrders(ordersRes.data as unknown as OrderWithDetails[]);
-    if (eventsRes.data) setEvents(eventsRes.data as unknown as Event[]);
-    if (typesRes.data) setTicketTypes(typesRes.data as unknown as TicketType[]);
-    setLoading(false);
+    setLoadError(false);
+    try {
+      const [allOrders, allEvents, allTypes] = await Promise.all([
+        fetchAllRows((from, to) => supabase.from("tickets").select("*").order("created_at", { ascending: false }).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("events").select("*").order("date", { ascending: false }).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("ticket_types").select("*").order("sort_order").order("id").range(from, to)),
+      ]);
+      setOrders(allOrders as unknown as OrderWithDetails[]);
+      setEvents(allEvents as unknown as Event[]);
+      setTicketTypes(allTypes as unknown as TicketType[]);
+    } catch {
+      setOrders([]);
+      setEvents([]);
+      setTicketTypes([]);
+      setLoadError(true);
+      toast.error("Ticketcenter konnte nicht vollständig geladen werden. Bitte erneut versuchen.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -255,6 +268,7 @@ const AdminTicketCenter = () => {
   };
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">Ticketcenter wird geladen...</div>;
+  if (loadError) return <div className="text-center py-12 space-y-4"><p className="text-destructive">Ticketcenter konnte nicht vollständig geladen werden.</p><Button onClick={fetchData}>Erneut versuchen</Button></div>;
 
   // Detail View
   if (selectedOrder) {

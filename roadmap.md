@@ -1,0 +1,3 @@
+- [ ] Ticketcenter vollständig laden und Fehler sichtbar behandeln.
+- [ ] Scanner-Kurznummern ohne begrenzte Fallback-Liste zuverlässig auflösen.
+- [ ] Regressionstests ausführen und Scanner-Funktion bereitstellen; keine echten Check-ins.
