@@ -1,10 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { ticketIdBounds, qrPrefix, canCheckIn } from "./lookup.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,9 +17,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error("Missing configuration");
 
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -54,101 +52,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { qr_code, ticket_number, expected_event_id } = await req.json();
-    const searchValue = (qr_code || ticket_number || "").trim();
-
-    if (!searchValue) {
-      return new Response(JSON.stringify({ error: "qr_code or ticket_number required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const body = await req.json();
+    const rawInput = body.qr_code || body.ticket_number;
+    const expected_event_id = body.expected_event_id;
+    if (typeof rawInput !== "string" || rawInput.trim().length < 6 || rawInput.length > 200 ||
+        (expected_event_id !== undefined && (typeof expected_event_id !== "string" ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(expected_event_id)))) {
+      return new Response(JSON.stringify({ error: "Invalid ticket number or event" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Find ticket by qr_code, full id, or short id prefix
-    let ticket;
-    const { data: byQr } = await adminClient
-      .from("tickets")
-      .select("*, events(title, date, time), ticket_types(name)")
-      .eq("qr_code", searchValue)
-      .maybeSingle();
-
-    if (byQr) {
-      ticket = byQr;
-    } else {
-      // Try by exact ticket ID (only if it looks like a valid UUID)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (uuidRegex.test(searchValue)) {
-        const { data: byId } = await adminClient
-          .from("tickets")
-          .select("*, events(title, date, time), ticket_types(name)")
-          .eq("id", searchValue)
-          .maybeSingle();
-        if (byId) ticket = byId;
-      }
-
-      if (!ticket) {
-        // Flexible prefix search using id::text cast (UUID columns don't support ILIKE directly)
-        const normalized = searchValue.toLowerCase();
-        const compactHex = normalized.replace(/[^a-f0-9]/g, "");
-        const normalizedInput = normalized.replace(/[^a-z0-9-]/g, "");
-
-        if (compactHex.length >= 6) {
-          // Fast path: search by id prefix using text cast
-          const idPrefix = compactHex.slice(0, 8);
-          const { data: byPrefix, error: byPrefixError } = await adminClient
-            .from("tickets")
-            .select("*, events(title, date, time), ticket_types(name)")
-            .filter("id::text", "ilike", `${idPrefix}%`)
-            .limit(1)
-            .maybeSingle();
-
-          if (byPrefixError) {
-            console.warn("id::text prefix lookup failed:", byPrefixError.message);
-          }
-
-          if (byPrefix) {
-            ticket = byPrefix;
-          }
-
-          // Fallback 1: try matching against qr_code parts
-          if (!ticket) {
-            const { data: byQrSuffix } = await adminClient
-              .from("tickets")
-              .select("*, events(title, date, time), ticket_types(name)")
-              .ilike("qr_code", `%${compactHex}%`)
-              .limit(1)
-              .maybeSingle();
-
-            ticket = byQrSuffix;
-          }
-
-          // Fallback 2 (robust): load recent tickets and match prefixes in JS
-          if (!ticket) {
-            const { data: recentTickets } = await adminClient
-              .from("tickets")
-              .select("*, events(title, date, time), ticket_types(name)")
-              .order("created_at", { ascending: false })
-              .limit(1000);
-
-            if (recentTickets?.length) {
-              ticket = recentTickets.find((t) => {
-                const idLower = String(t.id || "").toLowerCase();
-                const idNoDash = idLower.replace(/-/g, "");
-                const qrLower = String(t.qr_code || "").toLowerCase();
-                const qrCompact = qrLower.replace(/^tkt-/, "").replace(/[^a-z0-9]/g, "");
-
-                return (
-                  idLower.startsWith(normalizedInput) ||
-                  idNoDash.startsWith(compactHex) ||
-                  qrLower.includes(normalizedInput) ||
-                  qrCompact.startsWith(compactHex)
-                );
-              });
-            }
-          }
-        }
-      }
+    const searchValue = rawInput.trim();
+    const selection = "*, events(title, date, time), ticket_types(name)";
+    const { data: byQr, error: qrError } = await adminClient.from("tickets")
+      .select(selection).eq("qr_code", searchValue).limit(2);
+    if (qrError) throw new Error("Ticket lookup failed");
+    let matches = byQr || [];
+    const bounds = ticketIdBounds(searchValue);
+    if (!matches.length && bounds) {
+      const { data, error } = await adminClient.from("tickets").select(selection)
+        .gte("id", bounds.lower).lte("id", bounds.upper).limit(2);
+      if (error) throw new Error("Ticket lookup failed");
+      matches = data || [];
     }
+    const prefix = qrPrefix(searchValue);
+    if (!matches.length && prefix) {
+      const { data, error } = await adminClient.from("tickets").select(selection)
+        .ilike("qr_code", prefix).limit(2);
+      if (error) throw new Error("Ticket lookup failed");
+      matches = data || [];
+    }
+    if (matches.length > 1) {
+      return new Response(JSON.stringify({ status: "invalid", message: "Ticketnummer nicht eindeutig. Bitte vollständigen QR-Code verwenden." }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const ticket = matches[0];
 
     if (!ticket) {
       return new Response(JSON.stringify({
@@ -230,12 +169,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!canCheckIn(ticket.status)) {
+      return new Response(JSON.stringify({ status: "invalid", message: "Ticket ist nicht bezahlt oder bestätigt" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Check in the ticket
     const now = new Date().toISOString();
-    await adminClient
+    const { data: checked, error: checkError } = await adminClient
       .from("tickets")
       .update({ checked_in: true, checked_in_at: now })
-      .eq("id", ticket.id);
+      .eq("id", ticket.id)
+      .eq("checked_in", false)
+      .in("status", ["confirmed", "paid"])
+      .select("id")
+      .maybeSingle();
+    if (checkError) throw new Error("Check-in write failed");
+    if (!checked) return new Response(JSON.stringify({ status: "invalid", message: "Ticketstatus hat sich geändert. Bitte erneut prüfen." }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
     return new Response(JSON.stringify({
       status: "success",
@@ -259,8 +212,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("check-in-ticket error:", err);
-    return new Response(JSON.stringify({ error: "Check-in failed", details: String(err) }), {
+    console.error("check-in-ticket failed");
+    return new Response(JSON.stringify({ error: "Check-in failed" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
