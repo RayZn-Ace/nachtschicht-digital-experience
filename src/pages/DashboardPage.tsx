@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import ScrollReveal from "@/components/ScrollReveal";
 import AdminSessionBar from "@/components/AdminSessionBar";
 import { Progress } from "@/components/ui/progress";
@@ -107,9 +108,9 @@ const DashboardPage = () => {
     if (!user) return;
     setDataLoading(true);
     const [ticketsRes, eventsRes, typesRes] = await Promise.all([
-      supabase.from("tickets").select("id, event_id, quantity, total_price, status, checked_in, checked_in_at, buyer_name, buyer_email, qr_code, created_at, ticket_type_id, billing_city, billing_zip").order("created_at", { ascending: false }),
-      supabase.from("events").select("id, title, date, image_url, genre, areas, ticket_quantity, tickets_sold").order("date", { ascending: true }),
-      supabase.from("ticket_types").select("id, name, sold, quantity, price, event_id"),
+      fetchCompleteResult((from, to) => supabase.from("tickets").select("id, event_id, quantity, total_price, status, checked_in, checked_in_at, buyer_name, buyer_email, qr_code, created_at, ticket_type_id, billing_city, billing_zip").order("created_at", { ascending: false }).order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("events").select("id, title, date, image_url, genre, areas, ticket_quantity, tickets_sold").order("date", { ascending: true }).order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("ticket_types").select("id, name, sold, quantity, price, event_id").order("id").range(from, to)),
     ]);
     if (ticketsRes.data) setAllTickets(ticketsRes.data as unknown as TicketRow[]);
     if (eventsRes.data) setAllEvents(eventsRes.data as unknown as EventRow[]);

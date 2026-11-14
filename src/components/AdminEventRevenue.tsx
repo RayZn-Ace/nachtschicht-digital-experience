@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import type { Event, Ticket, TicketType } from "@/types/database";
 import { toast } from "sonner";
 import { Download, FileText, Printer, ChevronDown } from "lucide-react";
@@ -16,9 +17,9 @@ const AdminEventRevenue = () => {
     const fetch = async () => {
       setLoading(true);
       const [ev, tk, tt] = await Promise.all([
-        supabase.from("events").select("*").order("date", { ascending: false }),
-        supabase.from("tickets").select("*"),
-        supabase.from("ticket_types").select("*"),
+        fetchCompleteResult((from, to) => supabase.from("events").select("*").order("date", { ascending: false }).order("id").range(from, to)),
+        fetchCompleteResult((from, to) => supabase.from("tickets").select("*").order("id").range(from, to)),
+        fetchCompleteResult((from, to) => supabase.from("ticket_types").select("*").order("id").range(from, to)),
       ]);
       if (ev.data) setEvents(ev.data as unknown as Event[]);
       if (tk.data) setTickets(tk.data as unknown as Ticket[]);

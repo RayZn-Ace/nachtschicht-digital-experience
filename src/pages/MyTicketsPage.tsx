@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { useI18n } from "@/hooks/useI18n";
 import { Link, Navigate } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -58,11 +59,11 @@ const MyTicketsPage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchTickets = async () => {
-      const { data } = await supabase
+      const { data } = await fetchCompleteResult((from, to) => supabase
         .from("tickets")
         .select("*, event:events(title, date, time, image_url, genre)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).order("id").range(from, to));
       if (data) setTickets(data as unknown as TicketWithEvent[]);
       setLoading(false);
     };

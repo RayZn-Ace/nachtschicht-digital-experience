@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { useI18n } from "@/hooks/useI18n";
 import { Navigate, Link } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -84,11 +85,11 @@ const MeineBestellungenPage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchOrders = async () => {
-      const { data } = await supabase
+      const { data } = await fetchCompleteResult((from, to) => supabase
         .from("tickets")
         .select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, event_id, event:events(title, date, time, image_url)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).order("id").range(from, to));
       if (data) setOrders(data as unknown as OrderWithEvent[]);
       setLoading(false);
     };

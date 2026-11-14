@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import {
   TrendingUp, TrendingDown, Ticket, DollarSign, Users, Calendar,
   BarChart3, ArrowUpRight, ArrowDownRight, Minus,
@@ -61,9 +62,9 @@ const AdminControlling = () => {
   useEffect(() => {
     const fetch = async () => {
       const [ev, tk, bk] = await Promise.all([
-        supabase.from("events").select("id, title, date, ticket_quantity, tickets_sold, ticket_price, genre, areas").order("date", { ascending: false }),
-        supabase.from("tickets").select("event_id, quantity, total_price, status, created_at, fee_amount, checked_in"),
-        supabase.from("lounge_bookings").select("event_id, status, deposit_amount, booking_type"),
+        fetchCompleteResult((from, to) => supabase.from("events").select("id, title, date, ticket_quantity, tickets_sold, ticket_price, genre, areas").order("date", { ascending: false }).order("id").range(from, to)),
+        fetchCompleteResult((from, to) => supabase.from("tickets").select("event_id, quantity, total_price, status, created_at, fee_amount, checked_in").order("id").range(from, to)),
+        fetchCompleteResult((from, to) => supabase.from("lounge_bookings").select("event_id, status, deposit_amount, booking_type").order("id").range(from, to)),
       ]);
       if (ev.data) setEvents(ev.data as any);
       if (tk.data) setTickets(tk.data as any);

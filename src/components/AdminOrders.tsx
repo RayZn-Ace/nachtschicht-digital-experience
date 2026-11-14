@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import type { Ticket, Event, TicketType } from "@/types/database";
 import { toast } from "sonner";
 import {
@@ -51,9 +52,9 @@ const AdminOrders = () => {
   const fetchData = async () => {
     setLoading(true);
     const [ordersRes, eventsRes, typesRes] = await Promise.all([
-      supabase.from("tickets").select("*").order("created_at", { ascending: false }),
-      supabase.from("events").select("*").order("date", { ascending: false }),
-      supabase.from("ticket_types").select("*"),
+      fetchCompleteResult((from, to) => supabase.from("tickets").select("*").order("created_at", { ascending: false }).order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("events").select("*").order("date", { ascending: false }).order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("ticket_types").select("*").order("id").range(from, to)),
     ]);
     if (ordersRes.data) setOrders(ordersRes.data as unknown as OrderWithDetails[]);
     if (eventsRes.data) setEvents(eventsRes.data as unknown as Event[]);

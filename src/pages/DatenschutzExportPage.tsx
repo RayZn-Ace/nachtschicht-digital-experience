@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { useI18n } from "@/hooks/useI18n";
 import { Navigate, Link } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -22,7 +23,7 @@ const DatenschutzExportPage = () => {
     // Fetch all user data
     const [profileRes, ticketsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", user.id).single(),
-      supabase.from("tickets").select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, event_id").eq("user_id", user.id),
+      fetchCompleteResult((from, to) => supabase.from("tickets").select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, event_id").eq("user_id", user.id).order("id").range(from, to)),
     ]);
 
     const exportData = {
