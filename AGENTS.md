@@ -5,3 +5,4 @@
 - Newsletter list sends paginate membership, fetch subscriber IDs in small chunks, claim campaigns atomically, and use idempotent provider batches with per-recipient history to avoid truncation, timeouts, and duplicate sends.
 - Ticketcenter paginates all metadata and ticket reads with stable ordering and rejects partial results; scanner short IDs use UUID range bounds, never cast filters or capped recent-ticket scans, to avoid missing older tickets.
 - Cancellation response quantities are derived from the cancelled ticket rows by a pure summary helper; sold-count updates stay exclusively in the database trigger to avoid double restoration.
+- Install the bounded backend-read fetch before App imports the data client; only GET/HEAD data reads and explicitly read-only RPCs have deadlines, with a visible failure notice. Never automatically retry or abort payment/order/email writes because their outcome may already be settled.
