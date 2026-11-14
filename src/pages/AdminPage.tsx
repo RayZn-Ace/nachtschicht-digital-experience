@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate, useSearchParams } from "react-router-dom";
@@ -93,20 +94,10 @@ const AdminPage = () => {
   };
 
   const fetchEventStats = async () => {
-    // Fetch ALL tickets (default limit is 1000, we may have more)
-    let allTickets: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    while (true) {
-      const { data } = await supabase
-        .from("tickets")
-        .select("event_id, quantity, total_price, checked_in, status")
-        .range(from, from + pageSize - 1);
-      if (!data || data.length === 0) break;
-      allTickets = allTickets.concat(data);
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
+    let allTickets;
+    try { allTickets = await fetchAllRows((from, to) => supabase.from("tickets")
+      .select("event_id, quantity, total_price, checked_in, status").order("id").range(from, to)); }
+    catch { setEventStats({}); toast.error("Ticketstatistiken konnten nicht vollständig geladen werden."); return; }
     const stats: Record<string, { sold: number; revenue: number; checkedIn: number; totalTickets: number }> = {};
     allTickets.forEach((t: any) => {
       if (!stats[t.event_id]) stats[t.event_id] = { sold: 0, revenue: 0, checkedIn: 0, totalTickets: 0 };

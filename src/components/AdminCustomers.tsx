@@ -1,5 +1,8 @@
+import PagedItems from "@/components/PagedItems";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { toast } from "sonner";
 import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag, ArrowUpDown, ArrowUp, ArrowDown, Filter, Ticket, Send, FileText, Loader2, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -43,6 +46,7 @@ const AdminCustomers = () => {
   const [customers, setCustomers] = useState<UnifiedCustomer[]>([]);
   const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"all" | "registered" | "subscribers_only" | "guests">("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
@@ -73,31 +77,22 @@ const AdminCustomers = () => {
   const fetchCustomers = async () => {
     setLoading(true);
 
+    setLoadError(false);
+    try {
     // Fetch all data in parallel – paginate tickets
     const [subsRes, profilesRes, tagsRes, subCatsRes, eventsRes, ttRes] = await Promise.all([
-      supabase.from("newsletter_subscribers").select("*"),
-      supabase.from("profiles").select("user_id, email, first_name, last_name, display_name, created_at").eq("is_deleted", false),
-      supabase.from("event_tags").select("*"),
-      supabase.from("newsletter_subscriber_categories").select("subscriber_id, category_id"),
-      supabase.from("events").select("id, title, date"),
-      supabase.from("ticket_types").select("id, name"),
+      fetchCompleteResult((from, to) => supabase.from("newsletter_subscribers").select("*").order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("profiles").select("user_id, email, first_name, last_name, display_name, created_at").eq("is_deleted", false).order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("event_tags").select("*").order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("newsletter_subscriber_categories").select("subscriber_id, category_id").order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("events").select("id, title, date").order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("ticket_types").select("id, name").order("id").range(from, to)),
     ]);
 
-    // Paginate tickets
-    let allTickets: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    while (true) {
-      const { data } = await supabase
-        .from("tickets")
-        .select("id, buyer_email, buyer_name, event_id, total_price, quantity, status, qr_code, created_at, ticket_type_id")
-        .eq("status", "confirmed")
-        .range(from, from + pageSize - 1);
-      if (!data || data.length === 0) break;
-      allTickets = allTickets.concat(data);
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
+    if ([subsRes, profilesRes, tagsRes, subCatsRes, eventsRes, ttRes].some(r => r.error)) throw new Error("Metadata unavailable");
+    const allTickets = await fetchAllRows((from, to) => supabase.from("tickets")
+      .select("id, buyer_email, buyer_name, event_id, total_price, quantity, status, qr_code, created_at, ticket_type_id")
+      .eq("status", "confirmed").order("id").range(from, to));
 
     const subscribers = subsRes.data || [];
     const profiles = profilesRes.data || [];
@@ -109,8 +104,8 @@ const AdminCustomers = () => {
     const ticketTypes = ttRes.data || [];
 
     const eventsMap = new Map(events.map((e: any) => [e.id, { title: e.title, date: e.date }]));
-    const tagMap = new Map(allTagsData.map((t: any) => [t.id, t]));
-    const ttMap = new Map(ticketTypes.map((tt: any) => [tt.id, tt.name]));
+    const tagMap = new Map<string, { id: string; name: string; color: string }>(allTagsData.map((t: any) => [t.id, t]));
+    const ttMap = new Map<string, string>(ticketTypes.map((tt: any) => [tt.id, tt.name]));
 
     // Build subscriber tag map
     const subTagMap = new Map<string, { id: string; name: string; color: string }[]>();
@@ -225,7 +220,8 @@ const AdminCustomers = () => {
     });
 
     setCustomers(Array.from(emailMap.values()));
-    setLoading(false);
+    } catch { setCustomers([]); setLoadError(true); }
+    finally { setLoading(false); }
   };
 
   const toggleSort = (col: typeof sortBy) => {
@@ -432,6 +428,7 @@ const AdminCustomers = () => {
   }), [customers]);
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">Lade Kundendaten...</div>;
+  if (loadError) return <p role="alert">Kundendaten konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <div className="space-y-6">
@@ -574,7 +571,7 @@ const AdminCustomers = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.slice(0, 200).map((c) => (
+              <PagedItems items={filtered} tableColumns={8}>{(c) => (
                 <>
                   <TableRow key={c.email} className="cursor-pointer" onClick={() => setExpandedEmail(expandedEmail === c.email ? null : c.email)}>
                     <TableCell>
@@ -725,15 +722,10 @@ const AdminCustomers = () => {
                     </TableRow>
                   )}
                 </>
-              ))
+              )}</PagedItems>
             )}
           </TableBody>
         </Table>
-        {filtered.length > 200 && (
-          <div className="p-3 text-center text-xs text-muted-foreground border-t border-border">
-            Zeige 200 von {filtered.length} Kunden. Nutze die Suche zum Filtern.
-          </div>
-        )}
       </div>
 
       {/* CSV Import Dialog */}

@@ -1,6 +1,8 @@
+import PagedItems from "@/components/PagedItems";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { useI18n } from "@/hooks/useI18n";
 import { Link, Navigate } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -31,6 +33,7 @@ const MyTicketsPage = () => {
   const { lang } = useI18n();
   const [tickets, setTickets] = useState<TicketWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
 
   const handleDownloadPdf = async (ticketId: string) => {
@@ -58,12 +61,13 @@ const MyTicketsPage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchTickets = async () => {
-      const { data } = await supabase
+      const { data, error } = await fetchCompleteResult((from, to) => supabase
         .from("tickets")
         .select("*, event:events(title, date, time, image_url, genre)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).order("id").range(from, to));
       if (data) setTickets(data as unknown as TicketWithEvent[]);
+      setLoadError(!!error);
       setLoading(false);
     };
     fetchTickets();
@@ -71,6 +75,7 @@ const MyTicketsPage = () => {
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (loadError) return <p role="alert">Tickets konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <section className="section-padding">
@@ -105,7 +110,7 @@ const MyTicketsPage = () => {
           </ScrollReveal>
         ) : (
           <div className="space-y-4">
-            {tickets.map((ticket, i) => (
+            <PagedItems items={tickets}>{(ticket, i) => (
               <ScrollReveal key={ticket.id} delay={i * 0.08}>
                 <div className="glass-card overflow-hidden flex flex-col md:flex-row">
                   {ticket.event?.image_url && (
@@ -227,7 +232,7 @@ const MyTicketsPage = () => {
                   </div>
                 </div>
               </ScrollReveal>
-            ))}
+            )}</PagedItems>
           </div>
         )}
       </div>

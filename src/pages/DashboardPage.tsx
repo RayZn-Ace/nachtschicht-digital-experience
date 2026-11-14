@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import ScrollReveal from "@/components/ScrollReveal";
 import AdminSessionBar from "@/components/AdminSessionBar";
 import { Progress } from "@/components/ui/progress";
@@ -97,6 +98,7 @@ const DashboardPage = () => {
   const [allEvents, setAllEvents] = useState<EventRow[]>([]);
   const [allTicketTypes, setAllTicketTypes] = useState<TicketTypeRow[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState(false);
 
   // Global filters
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("30d");
@@ -106,11 +108,13 @@ const DashboardPage = () => {
   const fetchAll = useCallback(async () => {
     if (!user) return;
     setDataLoading(true);
+    setDataError(false);
     const [ticketsRes, eventsRes, typesRes] = await Promise.all([
-      supabase.from("tickets").select("id, event_id, quantity, total_price, status, checked_in, checked_in_at, buyer_name, buyer_email, qr_code, created_at, ticket_type_id, billing_city, billing_zip").order("created_at", { ascending: false }),
-      supabase.from("events").select("id, title, date, image_url, genre, areas, ticket_quantity, tickets_sold").order("date", { ascending: true }),
-      supabase.from("ticket_types").select("id, name, sold, quantity, price, event_id"),
+      fetchCompleteResult((from, to) => supabase.from("tickets").select("id, event_id, quantity, total_price, status, checked_in, checked_in_at, buyer_name, buyer_email, qr_code, created_at, ticket_type_id, billing_city, billing_zip").order("created_at", { ascending: false }).order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("events").select("id, title, date, image_url, genre, areas, ticket_quantity, tickets_sold").order("date", { ascending: true }).order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("ticket_types").select("id, name, sold, quantity, price, event_id").order("id").range(from, to)),
     ]);
+    if (ticketsRes.error || eventsRes.error || typesRes.error) { setAllTickets([]); setAllEvents([]); setAllTicketTypes([]); setDataError(true); setDataLoading(false); return; }
     if (ticketsRes.data) setAllTickets(ticketsRes.data as unknown as TicketRow[]);
     if (eventsRes.data) setAllEvents(eventsRes.data as unknown as EventRow[]);
     if (typesRes.data) setAllTicketTypes(typesRes.data as unknown as TicketTypeRow[]);
@@ -235,6 +239,7 @@ const DashboardPage = () => {
   if (authLoading || rolesLoading)
     return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (dataError) return <p role="alert">Ticketdaten konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   const roleBadge = isAdmin ? "Admin" : "User";
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { useI18n } from "@/hooks/useI18n";
 import { Navigate, Link } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -12,18 +13,21 @@ const DatenschutzExportPage = () => {
   const de = lang === "de";
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
+  const [error, setError] = useState(false);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
   const handleExport = async () => {
     setExporting(true);
+    setError(false);
 
     // Fetch all user data
     const [profileRes, ticketsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", user.id).single(),
-      supabase.from("tickets").select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, event_id").eq("user_id", user.id),
+      fetchCompleteResult((from, to) => supabase.from("tickets").select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, event_id").eq("user_id", user.id).order("id").range(from, to)),
     ]);
+    if (profileRes.error || ticketsRes.error) { setError(true); setExporting(false); return; }
 
     const exportData = {
       exportDate: new Date().toISOString(),
@@ -86,6 +90,7 @@ const DatenschutzExportPage = () => {
               </ul>
             </div>
 
+            {error && <p role="alert" className="text-destructive">Daten konnten nicht vollständig geladen werden. Es wurde kein unvollständiger Export erstellt.</p>}
             {exported && (
               <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-sm text-green-400 animate-fade-in">
                 <Check size={16} /> {de ? "Export erfolgreich heruntergeladen!" : "Export downloaded successfully!"}

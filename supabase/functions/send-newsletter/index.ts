@@ -158,13 +158,15 @@ Deno.serve(async (req) => {
       let from = 0;
       const batch = 1000;
       while (true) {
-        const { data } = await adminClient
+        const { data, error } = await adminClient
           .from("tickets")
           .select("buyer_email, buyer_name")
           .in("event_id", buyer_event_ids)
           .eq("status", "confirmed")
+          .order("id")
           .range(from, from + batch - 1);
-        if (!data || data.length === 0) break;
+        if (error || !data) throw new Error("Buyer lookup incomplete; sending stopped");
+        if (data.length === 0) break;
         data.forEach((r: any) => r.buyer_email && addSub({ email: r.buyer_email, name: r.buyer_name }));
         if (data.length < batch) break;
         from += batch;
@@ -177,12 +179,14 @@ Deno.serve(async (req) => {
       let from = 0;
       const batch = 1000;
       while (true) {
-        const { data } = await adminClient
+        const { data, error } = await adminClient
           .from("newsletter_subscribers")
           .select("email, name")
           .eq("is_active", true)
+          .order("id")
           .range(from, from + batch - 1);
-        if (!data || data.length === 0) break;
+        if (error || !data) throw new Error("Subscriber lookup incomplete; sending stopped");
+        if (data.length === 0) break;
         data.forEach((r: any) => addSub(r));
         if (data.length < batch) break;
         from += batch;

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketType, Event } from "@/types/database";
 import { toast } from "sonner";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import {
   X, Plus, Trash2, Pencil, Send, Search, Loader2,
   GripVertical, Mail, User, Hash,
@@ -55,11 +56,12 @@ const AdminEventTickets = ({ event, onClose }: Props) => {
 
   const fetchTypes = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await fetchCompleteResult((from, to) => supabase
       .from("ticket_types")
       .select("*")
       .eq("event_id", event.id)
-      .order("sort_order");
+      .order("sort_order").order("id").range(from, to));
+    if (error) { setTypes([]); toast.error("Ticketarten konnten nicht vollständig geladen werden."); }
     if (data) setTypes(data as unknown as TicketType[]);
     setLoading(false);
   };

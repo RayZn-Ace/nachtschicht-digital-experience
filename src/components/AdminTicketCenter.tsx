@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Ticket, Event, TicketType } from "@/types/database";
 import { toast } from "sonner";
@@ -52,6 +52,9 @@ const AdminTicketCenter = () => {
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [loadedCount, setLoadedCount] = useState(0);
+  const activeLoad = useRef<AbortController | null>(null);
+  const [salesPage, setSalesPage] = useState(0);
 
   // Sales filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,32 +74,43 @@ const AdminTicketCenter = () => {
   const [showTypeForm, setShowTypeForm] = useState(false);
 
   const fetchData = async () => {
+    activeLoad.current?.abort();
+    const controller = new AbortController();
+    activeLoad.current = controller;
     setLoading(true);
     setLoadError(false);
+    setLoadedCount(0);
+    setSelectedOrder(null);
+    setRelatedTickets([]);
     try {
       const [allOrders, allEvents, allTypes] = await Promise.all([
-        fetchAllRows((from, to) => supabase.from("tickets").select("*").order("created_at", { ascending: false }).order("id").range(from, to)),
-        fetchAllRows((from, to) => supabase.from("events").select("*").order("date", { ascending: false }).order("id").range(from, to)),
-        fetchAllRows((from, to) => supabase.from("ticket_types").select("*").order("sort_order").order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("tickets").select("*").order("created_at", { ascending: false }).order("id").range(from, to).abortSignal(controller.signal), { signal: controller.signal, onProgress: setLoadedCount }),
+        fetchAllRows((from, to) => supabase.from("events").select("*").order("date", { ascending: false }).order("id").range(from, to).abortSignal(controller.signal), { signal: controller.signal }),
+        fetchAllRows((from, to) => supabase.from("ticket_types").select("*").order("sort_order").order("id").range(from, to).abortSignal(controller.signal), { signal: controller.signal }),
       ]);
+      if (controller.signal.aborted || activeLoad.current !== controller) return;
       setOrders(allOrders as unknown as OrderWithDetails[]);
       setEvents(allEvents as unknown as Event[]);
       setTicketTypes(allTypes as unknown as TicketType[]);
     } catch {
+      if (controller.signal.aborted || activeLoad.current !== controller) return;
+      controller.abort();
       setOrders([]);
       setEvents([]);
       setTicketTypes([]);
       setLoadError(true);
       toast.error("Ticketcenter konnte nicht vollständig geladen werden. Bitte erneut versuchen.");
     } finally {
-      setLoading(false);
+      if (activeLoad.current === controller) setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); return () => { activeLoad.current?.abort(); activeLoad.current = null; }; }, []);
 
-  const getEvent = (eventId: string) => events.find((e) => e.id === eventId);
-  const getTicketType = (typeId: string | null) => typeId ? ticketTypes.find((t) => t.id === typeId) : null;
+  const eventMap = useMemo(() => new Map(events.map(e => [e.id, e])), [events]);
+  const typeMap = useMemo(() => new Map(ticketTypes.map(t => [t.id, t])), [ticketTypes]);
+  const getEvent = (eventId: string) => eventMap.get(eventId);
+  const getTicketType = (typeId: string | null) => typeId ? typeMap.get(typeId) : null;
 
   const enrichedOrders = useMemo(() => orders.map((o) => ({
     ...o,
@@ -120,6 +134,10 @@ const AdminTicketCenter = () => {
     if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59")) return false;
     return true;
   }), [enrichedOrders, statusFilter, eventFilter, searchTerm, dateFrom, dateTo]);
+  useEffect(() => { setSalesPage(0); }, [statusFilter, eventFilter, searchTerm, dateFrom, dateTo, orders]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 100));
+  const currentPage = Math.min(salesPage, pageCount - 1);
+  const visibleOrders = filtered.slice(currentPage * 100, (currentPage + 1) * 100);
 
   // Global stats
   const confirmedOrders = useMemo(() => enrichedOrders.filter((o) => o.status === "confirmed"), [enrichedOrders]);
@@ -267,7 +285,7 @@ const AdminTicketCenter = () => {
     setShowTypeForm(true);
   };
 
-  if (loading) return <div className="text-center py-12 text-muted-foreground">Ticketcenter wird geladen...</div>;
+  if (loading) return <div role="status" className="text-center py-12 text-muted-foreground">Ticketcenter wird geladen… {loadedCount.toLocaleString("de-DE")} Tickets geladen</div>;
   if (loadError) return <div className="text-center py-12 space-y-4"><p className="text-destructive">Ticketcenter konnte nicht vollständig geladen werden.</p><Button onClick={fetchData}>Erneut versuchen</Button></div>;
 
   // Detail View
@@ -702,7 +720,7 @@ const AdminTicketCenter = () => {
             {filtered.length === 0 && (
               <p className="text-center py-12 text-muted-foreground">Keine Bestellungen gefunden.</p>
             )}
-            {filtered.map((order) => {
+            {visibleOrders.map((order) => {
               const ev = order.event;
               const StatusIcon = STATUS_ICONS[order.status] || Clock;
               return (
@@ -740,6 +758,10 @@ const AdminTicketCenter = () => {
               );
             })}
           </div>
+          {filtered.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">{currentPage * 100 + 1}–{Math.min((currentPage + 1) * 100, filtered.length)} von {filtered.length.toLocaleString("de-DE")} Tickets · Seite {currentPage + 1}/{pageCount}</p>
+            <div className="flex gap-2"><Button variant="outline" disabled={currentPage === 0} onClick={() => setSalesPage(currentPage - 1)}>Zurück</Button><Button variant="outline" disabled={currentPage >= pageCount - 1} onClick={() => setSalesPage(currentPage + 1)}>Weiter</Button></div>
+          </div>}
         </div>
       )}
 

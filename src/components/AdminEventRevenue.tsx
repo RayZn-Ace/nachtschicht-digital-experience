@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import type { Event, Ticket, TicketType } from "@/types/database";
 import { toast } from "sonner";
 import { Download, FileText, Printer, ChevronDown } from "lucide-react";
@@ -10,16 +11,18 @@ const AdminEventRevenue = () => {
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
       const [ev, tk, tt] = await Promise.all([
-        supabase.from("events").select("*").order("date", { ascending: false }),
-        supabase.from("tickets").select("*"),
-        supabase.from("ticket_types").select("*"),
+        fetchCompleteResult((from, to) => supabase.from("events").select("*").order("date", { ascending: false }).order("id").range(from, to)),
+        fetchCompleteResult((from, to) => supabase.from("tickets").select("*").order("id").range(from, to)),
+        fetchCompleteResult((from, to) => supabase.from("ticket_types").select("*").order("id").range(from, to)),
       ]);
+      if (ev.error || tk.error || tt.error) { setLoadError(true); setLoading(false); return; }
       if (ev.data) setEvents(ev.data as unknown as Event[]);
       if (tk.data) setTickets(tk.data as unknown as Ticket[]);
       if (tt.data) setTicketTypes(tt.data as unknown as TicketType[]);
@@ -163,6 +166,7 @@ const AdminEventRevenue = () => {
   };
 
   if (loading) return <p className="text-muted-foreground text-center py-12">Laden...</p>;
+  if (loadError) return <p role="alert">Umsatzbericht konnte nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <div>

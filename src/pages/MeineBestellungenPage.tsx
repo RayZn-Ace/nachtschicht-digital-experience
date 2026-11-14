@@ -1,6 +1,8 @@
+import PagedItems from "@/components/PagedItems";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { useI18n } from "@/hooks/useI18n";
 import { Navigate, Link } from "react-router-dom";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -45,6 +47,7 @@ const MeineBestellungenPage = () => {
 
   const [orders, setOrders] = useState<OrderWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortDesc, setSortDesc] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -84,12 +87,13 @@ const MeineBestellungenPage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchOrders = async () => {
-      const { data } = await supabase
+      const { data, error } = await fetchCompleteResult((from, to) => supabase
         .from("tickets")
         .select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, event_id, event:events(title, date, time, image_url)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).order("id").range(from, to));
       if (data) setOrders(data as unknown as OrderWithEvent[]);
+      setLoadError(!!error);
       setLoading(false);
     };
     fetchOrders();
@@ -105,6 +109,7 @@ const MeineBestellungenPage = () => {
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (loadError) return <p role="alert">Bestellungen konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <section className="section-padding">
@@ -184,7 +189,7 @@ const MeineBestellungenPage = () => {
           </ScrollReveal>
         ) : (
           <div className="space-y-3">
-            {filtered.map((order, i) => {
+            <PagedItems items={filtered}>{(order, i) => {
               const st = statusConfig[order.status] || { label: order.status, labelEN: order.status, cls: "bg-muted text-muted-foreground" };
               return (
                 <ScrollReveal key={order.id} delay={i * 0.05}>
@@ -245,7 +250,7 @@ const MeineBestellungenPage = () => {
                   </div>
                 </ScrollReveal>
               );
-            })}
+            }}</PagedItems>
           </div>
         )}
       </div>
