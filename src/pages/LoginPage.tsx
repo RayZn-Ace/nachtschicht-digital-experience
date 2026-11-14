@@ -7,9 +7,10 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { lovable } from "@/integrations/lovable/index";
 import { isNativeApp } from "@/lib/native";
 import { startNativeOAuth } from "@/lib/nativeOAuth";
+import { Button } from "@/components/ui/button";
 
 const LoginPage = () => {
-  const { user, isAdmin, signIn, loading } = useAuth();
+  const { user, isAdmin, signIn, loading, authError } = useAuth();
   const { lang } = useI18n();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
@@ -25,6 +26,7 @@ const LoginPage = () => {
   }, [searchParams]);
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
+  if (authError) return <div role="alert" className="flex flex-col items-center justify-center min-h-[60vh] text-foreground gap-4"><p>{lang === "de" ? "Anmeldung konnte nicht vollständig geprüft werden." : "Sign-in could not be verified."}</p><Button variant="outline" onClick={() => window.location.reload()}>{lang === "de" ? "Erneut laden" : "Reload"}</Button></div>;
   if (user && isAdmin) return <Navigate to="/admin" replace />;
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -33,6 +35,7 @@ const LoginPage = () => {
     setError("");
     setSubmitting(true);
 
+    try {
     const { error: err } = await signIn(email, password);
     if (err) {
       if (err.message.includes("Invalid login")) {
@@ -43,7 +46,11 @@ const LoginPage = () => {
         setError(err.message);
       }
     }
-    setSubmitting(false);
+    } catch {
+      setError(lang === "de" ? "Anmeldung momentan nicht erreichbar. Bitte erneut versuchen." : "Sign-in temporarily unavailable. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleOAuthLogin = async (provider: "google" | "apple") => {

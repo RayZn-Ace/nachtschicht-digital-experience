@@ -55,7 +55,7 @@ interface Profile {
 }
 
 const MeinBereichPage = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, authError } = useAuth();
   const { lang } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "tickets";
@@ -128,7 +128,7 @@ const MeinBereichPage = () => {
         }
         setProfileLoading(false);
       });
-  }, [user]);
+  }, [user?.id]);
 
   const handleDownloadPdf = async (ticketId: string) => {
     setDownloadingPdf(ticketId);
@@ -214,6 +214,7 @@ const MeinBereichPage = () => {
   };
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
+  if (authError) return <div role="alert" className="flex items-center justify-center min-h-[60vh] text-foreground">Anmeldung konnte nicht vollständig geprüft werden. Bitte Seite neu laden.</div>;
   if (!user) return <Navigate to="/login" replace />;
 
   const inputCls = "w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none";

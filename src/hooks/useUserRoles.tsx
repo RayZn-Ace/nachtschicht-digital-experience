@@ -44,7 +44,7 @@ export const useUserRoles = (): UseUserRolesReturn => {
 
     fetchRoles();
     return () => { current = false; };
-  }, [user]);
+  }, [user?.id]);
 
   return {
     roles,

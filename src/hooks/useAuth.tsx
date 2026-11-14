@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   loading: boolean;
+  authError: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -20,19 +21,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     let requestId = 0;
+    let appliedUserId: string | null | undefined;
+    let authEventSeen = false;
 
     const applySession = async (currentSession: Session | null) => {
       if (!mounted) return;
+      const userId = currentSession?.user.id ?? null;
+      // SIGNED_IN also fires on tab focus; refreshes must not restart the page gate.
+      if (appliedUserId === userId) {
+        setSession(currentSession);
+        return;
+      }
+      appliedUserId = userId;
       const id = ++requestId;
 
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setIsAdmin(false);
       setLoading(true);
+      setAuthError(false);
       try {
         if (currentSession?.user) {
           const { data, error } = await withDeadline(supabase.from("user_roles").select("role").eq("user_id", currentSession.user.id).eq("role", "admin").maybeSingle());
@@ -42,6 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch {
         if (mounted && id === requestId) {
           setIsAdmin(false);
+          setAuthError(true);
           window.dispatchEvent(new Event(READ_FAILURE_EVENT));
         }
       } finally {
@@ -51,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, currentSession) => {
+        authEventSeen = true;
         // Avoid async work directly inside callback to prevent auth lock contention
         setTimeout(() => applySession(currentSession), 0);
       }
@@ -58,13 +72,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const initialRequest = requestId;
     withDeadline(supabase.auth.getSession()).then(({ data: { session: currentSession }, error }) => {
-      if (!mounted || requestId !== initialRequest) return;
+      if (!mounted || authEventSeen || requestId !== initialRequest) return;
       if (error) throw error;
       void applySession(currentSession);
     }).catch(() => {
-      if (!mounted || requestId !== initialRequest) return;
+      if (!mounted || authEventSeen || requestId !== initialRequest) return;
       setIsAdmin(false);
       setLoading(false);
+      setAuthError(true);
       window.dispatchEvent(new Event(READ_FAILURE_EVENT));
     });
 
@@ -76,8 +91,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    try {
+      // Bound UI waiting, not the login request itself; never retry automatically.
+      const { error } = await withDeadline(supabase.auth.signInWithPassword({ email, password }));
+      return { error: error as Error | null };
+    } catch {
+      return { error: new Error("Anmeldung dauert zu lange oder ist momentan nicht erreichbar. Bitte Seite neu laden und erneut versuchen.") };
+    }
   };
 
   const signUp = async (email: string, password: string) => {
@@ -95,7 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, loading, authError, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
