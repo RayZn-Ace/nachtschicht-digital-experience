@@ -570,7 +570,7 @@ const AdminCustomers = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              <PagedItems items={filtered}>{(c) => (
+              <PagedItems items={filtered} tableColumns={8}>{(c) => (
                 <>
                   <TableRow key={c.email} className="cursor-pointer" onClick={() => setExpandedEmail(expandedEmail === c.email ? null : c.email)}>
                     <TableCell>
@@ -725,7 +725,7 @@ const AdminCustomers = () => {
             )}
           </TableBody>
         </Table>
-        {filtered.length > 200 && (
+        {false && (
           <div className="p-3 text-center text-xs text-muted-foreground border-t border-border">
             Zeige 200 von {filtered.length} Kunden. Nutze die Suche zum Filtern.
           </div>

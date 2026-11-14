@@ -220,7 +220,7 @@ const MeineBestellungenPage = () => {
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{de ? "Datum" : "Date"}</p>
                         <p className="text-foreground text-xs mt-0.5">
-                          {format(new Date(order.created_at), "dd.MM.yyyy HH:mm", { locale: deLocale }}</PagedItems>
+                          {format(new Date(order.created_at), "dd.MM.yyyy HH:mm", { locale: deLocale })}
                         </p>
                       </div>
                       <div>
@@ -250,7 +250,7 @@ const MeineBestellungenPage = () => {
                   </div>
                 </ScrollReveal>
               );
-            })}
+            }}</PagedItems>
           </div>
         )}
       </div>

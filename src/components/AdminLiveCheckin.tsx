@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, RefreshCw, RotateCcw, CheckCircle2, Clock, XCircle, Search, Users, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { fetchAllRows } from "@/lib/fetchAllRows";
+import PagedItems from "@/components/PagedItems";
 
 interface EventSummary {
   id: string;
@@ -262,7 +263,7 @@ const AdminLiveCheckin = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredTickets.map((t) => (
+                <PagedItems items={filteredTickets} tableColumns={8}>{(t) => (
                   <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="py-2.5 pr-3">
                       {t.checked_in ? (

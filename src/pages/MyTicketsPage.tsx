@@ -232,7 +232,7 @@ const MyTicketsPage = () => {
                   </div>
                 </div>
               </ScrollReveal>
-            )}</PagedItems>}
+            )}</PagedItems>
           </div>
         )}
       </div>
