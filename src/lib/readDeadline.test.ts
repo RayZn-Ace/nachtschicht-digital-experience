@@ -25,7 +25,9 @@ describe("bounded read requests", () => {
   });
   it("returns a timeout error, aborts once and never retries", async () => {
     vi.useFakeTimers();
-    const fetcher = vi.fn((_input, init) => new Promise<Response>((_resolve, reject) => init.signal.addEventListener("abort", () => reject(new Error("aborted")))) as unknown as typeof fetch;
+    const fetcher = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+    })) as unknown as typeof fetch;
     const pending = boundedReadFetch(fetcher, origin)(`${origin}/rest/v1/events`);
     await vi.advanceTimersByTimeAsync(15000);
     const response = await pending;
