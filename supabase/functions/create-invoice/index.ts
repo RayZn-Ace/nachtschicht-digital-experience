@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { hasCompleteTicketCoverage } from "../_shared/ticketCoverage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
       .select("*")
       .in("id", ticket_ids);
 
-    if (ticketsErr || !tickets || tickets.length === 0) {
+    if (ticketsErr || !tickets || !hasCompleteTicketCoverage(ticket_ids, tickets)) {
       return new Response(JSON.stringify({ error: "Tickets not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -726,11 +726,6 @@ const AdminCustomers = () => {
             )}
           </TableBody>
         </Table>
-        {false && (
-          <div className="p-3 text-center text-xs text-muted-foreground border-t border-border">
-            Zeige 200 von {filtered.length} Kunden. Nutze die Suche zum Filtern.
-          </div>
-        )}
       </div>
 
       {/* CSV Import Dialog */}
