@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, RefreshCw, RotateCcw, CheckCircle2, Clock, XCircle, Search, Users, Ticket } from "lucide-react";
 import { toast } from "sonner";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 
 interface EventSummary {
   id: string;
@@ -68,6 +69,8 @@ const AdminLiveCheckin = () => {
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const ticketRequest = useRef(0);
+  const [ticketError, setTicketError] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -83,39 +86,33 @@ const AdminLiveCheckin = () => {
 
   const fetchTickets = useCallback(async (eventId: string) => {
     setTicketsLoading(true);
-    let allTickets: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    while (true) {
-      const { data } = await supabase
-        .from("tickets")
-        .select("id, buyer_name, buyer_email, quantity, status, checked_in, checked_in_at, qr_code, created_at, total_price, ticket_type_id")
-        .eq("event_id", eventId)
-        .eq("status", "confirmed")
-        .order("created_at", { ascending: false })
-        .range(from, from + pageSize - 1);
-      if (!data || data.length === 0) break;
-      allTickets = allTickets.concat(data);
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
+    const requestId = ++ticketRequest.current;
+    setTicketError(false);
+    try {
+    const allTickets = await fetchAllRows((from, to) => supabase.from("tickets")
+      .select("id, buyer_name, buyer_email, quantity, status, checked_in, checked_in_at, qr_code, created_at, total_price, ticket_type_id")
+      .eq("event_id", eventId).eq("status", "confirmed").order("created_at", { ascending: false }).order("id").range(from, to));
+    if (requestId !== ticketRequest.current) return;
 
     // Fetch ticket type names
     const typeIds = [...new Set(allTickets.map((t) => t.ticket_type_id).filter(Boolean))];
     let typeMap: Record<string, string> = {};
     if (typeIds.length > 0) {
-      const { data: types } = await supabase
+      const { data: types, error: typesError } = await supabase
         .from("ticket_types")
         .select("id, name")
         .in("id", typeIds);
+      if (typesError) throw typesError;
       if (types) types.forEach((t: any) => { typeMap[t.id] = t.name; });
     }
 
+    if (requestId !== ticketRequest.current) return;
     setTickets(allTickets.map((t) => ({
       ...t,
       ticket_type_name: t.ticket_type_id ? (typeMap[t.ticket_type_id] || "Standard") : "Standard",
     })));
-    setTicketsLoading(false);
+    } catch { if (requestId === ticketRequest.current) { setTickets([]); setTicketError(true); } }
+    finally { if (requestId === ticketRequest.current) setTicketsLoading(false); }
   }, []);
 
   // Auto-refresh tickets every 10s
@@ -144,6 +141,8 @@ const AdminLiveCheckin = () => {
     toast.success("Check-in zurückgesetzt");
     if (selectedEvent) fetchTickets(selectedEvent.id);
   };
+
+  if (ticketError) return <p role="alert">Tickets konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   const now = new Date();
 

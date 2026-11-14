@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { toast } from "sonner";
 import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag, ArrowUpDown, ArrowUp, ArrowDown, Filter, Ticket, Send, FileText, Loader2, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ const AdminCustomers = () => {
   const [customers, setCustomers] = useState<UnifiedCustomer[]>([]);
   const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"all" | "registered" | "subscribers_only" | "guests">("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
@@ -73,6 +75,8 @@ const AdminCustomers = () => {
   const fetchCustomers = async () => {
     setLoading(true);
 
+    setLoadError(false);
+    try {
     // Fetch all data in parallel – paginate tickets
     const [subsRes, profilesRes, tagsRes, subCatsRes, eventsRes, ttRes] = await Promise.all([
       supabase.from("newsletter_subscribers").select("*"),
@@ -83,21 +87,10 @@ const AdminCustomers = () => {
       supabase.from("ticket_types").select("id, name"),
     ]);
 
-    // Paginate tickets
-    let allTickets: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    while (true) {
-      const { data } = await supabase
-        .from("tickets")
-        .select("id, buyer_email, buyer_name, event_id, total_price, quantity, status, qr_code, created_at, ticket_type_id")
-        .eq("status", "confirmed")
-        .range(from, from + pageSize - 1);
-      if (!data || data.length === 0) break;
-      allTickets = allTickets.concat(data);
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
+    if ([subsRes, profilesRes, tagsRes, subCatsRes, eventsRes, ttRes].some(r => r.error)) throw new Error("Metadata unavailable");
+    const allTickets = await fetchAllRows((from, to) => supabase.from("tickets")
+      .select("id, buyer_email, buyer_name, event_id, total_price, quantity, status, qr_code, created_at, ticket_type_id")
+      .eq("status", "confirmed").order("id").range(from, to));
 
     const subscribers = subsRes.data || [];
     const profiles = profilesRes.data || [];
@@ -225,7 +218,8 @@ const AdminCustomers = () => {
     });
 
     setCustomers(Array.from(emailMap.values()));
-    setLoading(false);
+    } catch { setCustomers([]); setLoadError(true); }
+    finally { setLoading(false); }
   };
 
   const toggleSort = (col: typeof sortBy) => {
@@ -432,6 +426,7 @@ const AdminCustomers = () => {
   }), [customers]);
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">Lade Kundendaten...</div>;
+  if (loadError) return <p role="alert">Kundendaten konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <div className="space-y-6">
