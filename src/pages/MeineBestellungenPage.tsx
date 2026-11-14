@@ -85,12 +85,13 @@ const MeineBestellungenPage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchOrders = async () => {
-      const { data } = await fetchCompleteResult((from, to) => supabase
+      const { data, error } = await fetchCompleteResult((from, to) => supabase
         .from("tickets")
         .select("id, quantity, total_price, status, created_at, buyer_name, buyer_email, event_id, event:events(title, date, time, image_url)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }).order("id").range(from, to));
       if (data) setOrders(data as unknown as OrderWithEvent[]);
+      setLoadError(!!error);
       setLoading(false);
     };
     fetchOrders();

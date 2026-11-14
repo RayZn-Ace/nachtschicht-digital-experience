@@ -32,6 +32,7 @@ const MyTicketsPage = () => {
   const { lang } = useI18n();
   const [tickets, setTickets] = useState<TicketWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
 
   const handleDownloadPdf = async (ticketId: string) => {
@@ -59,12 +60,13 @@ const MyTicketsPage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchTickets = async () => {
-      const { data } = await fetchCompleteResult((from, to) => supabase
+      const { data, error } = await fetchCompleteResult((from, to) => supabase
         .from("tickets")
         .select("*, event:events(title, date, time, image_url, genre)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }).order("id").range(from, to));
       if (data) setTickets(data as unknown as TicketWithEvent[]);
+      setLoadError(!!error);
       setLoading(false);
     };
     fetchTickets();
@@ -72,6 +74,7 @@ const MyTicketsPage = () => {
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (loadError) return <p role="alert">Tickets konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <section className="section-padding">

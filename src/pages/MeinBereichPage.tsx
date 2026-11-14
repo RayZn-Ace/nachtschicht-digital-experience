@@ -95,7 +95,8 @@ const MeinBereichPage = () => {
       .select("*, event:events(title, date, time, image_url), ticket_type:ticket_types(name)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }).order("id").range(from, to))
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) setDataError(true);
         if (data) setTickets(data as unknown as TicketWithEvent[]);
         setTicketsLoading(false);
       });
@@ -105,7 +106,8 @@ const MeinBereichPage = () => {
       .from("invoices")
       .select("id, invoice_number, buyer_name, total, status, created_at, event:events(title, date)")
       .order("created_at", { ascending: false }).order("id").range(from, to))
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) setDataError(true);
         if (data) setInvoices(data as unknown as InvoiceRow[]);
         setInvoicesLoading(false);
       });
