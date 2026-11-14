@@ -21,6 +21,9 @@ export const useScannerPermissions = (): ScannerPermissions => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let current = true;
+    setPerms({});
+    setLoading(true);
     if (rolesLoading || !user) {
       setLoading(rolesLoading);
       return;
@@ -47,6 +50,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
         .from("role_permissions")
         .select("permission_id, role")
         .in("role", roles);
+      if (!current) return;
 
       if (!rolePermsData || rolePermsData.length === 0) {
         setPerms({});
@@ -60,6 +64,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
         .from("permissions")
         .select("key")
         .in("id", permIds);
+      if (!current) return;
 
       const map: Record<string, boolean> = {};
       (permData || []).forEach((p) => {
@@ -69,7 +74,10 @@ export const useScannerPermissions = (): ScannerPermissions => {
       setLoading(false);
     };
 
-    fetchPerms();
+    fetchPerms().catch(() => {
+      if (current) { setPerms({}); setLoading(false); }
+    });
+    return () => { current = false; };
   }, [user, roles, isAdmin, rolesLoading]);
 
   return {
