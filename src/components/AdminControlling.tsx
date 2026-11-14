@@ -58,6 +58,7 @@ const AdminControlling = () => {
   const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -66,6 +67,7 @@ const AdminControlling = () => {
         fetchCompleteResult((from, to) => supabase.from("tickets").select("event_id, quantity, total_price, status, created_at, fee_amount, checked_in").order("id").range(from, to)),
         fetchCompleteResult((from, to) => supabase.from("lounge_bookings").select("event_id, status, deposit_amount, booking_type").order("id").range(from, to)),
       ]);
+      if (ev.error || tk.error || bk.error) { setLoadError(true); setLoading(false); return; }
       if (ev.data) setEvents(ev.data as any);
       if (tk.data) setTickets(tk.data as any);
       if (bk.data) setBookings(bk.data as any);
@@ -169,6 +171,7 @@ const AdminControlling = () => {
   }, [events, confirmed, bookings]);
 
   if (loading) return <p className="text-muted-foreground text-center py-12">Laden...</p>;
+  if (loadError) return <p role="alert">Bericht konnte nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <div className="space-y-6">

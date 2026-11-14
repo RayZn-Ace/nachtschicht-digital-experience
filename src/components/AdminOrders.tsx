@@ -35,6 +35,7 @@ const AdminOrders = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,11 +52,13 @@ const AdminOrders = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    setLoadError(false);
     const [ordersRes, eventsRes, typesRes] = await Promise.all([
       fetchCompleteResult((from, to) => supabase.from("tickets").select("*").order("created_at", { ascending: false }).order("id").range(from, to)),
       fetchCompleteResult((from, to) => supabase.from("events").select("*").order("date", { ascending: false }).order("id").range(from, to)),
       fetchCompleteResult((from, to) => supabase.from("ticket_types").select("*").order("id").range(from, to)),
     ]);
+    if (ordersRes.error || eventsRes.error || typesRes.error) { setOrders([]); setEvents([]); setTicketTypes([]); setLoadError(true); setLoading(false); return; }
     if (ordersRes.data) setOrders(ordersRes.data as unknown as OrderWithDetails[]);
     if (eventsRes.data) setEvents(eventsRes.data as unknown as Event[]);
     if (typesRes.data) setTicketTypes(typesRes.data as unknown as TicketType[]);
@@ -159,6 +162,7 @@ const AdminOrders = () => {
   };
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">Bestellungen werden geladen...</div>;
+  if (loadError) return <p role="alert">Bestellungen konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   // Detail View
   if (selectedOrder) {
