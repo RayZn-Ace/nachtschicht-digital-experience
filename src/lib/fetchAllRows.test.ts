@@ -20,3 +20,13 @@ it("discards a cancelled read and does not start the next page", async () => {
   await expect(fetchAllRows(fetch, { signal: controller.signal })).rejects.toThrow("Read cancelled");
   expect(fetch).toHaveBeenCalledTimes(1);
 });
+it("rejects a complete read exceeding two minutes even when individual pages respond", async () => {
+  vi.useFakeTimers();
+  const pending = fetchAllRows(async () => {
+    await new Promise(resolve => setTimeout(resolve, 10_000));
+    return { data: Array(1000).fill({ id: 1 }), error: null };
+  });
+  const assertion = expect(pending).rejects.toThrow("Complete read timed out");
+  await vi.advanceTimersByTimeAsync(120_000);
+  await assertion;
+});
