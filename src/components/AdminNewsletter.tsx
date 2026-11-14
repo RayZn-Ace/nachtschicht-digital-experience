@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -722,26 +723,13 @@ const AdminNewsletter = () => {
     const missing = sendBuyerEventIds.filter((id) => !(id in buyerEmailsByEvent));
     if (missing.length === 0) return;
     (async () => {
-      const all: string[] = [];
-      const batchSize = 1000;
+      try {
       for (const evId of missing) {
-        const list: string[] = [];
-        let from = 0;
-        while (true) {
-          const { data, error } = await supabase
-            .from("tickets")
-            .select("buyer_email")
-            .eq("event_id", evId)
-            .eq("status", "confirmed")
-            .range(from, from + batchSize - 1);
-          if (error || !data || data.length === 0) break;
-          data.forEach((r: any) => r.buyer_email && list.push(r.buyer_email));
-          if (data.length < batchSize) break;
-          from += batchSize;
-        }
-        setBuyerEmailsByEvent((prev) => ({ ...prev, [evId]: Array.from(new Set(list.map((e) => e.toLowerCase()))) }));
-        all.push(...list);
+        const rows = await fetchAllRows((from, to) => supabase.from("tickets").select("buyer_email")
+          .eq("event_id", evId).eq("status", "confirmed").order("id").range(from, to));
+        setBuyerEmailsByEvent(prev => ({ ...prev, [evId]: Array.from(new Set(rows.map(r => r.buyer_email.toLowerCase()))) }));
       }
+      } catch { toast.error("Käufer konnten nicht vollständig geladen werden. Bitte erneut laden."); }
     })();
   }, [sendBuyerEventIds]);
 

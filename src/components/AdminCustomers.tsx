@@ -2,6 +2,7 @@ import PagedItems from "@/components/PagedItems";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { toast } from "sonner";
 import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag, ArrowUpDown, ArrowUp, ArrowDown, Filter, Ticket, Send, FileText, Loader2, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -80,12 +81,12 @@ const AdminCustomers = () => {
     try {
     // Fetch all data in parallel – paginate tickets
     const [subsRes, profilesRes, tagsRes, subCatsRes, eventsRes, ttRes] = await Promise.all([
-      supabase.from("newsletter_subscribers").select("*"),
-      supabase.from("profiles").select("user_id, email, first_name, last_name, display_name, created_at").eq("is_deleted", false),
-      supabase.from("event_tags").select("*"),
-      supabase.from("newsletter_subscriber_categories").select("subscriber_id, category_id"),
-      supabase.from("events").select("id, title, date"),
-      supabase.from("ticket_types").select("id, name"),
+      fetchCompleteResult((from, to) => supabase.from("newsletter_subscribers").select("*").order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("profiles").select("user_id, email, first_name, last_name, display_name, created_at").eq("is_deleted", false).order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("event_tags").select("*").order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("newsletter_subscriber_categories").select("subscriber_id, category_id").order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("events").select("id, title, date").order("id").range(from, to)),
+      fetchCompleteResult((from, to) => supabase.from("ticket_types").select("id, name").order("id").range(from, to)),
     ]);
 
     if ([subsRes, profilesRes, tagsRes, subCatsRes, eventsRes, ttRes].some(r => r.error)) throw new Error("Metadata unavailable");
