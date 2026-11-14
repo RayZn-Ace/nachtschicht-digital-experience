@@ -8,6 +8,7 @@ import AdminSidebar from "./AdminSidebar";
 import { useTracking } from "@/hooks/useTracking";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import AuthFailure from "@/components/AuthFailure";
 
 const ADMIN_PATHS = ["/dashboard", "/admin"];
 const SCANNER_PATHS = ["/scanner"];
@@ -17,7 +18,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
   useTracking();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { isAdmin, user, loading: authLoading } = useAuth();
+  const { isAdmin, user, loading: authLoading, authError } = useAuth();
   const { isScanner, loading: rolesLoading } = useUserRoles();
 
   const isStaffPath = STAFF_PATHS.some((p) => pathname.startsWith(p));
@@ -30,10 +31,13 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
   // Redirect scanner-only users from /admin or /dashboard to /scanner
   useEffect(() => {
-    if (!authLoading && !rolesLoading && !isAdmin && isScanner && ADMIN_PATHS.some((p) => pathname.startsWith(p))) {
+    if (!authError && !authLoading && !rolesLoading && !isAdmin && isScanner && ADMIN_PATHS.some((p) => pathname.startsWith(p))) {
       navigate("/scanner", { replace: true });
     }
-  }, [isAdmin, isScanner, pathname, navigate, authLoading, rolesLoading]);
+  }, [isAdmin, isScanner, pathname, navigate, authLoading, rolesLoading, authError]);
+
+  const protectedPath = isStaffPath || ["/mein-bereich", "/profil", "/meine-bestellungen", "/meine-rechnungen", "/meine-tickets", "/account-loeschen", "/datenschutz-export", "/registrieren"].includes(pathname);
+  if (authError && protectedPath) return <AuthFailure />;
 
   // While roles are loading on staff paths, show minimal loading state (not frontend layout)
   if (user && (authLoading || rolesLoading) && isStaffPath) {

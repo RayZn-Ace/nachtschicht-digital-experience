@@ -67,9 +67,6 @@ const AdminUserManagement = () => {
   };
 
   const fetchUsersAndRoles = async () => {
-    const session = (await supabase.auth.getSession()).data.session;
-    if (!session) return;
-
     const { data, error } = await supabase.functions.invoke("manage-users", {
       body: { action: "list_users" },
     });
@@ -96,8 +93,10 @@ const AdminUserManagement = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    await Promise.all([fetchUsersAndRoles(), fetchPermissions(), fetchRolePermissions(), fetchRoles()]);
-    setLoading(false);
+    try {
+      await Promise.all([fetchUsersAndRoles(), fetchPermissions(), fetchRolePermissions(), fetchRoles()]);
+    } catch { toast.error("Benutzer konnten nicht geladen werden. Bitte erneut versuchen."); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { loadAll(); }, []);

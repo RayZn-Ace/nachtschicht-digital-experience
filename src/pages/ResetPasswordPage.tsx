@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import { Lock, Eye, EyeOff, Check } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import { getSessionBounded } from "@/lib/authSession";
 
 const ResetPasswordPage = () => {
   const { lang } = useI18n();
@@ -17,15 +18,17 @@ const ResetPasswordPage = () => {
   const [validSession, setValidSession] = useState(false);
 
   useEffect(() => {
+    let current = true;
     // Check for recovery session in URL hash
     const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
       setValidSession(true);
     }
     // Also check current session
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setValidSession(true);
-    });
+    getSessionBounded().then(({ data, error }) => {
+      if (current && !error && data.session) setValidSession(true);
+    }).catch(() => { if (current) setError("Anmeldung konnte nicht geprüft werden. Bitte Seite neu laden."); });
+    return () => { current = false; };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

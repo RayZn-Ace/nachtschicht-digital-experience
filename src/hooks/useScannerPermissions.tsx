@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { withDeadline } from "@/lib/readDeadline";
 
 export interface ScannerPermissions {
   canScan: boolean;
@@ -46,11 +47,12 @@ export const useScannerPermissions = (): ScannerPermissions => {
 
     const fetchPerms = async () => {
       // Get all role_permissions for the user's roles that start with scanner.
-      const { data: rolePermsData } = await supabase
+      const { data: rolePermsData, error: roleError } = await withDeadline(supabase
         .from("role_permissions")
         .select("permission_id, role")
-        .in("role", roles);
+        .in("role", roles));
       if (!current) return;
+      if (roleError) throw roleError;
 
       if (!rolePermsData || rolePermsData.length === 0) {
         setPerms({});
@@ -60,11 +62,12 @@ export const useScannerPermissions = (): ScannerPermissions => {
 
       const permIds = rolePermsData.map((rp) => rp.permission_id);
 
-      const { data: permData } = await supabase
+      const { data: permData, error: permError } = await withDeadline(supabase
         .from("permissions")
         .select("key")
-        .in("id", permIds);
+        .in("id", permIds));
       if (!current) return;
+      if (permError) throw permError;
 
       const map: Record<string, boolean> = {};
       (permData || []).forEach((p) => {
@@ -78,7 +81,7 @@ export const useScannerPermissions = (): ScannerPermissions => {
       if (current) { setPerms({}); setLoading(false); }
     });
     return () => { current = false; };
-  }, [user, roles, isAdmin, rolesLoading]);
+  }, [user?.id, roles, isAdmin, rolesLoading]);
 
   return {
     canScan: perms["scanner.scan"] ?? false,

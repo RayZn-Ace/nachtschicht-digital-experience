@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 const AccountDeletePage = () => {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, signIn } = useAuth();
   const { lang } = useI18n();
   const navigate = useNavigate();
   const de = lang === "de";
@@ -29,10 +29,8 @@ const AccountDeletePage = () => {
     setSubmitting(true);
 
     // Re-authenticate with password
-    const { error: authErr } = await supabase.auth.signInWithPassword({
-      email: user.email!,
-      password,
-    });
+    if (!user.email) { setError("Anmeldung konnte nicht geprüft werden."); setSubmitting(false); return; }
+    const { error: authErr } = await signIn(user.email, password);
     if (authErr) {
       setError(de ? "Falsches Passwort. Bitte versuche es erneut." : "Wrong password. Please try again.");
       setSubmitting(false);
@@ -40,7 +38,6 @@ const AccountDeletePage = () => {
     }
 
     // Call edge function
-    const { data: { session } } = await supabase.auth.getSession();
     const res = await supabase.functions.invoke("delete-account", {
       body: { reason: reason || null },
     });

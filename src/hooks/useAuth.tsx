@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { withDeadline, READ_FAILURE_EVENT } from "@/lib/readDeadline";
+import { getSessionBounded } from "@/lib/authSession";
 
 interface AuthContextType {
   user: User | null;
@@ -71,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     const initialRequest = requestId;
-    withDeadline(supabase.auth.getSession()).then(({ data: { session: currentSession }, error }) => {
+    getSessionBounded().then(({ data: { session: currentSession }, error }) => {
       if (!mounted || authEventSeen || requestId !== initialRequest) return;
       if (error) throw error;
       void applySession(currentSession);

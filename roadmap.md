@@ -6,3 +6,4 @@
 - [x] Störungsprüfung: unbegrenzte Leseanfragen, Anmeldung und Ticketinitialisierung begrenzt; Schreibabläufe unverändert.
 - [x] Verzögerte Ticketabfrage zeigt auf Handy/PC Fehler und Wiederholen; reguläres Buchungsformular und Wiederholung geprüft. Keine Veröffentlichung oder Zahlung.
 - [x] Login-Eingrenzung: gleiche Benutzeridentität löst keine erneute Rolleninitialisierung aus; Rollenfehler stoppen Redirects, Loginwartezeit begrenzt. 13 Tests und Handy/PC-Fehlersimulation bestanden; angemeldeter Realtest weiterhin ohne autorisierte Sitzung offen. Nicht veröffentlicht.
+- [ ] Weitere Sitzungswege: Scanner/Offline-Synchronisation, Newsletter, Personalverwaltung, Kundenansichten und Recovery prüfen und begrenzen, ohne automatische Wiederholung von Schreibaktionen.
