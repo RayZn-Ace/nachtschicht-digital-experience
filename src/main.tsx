@@ -1,8 +1,10 @@
+import "./lib/installReadDeadline";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { isNativeApp } from "@/lib/capacitor";
 import { completeNativeOAuth } from "@/lib/nativeOAuth";
+import ReadFailureNotice from "@/components/ReadFailureNotice";
 
 // In native app: listen for deep link returns (e.g. after Mollie payment)
 if (isNativeApp()) {
@@ -29,4 +31,5 @@ if (isNativeApp()) {
   });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = document.getElementById("root");
+if (root) createRoot(root).render(<><ReadFailureNotice /><App /></>);
