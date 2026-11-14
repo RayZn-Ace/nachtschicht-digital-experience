@@ -7,6 +7,7 @@ import {
   Pencil, ArrowRightLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 
 type Subscriber = { id: string; email: string; name: string | null; is_active: boolean };
 type NLList = { id: string; name: string; description: string | null; color: string | null };
@@ -29,18 +30,7 @@ type Tab = "manual" | "subscribers" | "buyers" | "csv";
 async function fetchAll<T>(
   build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
 ): Promise<T[]> {
-  const PAGE = 1000;
-  const all: T[] = [];
-  let from = 0;
-  while (true) {
-    const { data, error } = await build(from, from + PAGE - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    all.push(...data);
-    if (data.length < PAGE) break;
-    from += PAGE;
-  }
-  return all;
+  return fetchAllRows(build);
 }
 
 const ListManagerModal: React.FC<Props> = ({
@@ -327,7 +317,7 @@ const ListManagerModal: React.FC<Props> = ({
       const tixAll = await fetchAll<any>((from, to) => {
         let q = supabase.from("tickets")
           .select("event_id, ticket_type_id, buyer_email, buyer_name, status, created_at")
-          .eq("status", "confirmed").range(from, to);
+          .eq("status", "confirmed").order("id").range(from, to);
         if (buyerEventIds.size > 0) q = q.in("event_id", Array.from(buyerEventIds));
         if (typeIdFilter && typeIdFilter.size > 0) q = q.in("ticket_type_id", Array.from(typeIdFilter));
         if (buyerFrom) q = q.gte("created_at", new Date(buyerFrom).toISOString());
