@@ -69,7 +69,7 @@ const ResetPasswordPage = () => {
           </h1>
           <p className="text-muted-foreground mb-6">
             {error || (
-            {lang === "de"
+            lang === "de"
               ? "Dieser Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an."
               : "This link is invalid or expired. Please request a new one.")}
           </p>
