@@ -8,6 +8,8 @@ import { FileText, Calendar, Download, ArrowLeft, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { de as deLocale } from "date-fns/locale";
 import { toast } from "sonner";
+import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
+import PagedItems from "@/components/PagedItems";
 
 interface InvoiceRow {
   id: string;
@@ -44,15 +46,17 @@ const MeineRechnungenPage = () => {
 
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     const fetchInvoices = async () => {
-      const { data } = await supabase
+      const { data, error } = await fetchCompleteResult((from, to) => supabase
         .from("invoices")
         .select("id, invoice_number, buyer_name, buyer_email, total, vat_amount, subtotal, vat_rate, status, issued_at, created_at, event_id, event:events(title, date)")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).order("id").range(from, to));
+      setLoadError(!!error);
       if (data) setInvoices(data as unknown as InvoiceRow[]);
       setLoading(false);
     };
@@ -91,6 +95,7 @@ const MeineRechnungenPage = () => {
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (loadError) return <p role="alert">Rechnungen konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <section className="section-padding">
@@ -128,7 +133,7 @@ const MeineRechnungenPage = () => {
           </ScrollReveal>
         ) : (
           <div className="space-y-3">
-            {invoices.map((inv, i) => {
+            <PagedItems items={invoices}>{(inv, i) => {
               const st = statusConfig[inv.status] || {
                 label: inv.status,
                 cls: "bg-muted text-muted-foreground",
@@ -201,7 +206,7 @@ const MeineRechnungenPage = () => {
                   </div>
                 </ScrollReveal>
               );
-            })}
+            }}</PagedItems>
           </div>
         )}
       </div>

@@ -118,10 +118,10 @@ const AdminLiveCheckin = () => {
 
   // Auto-refresh tickets every 10s
   useEffect(() => {
-    if (!selectedEvent || !autoRefresh) return;
+    if (!selectedEvent || !autoRefresh || ticketsLoading) return;
     const interval = setInterval(() => fetchTickets(selectedEvent.id), 10000);
     return () => clearInterval(interval);
-  }, [selectedEvent, autoRefresh, fetchTickets]);
+  }, [selectedEvent, autoRefresh, fetchTickets, ticketsLoading]);
 
   const handleSelectEvent = (event: EventSummary) => {
     setSelectedEvent(event);
