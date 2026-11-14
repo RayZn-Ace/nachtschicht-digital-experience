@@ -67,7 +67,7 @@ const MyTicketsPage = () => {
       setLoading(false);
     };
     fetchTickets();
-  }, [user]);
+  }, [user?.id]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;

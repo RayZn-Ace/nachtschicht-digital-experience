@@ -1,6 +1,7 @@
 import { Browser } from "@capacitor/browser";
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp, nativeOAuthRedirectUri } from "@/lib/native";
+import { withDeadline } from "@/lib/readDeadline";
 
 const OAUTH_STATE_KEY = "native-oauth-state";
 
@@ -62,10 +63,10 @@ export const completeNativeOAuth = async (callbackUrl: string) => {
     throw new Error("No OAuth tokens received.");
   }
 
-  const { error: sessionError } = await supabase.auth.setSession({
+  const { error: sessionError } = await withDeadline(supabase.auth.setSession({
     access_token: accessToken,
     refresh_token: refreshToken,
-  });
+  }));
 
   if (sessionError) {
     throw sessionError;

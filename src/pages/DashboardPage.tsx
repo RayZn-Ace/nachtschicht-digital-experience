@@ -115,7 +115,7 @@ const DashboardPage = () => {
     if (eventsRes.data) setAllEvents(eventsRes.data as unknown as EventRow[]);
     if (typesRes.data) setAllTicketTypes(typesRes.data as unknown as TicketTypeRow[]);
     setDataLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -148,7 +148,7 @@ const DashboardPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, isAdmin]);
+  }, [user?.id, isAdmin]);
 
   // Filtered tickets
   const filteredTickets = useMemo(() => {

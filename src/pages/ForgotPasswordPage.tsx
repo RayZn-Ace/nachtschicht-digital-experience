@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/hooks/useI18n";
 import { Mail, ArrowLeft, Check } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import { withDeadline } from "@/lib/readDeadline";
 
 const ForgotPasswordPage = () => {
   const { lang } = useI18n();
@@ -17,16 +18,18 @@ const ForgotPasswordPage = () => {
     setError("");
     setSubmitting(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    try {
+    const { error } = await withDeadline(supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
-    });
+    }));
 
     if (error) {
       setError(error.message);
     } else {
       setSent(true);
     }
-    setSubmitting(false);
+    } catch { setError("Versand konnte nicht bestätigt werden. Bitte zunächst dein Postfach prüfen."); }
+    finally { setSubmitting(false); }
   };
 
   return (

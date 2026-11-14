@@ -65,7 +65,7 @@ const ProfilPage = () => {
       setLoading(false);
     };
     fetchProfile();
-  }, [user]);
+  }, [user?.id]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,10 +151,11 @@ const ProfilPage = () => {
     setChangingPassword(false);
   };
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   }
   if (!user) return <Navigate to="/login" replace />;
+  if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
 
   const inputCls = "w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none";
 

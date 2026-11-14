@@ -57,7 +57,7 @@ const MeineRechnungenPage = () => {
       setLoading(false);
     };
     fetchInvoices();
-  }, [user]);
+  }, [user?.id]);
 
   const downloadPdf = async (invoice: InvoiceRow) => {
     setDownloadingId(invoice.id);

@@ -93,7 +93,7 @@ const MeineBestellungenPage = () => {
       setLoading(false);
     };
     fetchOrders();
-  }, [user]);
+  }, [user?.id]);
 
   const filtered = useMemo(() => {
     let result = orders;

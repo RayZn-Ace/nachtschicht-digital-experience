@@ -5,3 +5,5 @@
 - [x] Stornierungsantwort korrigiert: Mengen aus stornierten Tickets, Trigger unverändert; 3 synthetische Antworttests bestanden, Funktion bereitgestellt. Keine echte Stornierung ausgeführt.
 - [x] Störungsprüfung: unbegrenzte Leseanfragen, Anmeldung und Ticketinitialisierung begrenzt; Schreibabläufe unverändert.
 - [x] Verzögerte Ticketabfrage zeigt auf Handy/PC Fehler und Wiederholen; reguläres Buchungsformular und Wiederholung geprüft. Keine Veröffentlichung oder Zahlung.
+- [x] Login-Eingrenzung: gleiche Benutzeridentität löst keine erneute Rolleninitialisierung aus; Rollenfehler stoppen Redirects, Loginwartezeit begrenzt. 13 Tests und Handy/PC-Fehlersimulation bestanden; angemeldeter Realtest weiterhin ohne autorisierte Sitzung offen. Nicht veröffentlicht.
+- [x] Weitere Sitzungswege geprüft: gemeinsame begrenzte Sitzung für Scanner/Offline-Synchronisation, Newsletter und Recovery; redundante Abfragen in Personalverwaltung/Löschung entfernt, stabile Kunden-Effekte, geschützte Fehleranzeige und Profil-Redirect korrigiert. Kein Versand, keine Check-ins, keine Rechte-/Datenänderungen oder Veröffentlichung; angemeldeter Realtest weiterhin ohne Sitzung offen.

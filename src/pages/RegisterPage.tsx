@@ -12,6 +12,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { Progress } from "@/components/ui/progress";
 import { isNativeApp } from "@/lib/native";
 import { startNativeOAuth } from "@/lib/nativeOAuth";
+import { withDeadline } from "@/lib/readDeadline";
 
 const STEPS = 5;
 
@@ -87,10 +88,12 @@ const RegisterPage = () => {
       return;
     }
 
-    const { error: err } = await lovable.auth.signInWithOAuth(provider, {
+    try {
+    const { error: err } = await withDeadline(lovable.auth.signInWithOAuth(provider, {
       redirect_uri: window.location.origin,
-    });
+    }));
     if (err) setError(err.message);
+    } catch { setError("Anmeldung momentan nicht erreichbar. Bitte erneut laden."); }
   };
 
   const canProceed = () => {
@@ -108,7 +111,8 @@ const RegisterPage = () => {
     setError("");
     setSubmitting(true);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    try {
+    const { data, error: signUpError } = await withDeadline(supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -119,7 +123,7 @@ const RegisterPage = () => {
           salutation: form.salutation,
         },
       },
-    });
+    }));
 
     if (signUpError) {
       if (signUpError.message.includes("already registered")) {
@@ -145,7 +149,8 @@ const RegisterPage = () => {
     }
 
     setDone(true);
-    setSubmitting(false);
+    } catch { setError("Registrierung konnte nicht bestätigt werden. Bitte Seite neu laden; keine automatische Wiederholung."); }
+    finally { setSubmitting(false); }
   };
 
   const nextStep = () => {
