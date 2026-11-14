@@ -8,6 +8,7 @@ import {
   LayoutTemplate, PartyPopper, Gift, Megaphone, Heart, Star, Zap,
 } from "lucide-react";
 import ListManagerModal from "@/components/admin/newsletter/ListManagerModal";
+import { getSessionBounded } from "@/lib/authSession";
 
 /* ─── Types ─── */
 interface Subscriber {
@@ -765,7 +766,8 @@ const AdminNewsletter = () => {
     setShowSendDialog(false);
 
     try {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: session, error: sessionError } = await getSessionBounded();
+      if (sessionError) throw sessionError;
       const token = session?.session?.access_token;
       if (!token) { toast.error("Nicht angemeldet"); return; }
 
@@ -809,7 +811,8 @@ const AdminNewsletter = () => {
 
     setSending(true);
     try {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: session, error: sessionError } = await getSessionBounded();
+      if (sessionError) throw sessionError;
       const token = session?.session?.access_token;
       if (!token) { toast.error("Nicht angemeldet"); return; }
 

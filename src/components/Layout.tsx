@@ -36,7 +36,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
     }
   }, [isAdmin, isScanner, pathname, navigate, authLoading, rolesLoading, authError]);
 
-  const protectedPath = isStaffPath || ["/mein-bereich", "/profil", "/meine-bestellungen", "/meine-rechnungen", "/meine-tickets", "/account-loeschen", "/datenschutz-export", "/registrieren"].includes(pathname);
+  const protectedPath = isStaffPath || ["/mein-bereich", "/profil", "/meine-bestellungen", "/meine-rechnungen", "/meine-tickets", "/account-loeschen", "/daten-export", "/registrieren"].includes(pathname);
   if (authError && protectedPath) return <AuthFailure />;
 
   // While roles are loading on staff paths, show minimal loading state (not frontend layout)

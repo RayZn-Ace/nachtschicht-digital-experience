@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventSearchSelect } from "@/components/EventSearchSelect";
 import { filterUpcomingEvents, nowInBerlin } from "@/lib/eventTime";
+import { getSessionBounded } from "@/lib/authSession";
 
 interface TicketResult {
   id: string;
@@ -218,7 +219,8 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
     const currentQueue = loadQueue();
     if (currentQueue.length === 0 || !navigator.onLine) return;
     setSyncing(true);
-    const { data: session } = await supabase.auth.getSession();
+    const session = await getSessionBounded().catch(() => null);
+    if (!session || session.error) { setSyncing(false); toast.error("Anmeldung konnte nicht geprüft werden. Offline-Check-ins bleiben gespeichert."); return; }
     const token = session?.session?.access_token;
     if (!token) { setSyncing(false); return; }
 
@@ -298,7 +300,8 @@ const ScannerPage = forwardRef<HTMLDivElement>((_, ref) => {
 
     // Online path
     try {
-      const { data: session } = await supabase.auth.getSession();
+      const session = await getSessionBounded().catch(() => null);
+      if (!session || session.error) { toast.error("Anmeldung konnte nicht geprüft werden. Bitte erneut laden."); return; }
       const token = session?.session?.access_token;
       if (!token) { toast.error("Nicht angemeldet"); setProcessing(false); return; }
 
