@@ -1,3 +1,4 @@
+import PagedItems from "@/components/PagedItems";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,7 +110,7 @@ const MyTicketsPage = () => {
           </ScrollReveal>
         ) : (
           <div className="space-y-4">
-            {tickets.map((ticket, i) => (
+            <PagedItems items={tickets}>{(ticket, i) => (
               <ScrollReveal key={ticket.id} delay={i * 0.08}>
                 <div className="glass-card overflow-hidden flex flex-col md:flex-row">
                   {ticket.event?.image_url && (
@@ -231,7 +232,7 @@ const MyTicketsPage = () => {
                   </div>
                 </div>
               </ScrollReveal>
-            ))}
+            )}</PagedItems>}
           </div>
         )}
       </div>

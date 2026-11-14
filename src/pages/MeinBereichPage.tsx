@@ -1,3 +1,4 @@
+import PagedItems from "@/components/PagedItems";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
@@ -64,6 +65,7 @@ const MeinBereichPage = () => {
   // Tickets
   const [tickets, setTickets] = useState<TicketWithEvent[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [dataError, setDataError] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
 
   // Invoices
@@ -219,6 +221,7 @@ const MeinBereichPage = () => {
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (authError) return <div role="alert" className="flex items-center justify-center min-h-[60vh] text-foreground">Anmeldung konnte nicht vollständig geprüft werden. Bitte Seite neu laden.</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (dataError) return <p role="alert">Kontodaten konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   const inputCls = "w-full px-4 py-3 bg-muted border border-border rounded-md text-foreground text-sm focus:ring-2 focus:ring-primary focus:outline-none";
 
@@ -315,7 +318,7 @@ const MeinBereichPage = () => {
                 </Link>
               </div>
             ) : (
-              tickets.map((ticket, i) => (
+              <PagedItems items={tickets}>{(ticket, i) => (
                 <ScrollReveal key={ticket.id} delay={i * 0.05}>
                   <div className="glass-card overflow-hidden flex flex-col md:flex-row">
                     {ticket.event?.image_url && (
@@ -385,7 +388,7 @@ const MeinBereichPage = () => {
                     </div>
                   </div>
                 </ScrollReveal>
-              ))
+              )}</PagedItems>
             )}
           </TabsContent>
 

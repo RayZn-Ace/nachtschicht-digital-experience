@@ -1,3 +1,4 @@
+import PagedItems from "@/components/PagedItems";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +47,7 @@ const MeineBestellungenPage = () => {
 
   const [orders, setOrders] = useState<OrderWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortDesc, setSortDesc] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -107,6 +109,7 @@ const MeineBestellungenPage = () => {
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (loadError) return <p role="alert">Bestellungen konnten nicht vollständig geladen werden. Bitte erneut laden.</p>;
 
   return (
     <section className="section-padding">
@@ -186,7 +189,7 @@ const MeineBestellungenPage = () => {
           </ScrollReveal>
         ) : (
           <div className="space-y-3">
-            {filtered.map((order, i) => {
+            <PagedItems items={filtered}>{(order, i) => {
               const st = statusConfig[order.status] || { label: order.status, labelEN: order.status, cls: "bg-muted text-muted-foreground" };
               return (
                 <ScrollReveal key={order.id} delay={i * 0.05}>
@@ -217,7 +220,7 @@ const MeineBestellungenPage = () => {
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{de ? "Datum" : "Date"}</p>
                         <p className="text-foreground text-xs mt-0.5">
-                          {format(new Date(order.created_at), "dd.MM.yyyy HH:mm", { locale: deLocale })}
+                          {format(new Date(order.created_at), "dd.MM.yyyy HH:mm", { locale: deLocale }}</PagedItems>
                         </p>
                       </div>
                       <div>

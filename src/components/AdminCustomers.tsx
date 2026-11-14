@@ -1,3 +1,4 @@
+import PagedItems from "@/components/PagedItems";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
@@ -569,7 +570,7 @@ const AdminCustomers = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.slice(0, 200).map((c) => (
+              <PagedItems items={filtered}>{(c) => (
                 <>
                   <TableRow key={c.email} className="cursor-pointer" onClick={() => setExpandedEmail(expandedEmail === c.email ? null : c.email)}>
                     <TableCell>
@@ -720,7 +721,7 @@ const AdminCustomers = () => {
                     </TableRow>
                   )}
                 </>
-              ))
+              )}</PagedItems>
             )}
           </TableBody>
         </Table>

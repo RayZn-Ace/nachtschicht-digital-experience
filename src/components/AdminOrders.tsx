@@ -1,3 +1,4 @@
+import PagedItems from "@/components/PagedItems";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
@@ -399,7 +400,7 @@ const AdminOrders = () => {
         {filtered.length === 0 && (
           <p className="text-center py-12 text-muted-foreground">Keine Bestellungen gefunden.</p>
         )}
-        {filtered.map((order) => {
+        <PagedItems items={filtered}>{(order) => {
           const ev = order.event;
           const StatusIcon = STATUS_ICONS[order.status] || Clock;
           return (
@@ -434,7 +435,7 @@ const AdminOrders = () => {
               <Eye size={16} className="text-muted-foreground shrink-0" />
             </div>
           );
-        })}
+        }}</PagedItems>
       </div>
     </div>
   );
