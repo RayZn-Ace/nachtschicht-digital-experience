@@ -14,6 +14,7 @@ import { buildPaymentRedirectUrl } from "@/lib/capacitor";
 import ScrollReveal from "@/components/ScrollReveal";
 import EventLoungeSection from "@/components/EventLoungeSection";
 import RichTextContent from "@/components/RichTextContent";
+import { Button } from "@/components/ui/button";
 
 const TicketShopPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -26,6 +27,8 @@ const TicketShopPage = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [buying, setBuying] = useState(false);
 
   // Cart state
@@ -64,20 +67,33 @@ const TicketShopPage = () => {
   const [step, setStep] = useState(1);
 
   useEffect(() => {
+    let current = true;
+    setLoading(true);
+    setLoadError(false);
+    setEvent(null);
+    setTicketTypes([]);
+    setCart({});
+    setStep(1);
     const fetchData = async () => {
-      if (!eventId) return;
-      const [eventRes, typesRes] = await Promise.all([
-        supabase.from("events").select("*").eq("id", eventId).eq("is_published", true).single(),
-        supabase.from("ticket_types").select("*").eq("event_id", eventId).eq("is_active", true).order("sort_order"),
-      ]);
-      if (eventRes.data) {
+      try {
+        if (!eventId) return;
+        const [eventRes, typesRes] = await Promise.all([
+          supabase.from("events").select("*").eq("id", eventId).eq("is_published", true).single(),
+          supabase.from("ticket_types").select("*").eq("event_id", eventId).eq("is_active", true).order("sort_order"),
+        ]);
+        if (!current) return;
+        if (eventRes.error || typesRes.error || !eventRes.data || !typesRes.data) throw new Error("Event data unavailable");
         setEvent(eventRes.data as unknown as Event);
+        setTicketTypes(typesRes.data as unknown as TicketType[]);
+      } catch {
+        if (current) setLoadError(true);
+      } finally {
+        if (current) setLoading(false);
       }
-      if (typesRes.data) setTicketTypes(typesRes.data as unknown as TicketType[]);
-      setLoading(false);
     };
     fetchData();
-  }, [eventId]);
+    return () => { current = false; };
+  }, [eventId, loadAttempt]);
 
   // Handle return from Mollie payment
   useEffect(() => {
@@ -308,6 +324,7 @@ const TicketShopPage = () => {
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh] text-foreground">Laden...</div>;
+  if (loadError) return <div role="alert" className="flex flex-col items-center justify-center min-h-[60vh] text-foreground gap-4"><p>{lang === "de" ? "Event konnte nicht geladen werden." : "Event could not be loaded."}</p><Button variant="outline" onClick={() => setLoadAttempt((n) => n + 1)}>{lang === "de" ? "Erneut versuchen" : "Retry"}</Button></div>;
   if (paymentChecking) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-foreground gap-4">
       <Loader2 size={40} className="animate-spin text-primary" />
