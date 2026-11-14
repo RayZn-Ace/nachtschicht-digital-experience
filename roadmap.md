@@ -5,4 +5,4 @@
 - [x] Stornierungsantwort korrigiert: Mengen aus stornierten Tickets, Trigger unverändert; 3 synthetische Antworttests bestanden, Funktion bereitgestellt. Keine echte Stornierung ausgeführt.
 - [x] Störungsprüfung: unbegrenzte Leseanfragen, Anmeldung und Ticketinitialisierung begrenzt; Schreibabläufe unverändert.
 - [x] Verzögerte Ticketabfrage zeigt auf Handy/PC Fehler und Wiederholen; reguläres Buchungsformular und Wiederholung geprüft. Keine Veröffentlichung oder Zahlung.
-- [ ] Login-Eingrenzung: doppelte Sitzungs-/Rolleninitialisierung und erneute Ladezustände bei Token-Refresh verhindern; Fehler und Login-Redirect sicher behandeln und synthetisch testen.
+- [x] Login-Eingrenzung: gleiche Benutzeridentität löst keine erneute Rolleninitialisierung aus; Rollenfehler stoppen Redirects, Loginwartezeit begrenzt. 13 Tests und Handy/PC-Fehlersimulation bestanden; angemeldeter Realtest weiterhin ohne autorisierte Sitzung offen. Nicht veröffentlicht.
