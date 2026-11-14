@@ -88,10 +88,12 @@ const RegisterPage = () => {
       return;
     }
 
-    const { error: err } = await lovable.auth.signInWithOAuth(provider, {
+    try {
+    const { error: err } = await withDeadline(lovable.auth.signInWithOAuth(provider, {
       redirect_uri: window.location.origin,
-    });
+    }));
     if (err) setError(err.message);
+    } catch { setError("Anmeldung momentan nicht erreichbar. Bitte erneut laden."); }
   };
 
   const canProceed = () => {
