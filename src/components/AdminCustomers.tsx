@@ -104,8 +104,8 @@ const AdminCustomers = () => {
     const ticketTypes = ttRes.data || [];
 
     const eventsMap = new Map(events.map((e: any) => [e.id, { title: e.title, date: e.date }]));
-    const tagMap = new Map(allTagsData.map((t: any) => [t.id, t]));
-    const ttMap = new Map(ticketTypes.map((tt: any) => [tt.id, tt.name]));
+    const tagMap = new Map<string, { id: string; name: string; color: string }>(allTagsData.map((t: any) => [t.id, t]));
+    const ttMap = new Map<string, string>(ticketTypes.map((tt: any) => [tt.id, tt.name]));
 
     // Build subscriber tag map
     const subTagMap = new Map<string, { id: string; name: string; color: string }[]>();
