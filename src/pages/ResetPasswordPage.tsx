@@ -5,6 +5,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { Lock, Eye, EyeOff, Check } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import { getSessionBounded } from "@/lib/authSession";
+import { withDeadline } from "@/lib/readDeadline";
 
 const ResetPasswordPage = () => {
   const { lang } = useI18n();
@@ -46,7 +47,8 @@ const ResetPasswordPage = () => {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    try {
+    const { error } = await withDeadline(supabase.auth.updateUser({ password }));
 
     if (error) {
       setError(error.message);
@@ -54,7 +56,8 @@ const ResetPasswordPage = () => {
       setSuccess(true);
       setTimeout(() => navigate("/login"), 3000);
     }
-    setSubmitting(false);
+    } catch { setError("Passwortänderung konnte nicht bestätigt werden. Bitte Seite neu laden."); }
+    finally { setSubmitting(false); }
   };
 
   if (!validSession) {
@@ -65,9 +68,10 @@ const ResetPasswordPage = () => {
             {lang === "de" ? "UNGÜLTIGER LINK" : "INVALID LINK"}
           </h1>
           <p className="text-muted-foreground mb-6">
+            {error || (
             {lang === "de"
               ? "Dieser Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an."
-              : "This link is invalid or expired. Please request a new one."}
+              : "This link is invalid or expired. Please request a new one.")}
           </p>
           <Link to="/passwort-vergessen" className="text-primary hover:underline">
             {lang === "de" ? "Neuen Link anfordern" : "Request new link"}

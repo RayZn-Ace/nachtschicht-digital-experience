@@ -8,6 +8,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { isNativeApp } from "@/lib/native";
 import { startNativeOAuth } from "@/lib/nativeOAuth";
 import { Button } from "@/components/ui/button";
+import { withDeadline } from "@/lib/readDeadline";
 
 const LoginPage = () => {
   const { user, isAdmin, signIn, loading, authError } = useAuth();
@@ -65,11 +66,13 @@ const LoginPage = () => {
       return;
     }
 
-    const { error: oauthError } = await lovable.auth.signInWithOAuth(provider, {
+    try {
+    const { error: oauthError } = await withDeadline(lovable.auth.signInWithOAuth(provider, {
       redirect_uri: window.location.origin,
-    });
+    }));
 
     if (oauthError) setError(oauthError.message);
+    } catch { setError("Anmeldung momentan nicht erreichbar. Bitte erneut laden."); }
   };
 
   return (

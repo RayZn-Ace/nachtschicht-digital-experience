@@ -12,6 +12,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { Progress } from "@/components/ui/progress";
 import { isNativeApp } from "@/lib/native";
 import { startNativeOAuth } from "@/lib/nativeOAuth";
+import { withDeadline } from "@/lib/readDeadline";
 
 const STEPS = 5;
 
@@ -108,7 +109,8 @@ const RegisterPage = () => {
     setError("");
     setSubmitting(true);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    try {
+    const { data, error: signUpError } = await withDeadline(supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -119,7 +121,7 @@ const RegisterPage = () => {
           salutation: form.salutation,
         },
       },
-    });
+    }));
 
     if (signUpError) {
       if (signUpError.message.includes("already registered")) {
@@ -145,7 +147,8 @@ const RegisterPage = () => {
     }
 
     setDone(true);
-    setSubmitting(false);
+    } catch { setError("Registrierung konnte nicht bestätigt werden. Bitte Seite neu laden; keine automatische Wiederholung."); }
+    finally { setSubmitting(false); }
   };
 
   const nextStep = () => {
