@@ -99,6 +99,14 @@ Deno.serve(async (req) => {
     }
 
     if (payment.status === "paid") {
+      // Remember payment link for later refunds (non-blocking)
+      try {
+        await adminClient.from("ticket_payments").upsert(
+          ticketIds.map((id) => ({ ticket_id: id, mollie_payment_id: paymentId })),
+          { onConflict: "ticket_id", ignoreDuplicates: true },
+        );
+      } catch (e) { console.error("ticket_payments link failed", e); }
+
       // Update tickets to confirmed
       const { error: updateErr } = await adminClient
         .from("tickets")

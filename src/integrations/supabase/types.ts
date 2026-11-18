@@ -1380,6 +1380,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_payments: {
+        Row: {
+          created_at: string
+          mollie_payment_id: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          mollie_payment_id: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          mollie_payment_id?: string
+          ticket_id?: string
+        }
+        Relationships: []
+      }
+      ticket_refunds: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          mollie_payment_id: string
+          mollie_refund_id: string | null
+          requested_by: string
+          status: string
+          ticket_ids: string[]
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          mollie_payment_id: string
+          mollie_refund_id?: string | null
+          requested_by: string
+          status: string
+          ticket_ids: string[]
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          mollie_payment_id?: string
+          mollie_refund_id?: string | null
+          requested_by?: string
+          status?: string
+          ticket_ids?: string[]
+        }
+        Relationships: []
+      }
       ticket_types: {
         Row: {
           created_at: string

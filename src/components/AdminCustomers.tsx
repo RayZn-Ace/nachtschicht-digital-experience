@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { fetchCompleteResult } from "@/lib/fetchCompleteResult";
 import { toast } from "sonner";
-import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag, ArrowUpDown, ArrowUp, ArrowDown, Filter, Ticket, Send, FileText, Loader2, Copy } from "lucide-react";
+import { Search, Upload, Download, ChevronDown, ChevronUp, X, Check, UserCheck, UserX, Mail, Euro, Tag, ArrowUpDown, ArrowUp, ArrowDown, Filter, Ticket, Send, FileText, Loader2, Copy, Undo2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +61,7 @@ const AdminCustomers = () => {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [resendingTicket, setResendingTicket] = useState<string | null>(null);
+  const [refundingTicket, setRefundingTicket] = useState<string | null>(null);
   const [downloadingTicket, setDownloadingTicket] = useState<string | null>(null);
 
   const TARGET_FIELDS = [
@@ -281,6 +282,27 @@ const AdminCustomers = () => {
       toast.error("Fehler beim Senden: " + (err.message || "Unbekannter Fehler"));
     }
     setResendingTicket(null);
+  };
+
+  // Refund ticket via Mollie
+  const handleRefundTicket = async (ticket: { id: string; total_price: number; eventTitle: string }) => {
+    if (!confirm(`${ticket.total_price.toFixed(2)} € über Mollie an den Kunden zurückerstatten?\n\nDas Ticket wird danach storniert und eine Stornorechnung erstellt (falls Rechnung vorhanden).\nDas kann nicht rückgängig gemacht werden.`)) return;
+    setRefundingTicket(ticket.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("refund-ticket", { body: { ticket_ids: [ticket.id] } });
+      if (error) {
+        let msg = error.message;
+        try { const b = await (error as any).context?.json?.(); if (b?.error) msg = b.error; } catch { /* keep message */ }
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
+      if (data?.cancelled) toast.success(`${Number(data.amount).toFixed(2)} € erstattet – Ticket storniert`);
+      else toast.warning(`${Number(data.amount).toFixed(2)} € bei Mollie erstattet, aber Stornierung fehlgeschlagen – bitte im Ticketcenter stornieren`);
+      fetchCustomers();
+    } catch (err: any) {
+      toast.error("Erstattung fehlgeschlagen: " + (err.message || "Unbekannt"));
+    }
+    setRefundingTicket(null);
   };
 
   // Download ticket PDF
@@ -712,6 +734,21 @@ const AdminCustomers = () => {
                                       }
                                       PDF
                                     </Button>
+                                    {ticket.status === "confirmed" && ticket.total_price > 0 && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs h-8 text-destructive border-destructive/40 hover:bg-destructive/10"
+                                        disabled={refundingTicket === ticket.id}
+                                        onClick={(e) => { e.stopPropagation(); handleRefundTicket(ticket); }}
+                                      >
+                                        {refundingTicket === ticket.id
+                                          ? <Loader2 size={12} className="animate-spin mr-1" />
+                                          : <Undo2 size={12} className="mr-1" />
+                                        }
+                                        Rückerstatten
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               ))}
