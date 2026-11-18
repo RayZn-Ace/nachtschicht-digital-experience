@@ -34,8 +34,32 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const ids: string[] = Array.isArray(body?.ticket_ids) ? [...new Set(body.ticket_ids as string[])] : [];
-    if (ids.length < 1 || ids.length > 50 || !ids.every((i) => typeof i === "string" && UUID.test(i))) {
+    if (ids.length < 1 || ids.length > 200 || !ids.every((i) => typeof i === "string" && UUID.test(i))) {
       return json({ error: "Ungültige Ticketauswahl" }, 400);
+    }
+
+    if (body?.action === "status") {
+      const { data: recs } = await admin.from("ticket_refunds")
+        .select("id,ticket_ids,amount,status,mollie_payment_id,mollie_refund_id,error_message,created_at")
+        .overlaps("ticket_ids", ids).order("created_at", { ascending: false }).limit(50);
+      const out = [];
+      for (const r of recs || []) {
+        let live: string = r.status;
+        let checked = false;
+        if (r.mollie_refund_id && !["refunded", "failed", "canceled"].includes(r.status)) {
+          const lr = await fetch(`${MOLLIE}/payments/${r.mollie_payment_id}/refunds/${r.mollie_refund_id}`, { headers: { Authorization: `Bearer ${mollieKey}` } });
+          if (lr.ok) {
+            const d = await lr.json();
+            checked = true;
+            if (d.status && d.status !== r.status) {
+              live = d.status;
+              await admin.from("ticket_refunds").update({ status: live }).eq("id", r.id);
+            }
+          } else console.error(`Mollie refund status failed [${lr.status}]`);
+        } else checked = !!r.mollie_refund_id;
+        out.push({ ticket_ids: r.ticket_ids, amount: r.amount, status: live, created_at: r.created_at, checked, error: r.status === "failed" ? "Von Mollie abgelehnt" : null });
+      }
+      return json({ refunds: out });
     }
 
     const { data: tickets, error: tErr } = await admin.from("tickets").select("*").in("id", ids);

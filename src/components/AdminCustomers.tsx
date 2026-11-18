@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { refundLabel, FINAL_REFUND_STATES } from "@/lib/refundStatus";
 
 interface TicketDetail {
   id: string;
@@ -63,6 +64,29 @@ const AdminCustomers = () => {
   const [resendingTicket, setResendingTicket] = useState<string | null>(null);
   const [refundingTicket, setRefundingTicket] = useState<string | null>(null);
   const [downloadingTicket, setDownloadingTicket] = useState<string | null>(null);
+  const [refundStates, setRefundStates] = useState<Record<string, { status: string; amount: number; checked: boolean }>>({});
+  const [refundPollTick, setRefundPollTick] = useState(0);
+
+  // Live refund status from Mollie for the opened customer
+  useEffect(() => {
+    if (!expandedEmail) return;
+    const cust = customers.find((c) => c.email === expandedEmail);
+    const ids = (cust?.tickets || []).map((t) => t.id).slice(0, 200);
+    if (ids.length === 0) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("refund-ticket", { body: { action: "status", ticket_ids: ids } });
+      if (!active || error || !data?.refunds) return;
+      const next: Record<string, { status: string; amount: number; checked: boolean }> = {};
+      for (const r of [...data.refunds].reverse()) for (const id of r.ticket_ids) next[id] = { status: r.status, amount: Number(r.amount), checked: r.checked };
+      setRefundStates((prev) => ({ ...prev, ...next }));
+      if (Object.values(next).some((r) => !FINAL_REFUND_STATES.includes(r.status))) {
+        timer = setTimeout(() => active && setRefundPollTick((n) => n + 1), 15000);
+      }
+    })();
+    return () => { active = false; if (timer) clearTimeout(timer); };
+  }, [expandedEmail, customers, refundPollTick]);
 
   const TARGET_FIELDS = [
     { key: "email", label: "E-Mail *", required: true },
@@ -298,7 +322,9 @@ const AdminCustomers = () => {
       if (data?.error) throw new Error(data.error);
       if (data?.cancelled) toast.success(`${Number(data.amount).toFixed(2)} € erstattet – Ticket storniert`);
       else toast.warning(`${Number(data.amount).toFixed(2)} € bei Mollie erstattet, aber Stornierung fehlgeschlagen – bitte im Ticketcenter stornieren`);
+      setRefundStates((prev) => ({ ...prev, [ticket.id]: { status: data.refund_status || "queued", amount: Number(data.amount), checked: true } }));
       fetchCustomers();
+      setRefundPollTick((n) => n + 1);
     } catch (err: any) {
       toast.error("Erstattung fehlgeschlagen: " + (err.message || "Unbekannt"));
     }
@@ -688,6 +714,16 @@ const AdminCustomers = () => {
                                       )}
                                       <Badge variant="outline" className="text-[10px]">{ticket.quantity}× · {ticket.total_price.toFixed(2)}€</Badge>
                                     </div>
+                                    {refundStates[ticket.id] && (() => {
+                                      const r = refundStates[ticket.id];
+                                      const l = refundLabel(r.status);
+                                      return (
+                                        <div className={`mt-1 inline-flex items-center gap-1.5 text-xs font-medium ${l.tone === "ok" ? "text-primary" : l.tone === "bad" ? "text-destructive" : "text-muted-foreground"}`}>
+                                          {l.tone === "wait" ? <Loader2 size={12} className="animate-spin" /> : l.tone === "ok" ? <Check size={12} /> : <X size={12} />}
+                                          Erstattung {r.amount.toFixed(2)} €: {l.text}
+                                        </div>
+                                      );
+                                    })()}
                                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                                       <span>{new Date(ticket.eventDate).toLocaleDateString("de-DE")}</span>
                                       {ticket.qr_code && (
@@ -734,7 +770,7 @@ const AdminCustomers = () => {
                                       }
                                       PDF
                                     </Button>
-                                    {ticket.status === "confirmed" && ticket.total_price > 0 && (
+                                    {ticket.status === "confirmed" && ticket.total_price > 0 && (!refundStates[ticket.id] || refundStates[ticket.id].status === "failed") && (
                                       <Button
                                         variant="outline"
                                         size="sm"
