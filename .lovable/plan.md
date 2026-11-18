@@ -1,35 +1,26 @@
+# Mollie Nur-Lese-Prüfung (Ergebnis, kein Umsetzungsplan)
 
+Es ist nichts umzusetzen. Mit „Approve“ oder „Skip“ wird keine Änderung ausgeführt.
 
-## Problem
+## Laufzeit-Logs
+- create-mollie-payment, create-lounge-payment und mollie-webhook liefern keine Logeinträge.
+- Auch eine Abfrage der Aufrufprotokolle ergab für diese Funktionen keine Einträge, ebenso die allgemeinen Funktionslogs.
+- Unverifiziert: Ob es keine Aufrufe gab oder die Logs nicht mehr vorgehalten werden, ist nicht feststellbar. Erfolgreiche oder fehlgeschlagene Aufrufe lassen sich daraus nicht belegen.
 
-The `AdminTracking` component fetches the `tracking_config` row with `maybeSingle()`. If no row exists in the database, `config` stays `null` and the component either shows "Laden..." indefinitely or, if a row exists but the `update` only does an `UPDATE` (not `UPSERT`), changes never persist.
+## Schlüssel-Konfiguration
+- Ein Mollie-Schlüssel ist als Secret hinterlegt. Der Wert wurde nicht angezeigt.
 
-The root cause is that no initial row is being created in `tracking_config`. The component needs to auto-create a default row if none exists.
+## Lesender Mollie-Abruf
+- Abfrage der letzten 5 Zahlungen: HTTP 200, der Schlüssel funktioniert.
+- Modus: live.
+- Letzte Zahlungen (Zeit UTC, Status):
+  - 18.11. 13:02: offen
+  - 17.11. 17:40: bezahlt
+  - 17.11. 16:20: bezahlt
+  - 17.11. 16:13: abgelaufen
+  - 17.11. 12:41: bezahlt
+- Unverifiziert:
+  - Ob der Schlüssel in der Prüfumgebung exakt dem Schlüssel der veröffentlichten Funktionen entspricht.
+  - Ob die Webhooks diese Zahlungen verarbeitet haben.
 
-## Plan
-
-### 1. Fix `fetchConfig` in `AdminTracking.tsx`
-- After `maybeSingle()` returns `null`, insert a default row into `tracking_config` and use that as the initial config.
-- This ensures the toggles and fields are rendered and editable immediately.
-
-### 2. Code change (single file: `src/components/AdminTracking.tsx`)
-In `fetchConfig`, after the select query, if `data` is null:
-```typescript
-const fetchConfig = async () => {
-  setLoading(true);
-  let { data } = await supabase.from("tracking_config").select("*").limit(1).maybeSingle();
-  if (!data) {
-    const { data: inserted } = await supabase
-      .from("tracking_config")
-      .insert({})
-      .select()
-      .single();
-    data = inserted;
-  }
-  if (data) setConfig(data as any);
-  setLoading(false);
-};
-```
-
-This single change ensures a config row always exists, making the toggles functional.
-
+Es wurden keine Codes, Secrets, Daten oder Zahlungen verändert oder ausgelöst.
